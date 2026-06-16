@@ -1,0 +1,28 @@
+name: Peek
+options:
+  bundleIdPrefix: com.peek
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.0"
+targets:
+  Peek:
+    type: application
+    platform: macOS
+    sources:
+      - path: Peek
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peek.Peek
+        PRODUCT_NAME: Peek
+        INFOPLIST_FILE: Peek/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+        DEAD_CODE_STRIPPING: YES
