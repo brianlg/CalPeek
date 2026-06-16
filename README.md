@@ -1,6 +1,6 @@
 # Peek
 
-A minimal macOS menu bar calendar. Click the menu bar glyph to peek at a Fantastical-style month view; right-click for settings.
+A minimal macOS menu bar calendar. Click the menu bar glyph to peek at a compact month view; right-click for settings.
 
 ## Features
 

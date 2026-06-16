@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Fantastical-style month calendar shown in the popover. Fixed 300pt wide,
-/// adapts to light/dark automatically, and keeps a stable height by always
-/// laying out six week rows of fixed height.
+/// Compact month calendar shown in the popover. Fixed 300pt wide, adapts to
+/// light/dark automatically, and keeps a stable height by always laying out
+/// six week rows of fixed height.
 struct CalendarPopoverView: View {
     /// Months away from the current month. Chevrons shift it; "Today" resets it.
     @State private var monthOffset = 0
