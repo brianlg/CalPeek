@@ -2,23 +2,28 @@ import AppKit
 import SwiftUI
 
 /// Owns the menu bar status item and the calendar popover.
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
 
-    /// Fixed width for the status item. Wide enough for the widest weekday
-    /// abbreviation (e.g. "WED") while keeping the glyph centered.
-    private let statusItemWidth: CGFloat = 30
+    private var refreshTimer: Timer?
+    private var appearanceObservation: NSKeyValueObservation?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configurePopover()
         configureStatusItem()
+        startRefreshTimer()
+        observeAppearanceChanges()
     }
 
     // MARK: - Status item
 
     private func configureStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: statusItemWidth)
+        // `variableLength` sizes the item to its `button.image`. Combined with
+        // an image (vs. a SwiftUI hosting subview), this lets the button cell
+        // draw the standard menu bar item chip highlight on click.
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
         guard let button = statusItem.button else { return }
         button.target = self
@@ -28,18 +33,59 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.toolTip = "Peek"
 
-        // Host the SwiftUI glyph inside the button. `StatusItemHostingView`
-        // forwards clicks to the button so its action still fires, and the
-        // SwiftUI view inherits the menu bar's appearance for light/dark.
-        let hosting = StatusItemHostingView(rootView: MenuBarIconView())
-        hosting.translatesAutoresizingMaskIntoConstraints = false
-        button.addSubview(hosting)
-        NSLayoutConstraint.activate([
-            hosting.topAnchor.constraint(equalTo: button.topAnchor),
-            hosting.bottomAnchor.constraint(equalTo: button.bottomAnchor),
-            hosting.leadingAnchor.constraint(equalTo: button.leadingAnchor),
-            hosting.trailingAnchor.constraint(equalTo: button.trailingAnchor),
-        ])
+        refreshIcon()
+    }
+
+    // MARK: - Icon rendering
+
+    /// Rasterizes `MenuBarIconView` to an `NSImage` and assigns it as the
+    /// status item button's image. Non-template so the weekday color preset
+    /// is preserved; the button cell draws the standard click chip behind it.
+    private func refreshIcon() {
+        guard let button = statusItem?.button else { return }
+
+        // Match the menu bar's appearance (which may differ from the rest of
+        // the app, e.g. with wallpaper-tinted menu bars in macOS 14+) so
+        // `.primary` and `.secondary` resolve to the right tone.
+        let colorScheme: ColorScheme = {
+            let match = button.effectiveAppearance.bestMatch(
+                from: [.darkAqua, .vibrantDark, .aqua, .vibrantLight]
+            )
+            return (match == .darkAqua || match == .vibrantDark) ? .dark : .light
+        }()
+
+        let view = MenuBarIconView(date: Date(), weekdayColor: currentWeekdayColor.color)
+            .environment(\.colorScheme, colorScheme)
+
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = button.window?.backingScaleFactor
+            ?? NSScreen.main?.backingScaleFactor
+            ?? 2.0
+
+        guard let image = renderer.nsImage else { return }
+        image.isTemplate = false
+        button.image = image
+    }
+
+    private func startRefreshTimer() {
+        // Refresh once a minute so the day number rolls over at midnight.
+        // The Timer fires on the main run loop; `assumeIsolated` lets us call
+        // the `@MainActor`-isolated renderer synchronously without a hop.
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.refreshIcon()
+            }
+        }
+    }
+
+    private func observeAppearanceChanges() {
+        // Re-render when the menu bar switches light/dark, so secondary and
+        // primary text remain legible against the new background.
+        appearanceObservation = statusItem?.button?.observe(\.effectiveAppearance) { [weak self] _, _ in
+            MainActor.assumeIsolated {
+                self?.refreshIcon()
+            }
+        }
     }
 
     // MARK: - Popover
@@ -129,6 +175,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func selectWeekdayColor(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String else { return }
         UserDefaults.standard.set(raw, forKey: WeekdayColor.defaultsKey)
+        refreshIcon()
     }
 
     @objc private func quit() {
