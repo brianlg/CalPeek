@@ -22,7 +22,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         guard let button = statusItem.button else { return }
         button.target = self
-        button.action = #selector(togglePopover(_:))
+        button.action = #selector(statusItemClicked(_:))
+        // Receive both mouse buttons so right-click can open the context menu
+        // while left-click continues to toggle the popover.
+        button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.toolTip = "Peek"
 
         // Host the SwiftUI glyph inside the button. `StatusItemHostingView`
@@ -51,7 +54,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    @objc private func togglePopover(_ sender: Any?) {
+    @objc private func statusItemClicked(_ sender: Any?) {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showContextMenu()
+        } else {
+            togglePopover(sender)
+        }
+    }
+
+    private func togglePopover(_ sender: Any?) {
         if popover.isShown {
             popover.performClose(sender)
         } else {
@@ -60,5 +71,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // Bring the popover's window forward so it can receive key events.
             popover.contentViewController?.view.window?.makeKey()
         }
+    }
+
+    // MARK: - Context menu
+
+    /// Attaches a menu to the status item just long enough to display it, then
+    /// detaches it so left-clicks resume reaching `statusItemClicked(_:)`
+    /// instead of opening the menu.
+    private func showContextMenu() {
+        statusItem.menu = makeContextMenu()
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    private func makeContextMenu() -> NSMenu {
+        let menu = NSMenu()
+
+        let colorItem = NSMenuItem(title: "Weekday Color", action: nil, keyEquivalent: "")
+        colorItem.submenu = makeWeekdayColorMenu()
+        menu.addItem(colorItem)
+
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(
+            title: "Quit Peek",
+            action: #selector(quit),
+            keyEquivalent: "q"
+        )
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        return menu
+    }
+
+    private func makeWeekdayColorMenu() -> NSMenu {
+        let menu = NSMenu()
+        let current = currentWeekdayColor
+        for option in WeekdayColor.allCases {
+            let item = NSMenuItem(
+                title: option.displayName,
+                action: #selector(selectWeekdayColor(_:)),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.representedObject = option.rawValue
+            item.state = (option == current) ? .on : .off
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    private var currentWeekdayColor: WeekdayColor {
+        let raw = UserDefaults.standard.string(forKey: WeekdayColor.defaultsKey)
+        return raw.flatMap(WeekdayColor.init(rawValue:)) ?? .auto
+    }
+
+    @objc private func selectWeekdayColor(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String else { return }
+        UserDefaults.standard.set(raw, forKey: WeekdayColor.defaultsKey)
+    }
+
+    @objc private func quit() {
+        NSApp.terminate(nil)
     }
 }

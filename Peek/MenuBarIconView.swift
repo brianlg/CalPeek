@@ -5,6 +5,7 @@ import SwiftUI
 /// date always reflects the current day (and rolls over at midnight).
 struct MenuBarIconView: View {
     @State private var date = Date()
+    @AppStorage(WeekdayColor.defaultsKey) private var weekdayColorRaw = WeekdayColor.auto.rawValue
 
     /// Fires once a minute on the main run loop.
     private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
@@ -24,11 +25,15 @@ struct MenuBarIconView: View {
         String(Calendar.current.component(.day, from: date))
     }
 
+    private var weekdayColor: Color {
+        WeekdayColor(rawValue: weekdayColorRaw)?.color ?? WeekdayColor.auto.color
+    }
+
     var body: some View {
         VStack(spacing: -1) {
             Text(weekday)
                 .font(.system(size: 7, weight: .bold))
-                .foregroundColor(Color(red: 1, green: 0.23, blue: 0.19))
+                .foregroundColor(weekdayColor)
             Text(day)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
