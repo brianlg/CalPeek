@@ -30,7 +30,9 @@ struct CalendarPopoverView: View {
     /// Controls presentation of the scrolling year picker popover.
     @State private var isYearPickerPresented = false
 
-    /// macOS accent red — respects a system accent override.
+    /// Calendar-style red used for the "today" circle and the year picker
+    /// selection, matching Apple's Calendar app regardless of the user's
+    /// system accent color.
     private let accent = Color(nsColor: .systemRed)
     
     // MARK: - Cached Formatters
