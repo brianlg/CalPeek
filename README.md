@@ -12,8 +12,8 @@ A minimal macOS menu bar calendar. Click the menu bar glyph to peek at a compact
 
 ## Requirements
 
-- macOS 26 (Tahoe) or later
-- Xcode 26 or later
+- macOS 14.6 or later
+- Xcode 16 or later
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the Xcode project from `project.yml`
 
 ## Building
