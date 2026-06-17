@@ -23,14 +23,14 @@ enum WeekdayColor: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .auto: return "Automatic"
-        case .red: return "Red"
-        case .orange: return "Orange"
-        case .yellow: return "Yellow"
-        case .green: return "Green"
-        case .blue: return "Blue"
-        case .purple: return "Purple"
-        case .gray: return "Gray"
+        case .auto: return String(localized: "Automatic")
+        case .red: return String(localized: "Red")
+        case .orange: return String(localized: "Orange")
+        case .yellow: return String(localized: "Yellow")
+        case .green: return String(localized: "Green")
+        case .blue: return String(localized: "Blue")
+        case .purple: return String(localized: "Purple")
+        case .gray: return String(localized: "Gray")
         }
     }
 

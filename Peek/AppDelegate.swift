@@ -17,6 +17,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeAppearanceChanges()
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
+        appearanceObservation?.invalidate()
+        appearanceObservation = nil
+    }
+
     // MARK: - Status item
 
     private func configureStatusItem() {
@@ -25,13 +32,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // draw the standard menu bar item chip highlight on click.
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
 
-        guard let button = statusItem.button else { return }
+        guard let button = statusItem.button else {
+            assertionFailure("Failed to create status item button - menu bar may be full")
+            return
+        }
         button.target = self
         button.action = #selector(statusItemClicked(_:))
         // Receive both mouse buttons so right-click can open the context menu
         // while left-click continues to toggle the popover.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        button.toolTip = "Peek"
+        button.toolTip = String(localized: "Peek")
 
         refreshIcon()
     }
@@ -42,7 +52,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// status item button's image. Non-template so the weekday color preset
     /// is preserved; the button cell draws the standard click chip behind it.
     private func refreshIcon() {
-        guard let button = statusItem?.button else { return }
+        guard let button = statusItem?.button else {
+            assertionFailure("Status item button is unexpectedly nil during icon refresh")
+            return
+        }
 
         // Match the menu bar's appearance (which may differ from the rest of
         // the app, e.g. with wallpaper-tinted menu bars in macOS 14+) so
@@ -62,20 +75,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             ?? NSScreen.main?.backingScaleFactor
             ?? 2.0
 
-        guard let image = renderer.nsImage else { return }
+        guard let image = renderer.nsImage else {
+            assertionFailure("Failed to render menu bar icon image")
+            return
+        }
         image.isTemplate = false
         button.image = image
     }
 
     private func startRefreshTimer() {
         // Refresh once a minute so the day number rolls over at midnight.
+        // Schedule on common run loop modes so it fires even during scrolling
+        // and modal interactions (e.g., menu open).
         // The Timer fires on the main run loop; `assumeIsolated` lets us call
         // the `@MainActor`-isolated renderer synchronously without a hop.
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 self?.refreshIcon()
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        refreshTimer = timer
     }
 
     private func observeAppearanceChanges() {
@@ -91,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Popover
 
     private func configurePopover() {
+        // Size matches CalendarPopoverView.Layout constants
         popover.contentSize = NSSize(width: 300, height: 340)
         popover.behavior = .transient // auto-closes when clicking outside
         popover.animates = true
@@ -112,7 +133,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if popover.isShown {
             popover.performClose(sender)
         } else {
-            guard let button = statusItem.button else { return }
+            guard let button = statusItem.button else {
+                assertionFailure("Cannot show popover - status item button is nil")
+                return
+            }
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             // Bring the popover's window forward so it can receive key events.
             popover.contentViewController?.view.window?.makeKey()
@@ -133,14 +157,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeContextMenu() -> NSMenu {
         let menu = NSMenu()
 
-        let colorItem = NSMenuItem(title: "Weekday Color", action: nil, keyEquivalent: "")
+        let colorItem = NSMenuItem(title: String(localized: "Weekday Color"), action: nil, keyEquivalent: "")
         colorItem.submenu = makeWeekdayColorMenu()
         menu.addItem(colorItem)
 
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: "Quit Peek",
+            title: String(localized: "Quit Peek"),
             action: #selector(quit),
             keyEquivalent: "q"
         )

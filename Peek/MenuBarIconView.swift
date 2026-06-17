@@ -35,5 +35,7 @@ struct MenuBarIconView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(weekday), \(String(localized: "day \(day)"))")
     }
 }
