@@ -34,6 +34,8 @@ struct CalendarPopoverView: View {
     @StateObject private var events = CalendarEventsModel()
     /// The day whose events popover is currently open, if any.
     @State private var selectedDate: Date?
+    /// The day currently under the pointer, for the hover highlight.
+    @State private var hoveredDate: Date?
 
     /// Calendar-style red used for the "today" circle and the year picker
     /// selection, matching Apple's Calendar app regardless of the user's
@@ -77,6 +79,7 @@ struct CalendarPopoverView: View {
         }
         .onChange(of: monthOffset) {
             selectedDate = nil
+            hoveredDate = nil
             events.load(days: monthDays, calendar: calendar)
         }
     }
@@ -204,6 +207,8 @@ struct CalendarPopoverView: View {
         let isToday = calendar.isDateInToday(date)
         let inMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
         let hasEvent = events.hasEvents(on: date, calendar: calendar)
+        let isSelected = isSameDay(selectedDate, date)
+        let isHovered = isSameDay(hoveredDate, date)
 
         return VStack(spacing: 2) {
             Text(String(calendar.component(.day, from: date)))
@@ -211,9 +216,7 @@ struct CalendarPopoverView: View {
                 .foregroundStyle(isToday ? Color.white : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
                 .frame(maxWidth: .infinity)
                 .background {
-                    if isToday {
-                        Circle().fill(accent).frame(width: Layout.todayCircleSize, height: Layout.todayCircleSize)
-                    }
+                    dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
                 }
 
             // Reserve the dot's space on every cell so row height stays stable.
@@ -224,6 +227,15 @@ struct CalendarPopoverView: View {
         .frame(height: Layout.rowHeight)
         .contentShape(Rectangle())
         .onTapGesture { toggleSelection(date) }
+        .onHover { hovering in
+            if hovering {
+                hoveredDate = date
+            } else if isSameDay(hoveredDate, date) {
+                hoveredDate = nil
+            }
+        }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .animation(.easeOut(duration: 0.12), value: isSelected)
         .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
             DayEventsPopover(
                 date: date,
@@ -231,6 +243,29 @@ struct CalendarPopoverView: View {
                 accent: accent
             )
         }
+    }
+
+    /// Circular highlight behind a day number. Precedence: today (filled accent)
+    /// over the selected day (system grey selection fill) over hover (faint
+    /// fill). Sizes all states to the same circle so they swap without shifting
+    /// the layout.
+    @ViewBuilder
+    private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
+        let size = Layout.todayCircleSize
+        if isToday {
+            Circle().fill(accent).frame(width: size, height: size)
+        } else if isSelected {
+            // Apple's standard grey for selected, unemphasized content —
+            // adapts to light and dark mode automatically.
+            Circle().fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+                .frame(width: size, height: size)
+        } else if isHovered {
+            Circle().fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
+        }
+    }
+
+    private func isSameDay(_ lhs: Date?, _ rhs: Date) -> Bool {
+        lhs.map { calendar.isDate($0, inSameDayAs: rhs) } ?? false
     }
 
     private func eventDotColor(isToday: Bool, inMonth: Bool, hasEvent: Bool) -> Color {
@@ -242,17 +277,13 @@ struct CalendarPopoverView: View {
     // MARK: - Day selection
 
     private func toggleSelection(_ date: Date) {
-        if let selectedDate, calendar.isDate(selectedDate, inSameDayAs: date) {
-            self.selectedDate = nil
-        } else {
-            selectedDate = date
-        }
+        selectedDate = isSameDay(selectedDate, date) ? nil : date
     }
 
     /// Per-cell presentation binding so the popover anchors to the tapped day.
     private func selectionBinding(for date: Date) -> Binding<Bool> {
         Binding(
-            get: { selectedDate.map { calendar.isDate($0, inSameDayAs: date) } ?? false },
+            get: { isSameDay(selectedDate, date) },
             set: { isPresented in if !isPresented { selectedDate = nil } }
         )
     }
