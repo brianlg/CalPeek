@@ -15,6 +15,7 @@ struct CalendarPopoverView: View {
         static let numberOfWeeks = 6
         static let totalDays = daysPerWeek * numberOfWeeks // 42
         static let todayCircleSize: CGFloat = 32
+        static let eventDotSize: CGFloat = 4
         static let headerSpacing: CGFloat = 5
         static let contentSpacing: CGFloat = 12
     }
@@ -29,6 +30,12 @@ struct CalendarPopoverView: View {
     @FocusState private var isFocused: Bool
     /// Controls presentation of the scrolling year picker popover.
     @State private var isYearPickerPresented = false
+    /// Read-only source of which displayed days have calendar events.
+    @StateObject private var events = CalendarEventsModel()
+    /// The day whose events popover is currently open, if any.
+    @State private var selectedDate: Date?
+    /// The day currently under the pointer, for the hover highlight.
+    @State private var hoveredDate: Date?
 
     /// Calendar-style red used for the "today" circle and the year picker
     /// selection, matching Apple's Calendar app regardless of the user's
@@ -45,12 +52,9 @@ struct CalendarPopoverView: View {
         return formatter
     }()
 
-    /// Sunday-first calendar so the grid and the S–S header always align.
-    private var calendar: Calendar {
-        var calendar = Calendar.current
-        calendar.firstWeekday = 1
-        return calendar
-    }
+    /// The user's calendar, honoring their system "first day of week" setting so
+    /// the grid aligns with Apple's Calendar app and the current region.
+    private var calendar: Calendar { Calendar.current }
 
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 0), count: Layout.daysPerWeek)
@@ -69,7 +73,15 @@ struct CalendarPopoverView: View {
         .focusEffectDisabled()
         .onKeyPress(.leftArrow) { changeMonth(by: -1); return .handled }
         .onKeyPress(.rightArrow) { changeMonth(by: 1); return .handled }
-        .onAppear { isFocused = true }
+        .onAppear {
+            isFocused = true
+            events.load(days: monthDays, calendar: calendar)
+        }
+        .onChange(of: monthOffset) {
+            selectedDate = nil
+            hoveredDate = nil
+            events.load(days: monthDays, calendar: calendar)
+        }
     }
 
     // MARK: - Header
@@ -154,10 +166,15 @@ struct CalendarPopoverView: View {
         // Weekday short symbols repeat across the week ("S" for Sun/Sat,
         // "T" for Tue/Thu in en), so they can't serve as stable IDs. Index
         // the row by column position instead.
+        //
+        // `veryShortWeekdaySymbols` is always Sunday-first, so rotate it to
+        // match the calendar's `firstWeekday` and the day grid below.
         let symbols = calendar.veryShortWeekdaySymbols
+        let shift = calendar.firstWeekday - 1
+        let ordered = Array(symbols[shift...] + symbols[..<shift])
         return LazyVGrid(columns: columns, spacing: 0) {
-            ForEach(symbols.indices, id: \.self) { index in
-                Text(symbols[index])
+            ForEach(ordered.indices, id: \.self) { index in
+                Text(ordered[index])
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color.secondary)
                     .frame(maxWidth: .infinity)
@@ -189,17 +206,86 @@ struct CalendarPopoverView: View {
     private func dayCell(for date: Date) -> some View {
         let isToday = calendar.isDateInToday(date)
         let inMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
+        let hasEvent = events.hasEvents(on: date, calendar: calendar)
+        let isSelected = isSameDay(selectedDate, date)
+        let isHovered = isSameDay(hoveredDate, date)
 
-        return Text(String(calendar.component(.day, from: date)))
-            .font(.system(size: 15, weight: isToday ? .semibold : .regular))
-            .foregroundStyle(isToday ? Color.white : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
-            .frame(maxWidth: .infinity)
-            .frame(height: Layout.rowHeight)
-            .background {
-                if isToday {
-                    Circle().fill(accent).frame(width: Layout.todayCircleSize, height: Layout.todayCircleSize)
+        return VStack(spacing: 2) {
+            Text(String(calendar.component(.day, from: date)))
+                .font(.system(size: 15, weight: isToday ? .semibold : .regular))
+                .foregroundStyle(isToday ? Color.white : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
+                .frame(maxWidth: .infinity)
+                .background {
+                    dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
                 }
+
+            // Reserve the dot's space on every cell so row height stays stable.
+            Circle()
+                .fill(eventDotColor(isToday: isToday, inMonth: inMonth, hasEvent: hasEvent))
+                .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
+        }
+        .frame(height: Layout.rowHeight)
+        .contentShape(Rectangle())
+        .onTapGesture { toggleSelection(date) }
+        .onHover { hovering in
+            if hovering {
+                hoveredDate = date
+            } else if isSameDay(hoveredDate, date) {
+                hoveredDate = nil
             }
+        }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .animation(.easeOut(duration: 0.12), value: isSelected)
+        .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
+            DayEventsPopover(
+                date: date,
+                events: events.events(on: date, calendar: calendar),
+                accent: accent
+            )
+        }
+    }
+
+    /// Circular highlight behind a day number. Precedence: today (filled accent)
+    /// over the selected day (system grey selection fill) over hover (faint
+    /// fill). Sizes all states to the same circle so they swap without shifting
+    /// the layout.
+    @ViewBuilder
+    private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
+        let size = Layout.todayCircleSize
+        if isToday {
+            Circle().fill(accent).frame(width: size, height: size)
+        } else if isSelected {
+            // Apple's standard grey for selected, unemphasized content —
+            // adapts to light and dark mode automatically.
+            Circle().fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+                .frame(width: size, height: size)
+        } else if isHovered {
+            Circle().fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
+        }
+    }
+
+    private func isSameDay(_ lhs: Date?, _ rhs: Date) -> Bool {
+        lhs.map { calendar.isDate($0, inSameDayAs: rhs) } ?? false
+    }
+
+    private func eventDotColor(isToday: Bool, inMonth: Bool, hasEvent: Bool) -> Color {
+        guard hasEvent else { return .clear }
+        if isToday { return accent }
+        return inMonth ? .secondary : Color.secondary.opacity(0.4)
+    }
+
+    // MARK: - Day selection
+
+    private func toggleSelection(_ date: Date) {
+        selectedDate = isSameDay(selectedDate, date) ? nil : date
+    }
+
+    /// Per-cell presentation binding so the popover anchors to the tapped day.
+    private func selectionBinding(for date: Date) -> Binding<Bool> {
+        Binding(
+            get: { isSameDay(selectedDate, date) },
+            set: { isPresented in if !isPresented { selectedDate = nil } }
+        )
     }
 
     // MARK: - Actions
@@ -360,6 +446,72 @@ private struct YearPickerPopover: View {
         }
         .buttonStyle(.plain)
         .id(year)
+    }
+}
+
+/// Popover listing a single day's events, presented when a day cell is tapped.
+/// Shows a colored dot per event's calendar, its start time (or "all-day"), and
+/// its title. Falls back to "No Events" when the day is empty.
+private struct DayEventsPopover: View {
+    let date: Date
+    let events: [DayEvent]
+    let accent: Color
+
+    private enum Layout {
+        static let width: CGFloat = 240
+        static let maxListHeight: CGFloat = 240
+    }
+
+    private static let headerFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, MMMM d"
+        return formatter
+    }()
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(Self.headerFormatter.string(from: date))
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
+
+            if events.isEmpty {
+                Text(String(localized: "No Events"))
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ForEach(events) { event in
+                            eventRow(event)
+                        }
+                    }
+                }
+                .frame(maxHeight: Layout.maxListHeight)
+            }
+        }
+        .padding(14)
+        .frame(width: Layout.width)
+    }
+
+    private func eventRow(_ event: DayEvent) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Circle()
+                .fill(event.color)
+                .frame(width: 8, height: 8)
+                .padding(.top, 3)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(event.title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                Text(event.timeText)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: 0)
+        }
     }
 }
 
