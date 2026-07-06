@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import SwiftUI
 
 /// Owns the menu bar status item and the calendar popover.
@@ -7,19 +8,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
 
-    private var refreshTimer: Timer?
+    private var dateChangeObservers: [NSObjectProtocol] = []
     private var appearanceObservation: NSKeyValueObservation?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configurePopover()
         configureStatusItem()
-        startRefreshTimer()
+        observeDateChanges()
         observeAppearanceChanges()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        refreshTimer?.invalidate()
-        refreshTimer = nil
+        dateChangeObservers.forEach(NotificationCenter.default.removeObserver)
+        dateChangeObservers = []
         appearanceObservation?.invalidate()
         appearanceObservation = nil
     }
@@ -83,19 +84,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.image = image
     }
 
-    private func startRefreshTimer() {
-        // Refresh once a minute so the day number rolls over at midnight.
-        // Schedule on common run loop modes so it fires even during scrolling
-        // and modal interactions (e.g., menu open).
-        // The Timer fires on the main run loop; `assumeIsolated` lets us call
-        // the `@MainActor`-isolated renderer synchronously without a hop.
-        let timer = Timer(timeInterval: 60, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.refreshIcon()
+    private func observeDateChanges() {
+        // `NSCalendarDayChanged` covers the midnight rollover (including after
+        // wake from sleep); clock and time zone changes can also move the
+        // displayed date. Delivered on the main queue so the `@MainActor`
+        // renderer can be called synchronously via `assumeIsolated`.
+        let names: [Notification.Name] = [
+            .NSCalendarDayChanged,
+            .NSSystemClockDidChange,
+            .NSSystemTimeZoneDidChange,
+        ]
+        dateChangeObservers = names.map { name in
+            NotificationCenter.default.addObserver(
+                forName: name,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.refreshIcon() }
             }
         }
-        RunLoop.main.add(timer, forMode: .common)
-        refreshTimer = timer
     }
 
     private func observeAppearanceChanges() {
@@ -111,14 +118,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Popover
 
     private func configurePopover() {
-        // Size matches CalendarPopoverView.Layout constants
-        popover.contentSize = NSSize(width: 300, height: 340)
         popover.behavior = .transient // auto-closes when clicking outside
         popover.animates = true
         popover.appearance = nil // inherit system light/dark appearance
-        popover.contentViewController = NSHostingController(
-            rootView: CalendarPopoverView()
-        )
+        // Let SwiftUI drive the popover size so the view's layout is the single
+        // source of truth.
+        let hosting = NSHostingController(rootView: CalendarPopoverView())
+        hosting.sizingOptions = .preferredContentSize
+        popover.contentViewController = hosting
     }
 
     @objc private func statusItemClicked(_ sender: Any?) {
@@ -161,6 +168,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         colorItem.submenu = makeWeekdayColorMenu()
         menu.addItem(colorItem)
 
+        let loginItem = NSMenuItem(
+            title: String(localized: "Launch at Login"),
+            action: #selector(toggleLaunchAtLogin),
+            keyEquivalent: ""
+        )
+        loginItem.target = self
+        loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        menu.addItem(loginItem)
+
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
@@ -200,6 +216,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let raw = sender.representedObject as? String else { return }
         UserDefaults.standard.set(raw, forKey: WeekdayColor.defaultsKey)
         refreshIcon()
+    }
+
+    @objc private func toggleLaunchAtLogin() {
+        do {
+            if SMAppService.mainApp.status == .enabled {
+                try SMAppService.mainApp.unregister()
+            } else {
+                try SMAppService.mainApp.register()
+            }
+        } catch {
+            // Registration can fail for builds outside /Applications; leave the
+            // previous state in place rather than crashing.
+            NSLog("Failed to toggle Launch at Login: %@", error.localizedDescription)
+        }
     }
 
     @objc private func quit() {

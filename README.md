@@ -5,8 +5,9 @@ A minimal macOS menu bar calendar. Click the menu bar glyph to peek at a compact
 ## Features
 
 - Menu bar glyph showing the current weekday and day of the month, updated live.
-- Click to open a compact month calendar in a popover (arrow keys navigate months; "Today" returns to the current month).
-- Right-click for a context menu with a weekday color preset picker (Automatic + seven named colors) and Quit.
+- Click to open a compact month calendar in a popover (left/right arrows navigate months, up/down navigate years; "Today" returns to the current month).
+- Event dots on days with calendar events (including multi-day spans); click a day to see its events.
+- Right-click for a context menu with a weekday color preset picker (Automatic + seven named colors), Launch at Login, and Quit.
 - Color choice persists across launches.
 - Re-renders on light/dark mode and wallpaper-tinted menu bar changes.
 

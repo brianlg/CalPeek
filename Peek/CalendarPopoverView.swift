@@ -8,7 +8,6 @@ struct CalendarPopoverView: View {
     
     private enum Layout {
         static let popoverWidth: CGFloat = 300
-        static let popoverHeight: CGFloat = 340
         static let rowHeight: CGFloat = 36
         static let padding: CGFloat = 16
         static let daysPerWeek = 7
@@ -31,7 +30,7 @@ struct CalendarPopoverView: View {
     /// Controls presentation of the scrolling year picker popover.
     @State private var isYearPickerPresented = false
     /// Read-only source of which displayed days have calendar events.
-    @StateObject private var events = CalendarEventsModel()
+    @State private var events = CalendarEventsModel()
     /// The day whose events popover is currently open, if any.
     @State private var selectedDate: Date?
     /// The day currently under the pointer, for the hover highlight.
@@ -42,16 +41,6 @@ struct CalendarPopoverView: View {
     /// system accent color.
     private let accent = Color(nsColor: .systemRed)
     
-    // MARK: - Cached Formatters
-    
-    /// Reusable formatter for month names to avoid recreating on each render.
-    /// Thread-safe because it's only accessed from the main thread (SwiftUI View).
-    private static let monthFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        return formatter
-    }()
-
     /// The user's calendar, honoring their system "first day of week" setting so
     /// the grid aligns with Apple's Calendar app and the current region.
     private var calendar: Calendar { Calendar.current }
@@ -65,6 +54,9 @@ struct CalendarPopoverView: View {
             header
             weekdayRow
             grid
+            if events.accessDenied {
+                accessDeniedFooter
+            }
         }
         .padding(Layout.padding)
         .frame(width: Layout.popoverWidth)
@@ -73,6 +65,8 @@ struct CalendarPopoverView: View {
         .focusEffectDisabled()
         .onKeyPress(.leftArrow) { changeMonth(by: -1); return .handled }
         .onKeyPress(.rightArrow) { changeMonth(by: 1); return .handled }
+        .onKeyPress(.upArrow) { changeMonth(by: -12); return .handled }
+        .onKeyPress(.downArrow) { changeMonth(by: 12); return .handled }
         .onAppear {
             isFocused = true
             events.load(days: monthDays, calendar: calendar)
@@ -150,6 +144,27 @@ struct CalendarPopoverView: View {
                 jumpTo(monthIndex: displayedMonthIndex, year: newYear)
             }
         }
+    }
+
+    // MARK: - Access-denied footer
+
+    /// Shown when calendar access is denied so users know why no event dots
+    /// appear, with a shortcut to the relevant System Settings pane.
+    private var accessDeniedFooter: some View {
+        HStack(spacing: 4) {
+            Text(String(localized: "Calendar access is off."))
+                .foregroundStyle(.secondary)
+            Button(String(localized: "Open Settings")) {
+                let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
+                if let url = URL(string: pane) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(accent)
+        }
+        .font(.system(size: 11))
+        .frame(maxWidth: .infinity)
     }
 
     private func chevron(_ name: String) -> some View {
@@ -351,10 +366,7 @@ struct CalendarPopoverView: View {
     }
 
     private var monthName: String {
-        // Update the cached formatter's calendar and locale to match current settings
-        Self.monthFormatter.calendar = calendar
-        Self.monthFormatter.locale = calendar.locale
-        return Self.monthFormatter.string(from: displayedMonth)
+        displayedMonth.formatted(.dateTime.month(.wide))
     }
 
     private var yearString: String {
@@ -462,15 +474,9 @@ private struct DayEventsPopover: View {
         static let maxListHeight: CGFloat = 240
     }
 
-    private static let headerFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMMM d"
-        return formatter
-    }()
-
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(Self.headerFormatter.string(from: date))
+            Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
 

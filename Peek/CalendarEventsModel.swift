@@ -7,22 +7,28 @@ struct DayEvent: Identifiable {
     let id: String
     let title: String
     let timeText: String
-    let isAllDay: Bool
     let color: Color
 }
 
 /// Read-only bridge to the user's calendars. Tracks which days in the currently
 /// displayed window have at least one event so `CalendarPopoverView` can draw a
 /// dot under them, and serves a day's events on demand when a day is tapped.
-@MainActor
-final class CalendarEventsModel: ObservableObject {
+@Observable @MainActor
+final class CalendarEventsModel {
     /// Start-of-day dates that have at least one event.
-    @Published private(set) var daysWithEvents: Set<Date> = []
+    private(set) var daysWithEvents: Set<Date> = []
+    /// True when the user has denied (or can't grant) calendar access, so the
+    /// view can point them at System Settings instead of silently showing no dots.
+    private(set) var accessDenied = false
 
     private let store = EKEventStore()
     /// The window last loaded, so we can reload it when the store changes.
     private var lastWindow: (days: [Date], calendar: Calendar)?
-    private var changeObserver: NSObjectProtocol?
+    /// Token for the store-change observer. Not observation state, and
+    /// `nonisolated(unsafe)` so the nonisolated `deinit` can remove it — safe
+    /// because it's written once in `init` and only read again in `deinit`.
+    @ObservationIgnored
+    private nonisolated(unsafe) var changeObserver: NSObjectProtocol?
 
     init() {
         // Deliver on the main queue so the `@MainActor`-isolated reload is safe.
@@ -66,20 +72,11 @@ final class CalendarEventsModel: ObservableObject {
                     title: event.title ?? String(localized: "(No Title)"),
                     timeText: event.isAllDay
                         ? String(localized: "all-day")
-                        : Self.timeFormatter.string(from: event.startDate),
-                    isAllDay: event.isAllDay,
+                        : event.startDate.formatted(date: .omitted, time: .shortened),
                     color: Color(cgColor: event.calendar.cgColor)
                 )
             }
     }
-
-    /// Short time-of-day formatter (e.g. "10:00 AM"), cached for reuse.
-    private static let timeFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
-        return formatter
-    }()
 
     /// Loads events for the given day window, requesting access on first use.
     /// If access is denied or restricted, the set stays empty and no dots show.
@@ -88,13 +85,22 @@ final class CalendarEventsModel: ObservableObject {
 
         switch EKEventStore.authorizationStatus(for: .event) {
         case .fullAccess:
+            accessDenied = false
             fetch(days: days, calendar: calendar)
         case .notDetermined:
             Task { [weak self] in
                 let granted = (try? await self?.store.requestFullAccessToEvents()) ?? false
-                if granted { self?.fetch(days: days, calendar: calendar) }
+                if granted {
+                    self?.accessDenied = false
+                    self?.fetch(days: days, calendar: calendar)
+                } else {
+                    self?.accessDenied = true
+                    self?.daysWithEvents = []
+                }
             }
         default:
+            // Denied, restricted, or write-only — none of which allow reading.
+            accessDenied = true
             daysWithEvents = []
         }
     }
@@ -112,8 +118,20 @@ final class CalendarEventsModel: ObservableObject {
         }
 
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-        let events = store.events(matching: predicate)
-        daysWithEvents = Set(events.map { calendar.startOfDay(for: $0.startDate) })
+        var marked: Set<Date> = []
+        for event in store.events(matching: predicate) {
+            // Dot every day the event spans, clamped to the visible window, so
+            // multi-day events mark more than just their first day. `next < cap`
+            // keeps a timed event ending exactly at midnight off the next day.
+            var day = max(calendar.startOfDay(for: event.startDate), start)
+            let cap = min(event.endDate, end)
+            marked.insert(day)
+            while let next = calendar.date(byAdding: .day, value: 1, to: day), next < cap {
+                marked.insert(next)
+                day = next
+            }
+        }
+        daysWithEvents = marked
     }
 
     private func storeChanged() {

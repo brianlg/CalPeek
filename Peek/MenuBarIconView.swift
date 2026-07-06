@@ -11,15 +11,9 @@ struct MenuBarIconView: View {
     let date: Date
     let weekdayColor: Color
 
-    /// "Mon", "Tue", … from the user's locale, via the system formatter.
-    private static let weekdayFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.setLocalizedDateFormatFromTemplate("EEE")
-        return formatter
-    }()
-
+    /// "MON", "TUE", … from the user's locale, via the system format style.
     private var weekday: String {
-        Self.weekdayFormatter.string(from: date).uppercased()
+        date.formatted(.dateTime.weekday(.abbreviated)).uppercased()
     }
 
     private var day: String {
