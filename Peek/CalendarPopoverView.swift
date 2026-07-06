@@ -87,15 +87,14 @@ struct CalendarPopoverView: View {
 
             Spacer()
 
+            // Previous / Today / Next cluster, matching Calendar.app's layout.
+            Button { changeMonth(by: -1) } label: { chevron("chevron.left") }
+                .buttonStyle(.plain)
             Button(String(localized: "Today"), action: goToToday)
                 .buttonStyle(.plain)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(accent)
-                .padding(.trailing, 4)
                 .accessibilityLabel(String(localized: "Today"))
-
-            Button { changeMonth(by: -1) } label: { chevron("chevron.left") }
-                .buttonStyle(.plain)
             Button { changeMonth(by: 1) } label: { chevron("chevron.right") }
                 .buttonStyle(.plain)
         }
