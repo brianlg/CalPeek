@@ -57,6 +57,7 @@ final class CalendarEventsModel {
     /// then by start time. Returns an empty array if access hasn't been granted.
     func events(on date: Date, calendar: Calendar) -> [DayEvent] {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return [] }
+        store.refreshSourcesIfNecessary()
         let start = calendar.startOfDay(for: date)
         guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
 
@@ -120,6 +121,9 @@ final class CalendarEventsModel {
             return
         }
 
+        // Long-running stores serve stale snapshots after external syncs
+        // (e.g. an event added on another device); make sure ours is current.
+        store.refreshSourcesIfNecessary()
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
         var marked: Set<Date> = []
         for event in store.events(matching: predicate) {

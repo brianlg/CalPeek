@@ -103,6 +103,9 @@ final class NextMeetingModel {
 
     private func computeNextMeeting() -> NextMeeting? {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return nil }
+        // Long-running stores serve stale snapshots after external syncs
+        // (e.g. an event added on another device); make sure ours is current.
+        store.refreshSourcesIfNecessary()
         let now = Date()
         let calendar = Calendar.current
         guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) else {

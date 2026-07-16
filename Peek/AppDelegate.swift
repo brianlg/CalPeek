@@ -10,6 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// App-lifetime source of the next joinable meeting, feeding the menu bar
     /// countdown, the context menu's join item, and the popover banner.
     private let nextMeeting = NextMeetingModel()
+    /// Drives the orange "unseen agenda" dot on the menu bar icon.
+    private let todayBadge = TodayBadgeModel()
     private var joinHotKey: GlobalHotKey?
 
     private var dateChangeObservers: [NSObjectProtocol] = []
@@ -23,6 +25,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         nextMeeting.onChange = { [weak self] in self?.refreshNextMeetingUI() }
         refreshNextMeetingUI()
+
+        todayBadge.onChange = { [weak self] in self?.refreshIcon() }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -79,8 +83,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return (match == .darkAqua || match == .vibrantDark) ? .dark : .light
         }()
 
-        let view = MenuBarIconView(date: Date(), weekdayColor: currentWeekdayColor.color)
-            .environment(\.colorScheme, colorScheme)
+        let view = MenuBarIconView(
+            date: Date(),
+            weekdayColor: currentWeekdayColor.color,
+            showsBadge: todayBadge.isShowing
+        )
+        .environment(\.colorScheme, colorScheme)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = button.window?.backingScaleFactor
@@ -134,7 +142,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.appearance = nil // inherit system light/dark appearance
         // Let SwiftUI drive the popover size so the view's layout is the single
         // source of truth.
-        let hosting = NSHostingController(rootView: CalendarPopoverView(nextMeetingModel: nextMeeting))
+        let hosting = NSHostingController(
+            rootView: CalendarPopoverView(nextMeetingModel: nextMeeting, todayBadgeModel: todayBadge)
+        )
         hosting.sizingOptions = .preferredContentSize
         popover.contentViewController = hosting
     }
@@ -155,8 +165,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 assertionFailure("Cannot show popover - status item button is nil")
                 return
             }
-            // Freshen the banner so it reflects any just-added events.
+            // Freshen the banner and badge so they reflect any just-added
+            // events (or newly granted calendar access).
             nextMeeting.refresh()
+            todayBadge.refresh()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             // Bring the popover's window forward so it can receive key events.
             popover.contentViewController?.view.window?.makeKey()

@@ -18,6 +18,7 @@
 		4F9B833225D1A1502EBBDDD4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */; };
 		60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A438FD825076DC8EA1B8470E /* WeekdayColor.swift */; };
 		693C78AC8BECDD841933CC3A /* MeetingLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */; };
+		909515D149A2EF1B70125E83 /* TodayBadgeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */; };
 		AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121195A122D71217E9761085 /* AppDelegate.swift */; };
 		F5924861CD6E97849DA2F415 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A975481247ACCE26852C9E0C /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
@@ -33,6 +34,7 @@
 		8A7A02D5B6D098F423410E4C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A438FD825076DC8EA1B8470E /* WeekdayColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayColor.swift; sourceTree = "<group>"; };
 		A975481247ACCE26852C9E0C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayBadgeModel.swift; sourceTree = "<group>"; };
 		AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingModel.swift; sourceTree = "<group>"; };
 		C7FBF3A5FCDF732EEECAFA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -73,6 +75,7 @@
 				077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */,
 				4D07979DD49EE8B5576C2CC8 /* Preferences.swift */,
 				8A7A02D5B6D098F423410E4C /* SettingsView.swift */,
+				AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */,
 				A438FD825076DC8EA1B8470E /* WeekdayColor.swift */,
 			);
 			path = Peek;
@@ -159,6 +162,7 @@
 				267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */,
 				1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */,
 				243FA653E2522548D09D8C02 /* SettingsView.swift in Sources */,
+				909515D149A2EF1B70125E83 /* TodayBadgeModel.swift in Sources */,
 				60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

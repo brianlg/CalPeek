@@ -8,6 +8,10 @@ struct CalendarPopoverView: View {
     /// previews, which simply hides the banner.
     var nextMeetingModel: NextMeetingModel?
 
+    /// App-lifetime badge source owned by `AppDelegate`; clicking today's cell
+    /// acknowledges the agenda and clears the menu bar dot. Nil in previews.
+    var todayBadgeModel: TodayBadgeModel?
+
     // MARK: - Constants
     
     private enum Layout {
@@ -293,7 +297,9 @@ struct CalendarPopoverView: View {
 
     private func eventDotColor(isToday: Bool, inMonth: Bool, hasEvent: Bool) -> Color {
         guard hasEvent else { return .clear }
-        if isToday { return accent }
+        // Today's dot overlaps the filled accent circle behind the day number,
+        // so it must contrast with the circle, not the popover background.
+        if isToday { return .white }
         return inMonth ? .secondary : Color.secondary.opacity(0.4)
     }
 
@@ -301,6 +307,11 @@ struct CalendarPopoverView: View {
 
     private func toggleSelection(_ date: Date) {
         selectedDate = isSameDay(selectedDate, date) ? nil : date
+        // Opening today's agenda counts as having seen it, wherever today's
+        // cell appears (it can be an adjacent-month cell in the grid).
+        if selectedDate != nil, calendar.isDateInToday(date) {
+            todayBadgeModel?.acknowledgeToday()
+        }
     }
 
     /// Per-cell presentation binding so the popover anchors to the tapped day.
