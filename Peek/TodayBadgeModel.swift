@@ -2,9 +2,11 @@ import EventKit
 import Foundation
 
 /// Drives the "unseen agenda" badge on the menu bar icon: shown when today has
-/// at least one event and the user hasn't yet viewed today's agenda by clicking
-/// today's cell in the calendar. Acknowledgment is persisted per-day, so the
-/// badge stays cleared across relaunches and reappears (at most) tomorrow.
+/// at least one event the user hasn't viewed by clicking today's cell in the
+/// calendar. Acknowledging snapshots the identifiers of today's events, so a
+/// new event arriving later re-arms the badge, while edits to already-seen
+/// events stay silent. The snapshot is persisted across relaunches and only
+/// counts for the day it was taken.
 ///
 /// Read-only against the store and never triggers the permission prompt —
 /// that stays with the calendar popover's first-open flow.
@@ -17,6 +19,8 @@ final class TodayBadgeModel {
 
     /// Start-of-day the user last viewed the agenda for.
     private static let acknowledgedDayKey = "agendaAcknowledgedDay"
+    /// Identifiers of the events that were on today's agenda when it was viewed.
+    private static let acknowledgedIDsKey = "agendaAcknowledgedEventIDs"
 
     private let store = EKEventStore()
     /// Written once in `init`, read again only in the nonisolated `deinit` —
@@ -58,13 +62,12 @@ final class TodayBadgeModel {
         timer?.invalidate()
     }
 
-    /// Records that the user has viewed today's agenda, hiding the badge for
-    /// the rest of the day (even if more events are added later today).
+    /// Records that the user has viewed today's agenda as it currently stands.
+    /// Events added later today aren't in the snapshot, so they re-arm the badge.
     func acknowledgeToday() {
-        UserDefaults.standard.set(
-            Calendar.current.startOfDay(for: Date()),
-            forKey: Self.acknowledgedDayKey
-        )
+        let defaults = UserDefaults.standard
+        defaults.set(Calendar.current.startOfDay(for: Date()), forKey: Self.acknowledgedDayKey)
+        defaults.set(todayEvents().map(Self.identity), forKey: Self.acknowledgedIDsKey)
         refresh()
     }
 
@@ -76,20 +79,37 @@ final class TodayBadgeModel {
     }
 
     private func computeIsShowing() -> Bool {
-        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return false }
+        let events = todayEvents()
+        guard !events.isEmpty else { return false }
+
+        // A snapshot from a previous day doesn't count — everything is unseen.
+        let defaults = UserDefaults.standard
+        guard let acknowledged = defaults.object(forKey: Self.acknowledgedDayKey) as? Date,
+              Calendar.current.isDate(acknowledged, inSameDayAs: Date()) else {
+            return true
+        }
+
+        let seen = Set(defaults.stringArray(forKey: Self.acknowledgedIDsKey) ?? [])
+        return events.contains { !seen.contains(Self.identity($0)) }
+    }
+
+    private func todayEvents() -> [EKEvent] {
+        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return [] }
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
         store.refreshSourcesIfNecessary()
 
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
-        if let acknowledged = UserDefaults.standard.object(forKey: Self.acknowledgedDayKey) as? Date,
-           calendar.isDate(acknowledged, inSameDayAs: today) {
-            return false
-        }
-
-        guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return false }
+        guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return [] }
         let predicate = store.predicateForEvents(withStart: today, end: end, calendars: nil)
-        return !store.events(matching: predicate).isEmpty
+        return store.events(matching: predicate)
+    }
+
+    /// Stable per-event key: `eventIdentifier` survives edits, so a time or
+    /// title change to an already-seen event doesn't re-arm the badge.
+    private static func identity(_ event: EKEvent) -> String {
+        event.eventIdentifier
+            ?? "\(event.title ?? "")-\(event.startDate.timeIntervalSinceReferenceDate)"
     }
 }
