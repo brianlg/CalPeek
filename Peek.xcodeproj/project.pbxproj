@@ -7,12 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D07979DD49EE8B5576C2CC8 /* Preferences.swift */; };
+		243FA653E2522548D09D8C02 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7A02D5B6D098F423410E4C /* SettingsView.swift */; };
 		252D43A41047A4EFAA2BE5C1 /* CalendarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3815A784200C57D267B397 /* CalendarPopoverView.swift */; };
 		267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */; };
 		30CC9AAD1567BCE03AA6D91C /* CalendarEventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */; };
+		35068B22367FA2AA14DDCAB5 /* NextMeetingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */; };
+		4BC08683CBC6624BC8166183 /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7918815FB5D40948BF85615 /* GlobalHotKey.swift */; };
 		4E5584C125926955262D9098 /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */; };
 		4F9B833225D1A1502EBBDDD4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */; };
 		60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A438FD825076DC8EA1B8470E /* WeekdayColor.swift */; };
+		693C78AC8BECDD841933CC3A /* MeetingLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */; };
 		AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121195A122D71217E9761085 /* AppDelegate.swift */; };
 		F5924861CD6E97849DA2F415 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A975481247ACCE26852C9E0C /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
@@ -21,13 +26,18 @@
 		077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeekApp.swift; sourceTree = "<group>"; };
 		0E3815A784200C57D267B397 /* CalendarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarPopoverView.swift; sourceTree = "<group>"; };
 		121195A122D71217E9761085 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingLinkParser.swift; sourceTree = "<group>"; };
 		3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
 		49AA0AAA9BC02340D9B544C0 /* Peek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Peek.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D07979DD49EE8B5576C2CC8 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		8A7A02D5B6D098F423410E4C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A438FD825076DC8EA1B8470E /* WeekdayColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayColor.swift; sourceTree = "<group>"; };
 		A975481247ACCE26852C9E0C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingModel.swift; sourceTree = "<group>"; };
 		C7FBF3A5FCDF732EEECAFA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventsModel.swift; sourceTree = "<group>"; };
+		E7918815FB5D40948BF85615 /* GlobalHotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotKey.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -54,10 +64,15 @@
 				E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */,
 				E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */,
 				0E3815A784200C57D267B397 /* CalendarPopoverView.swift */,
+				E7918815FB5D40948BF85615 /* GlobalHotKey.swift */,
 				C7FBF3A5FCDF732EEECAFA35 /* Info.plist */,
 				A975481247ACCE26852C9E0C /* Localizable.xcstrings */,
+				2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */,
 				3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */,
+				AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */,
 				077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */,
+				4D07979DD49EE8B5576C2CC8 /* Preferences.swift */,
+				8A7A02D5B6D098F423410E4C /* SettingsView.swift */,
 				A438FD825076DC8EA1B8470E /* WeekdayColor.swift */,
 			);
 			path = Peek;
@@ -137,8 +152,13 @@
 				AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */,
 				30CC9AAD1567BCE03AA6D91C /* CalendarEventsModel.swift in Sources */,
 				252D43A41047A4EFAA2BE5C1 /* CalendarPopoverView.swift in Sources */,
+				4BC08683CBC6624BC8166183 /* GlobalHotKey.swift in Sources */,
+				693C78AC8BECDD841933CC3A /* MeetingLinkParser.swift in Sources */,
 				4E5584C125926955262D9098 /* MenuBarIconView.swift in Sources */,
+				35068B22367FA2AA14DDCAB5 /* NextMeetingModel.swift in Sources */,
 				267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */,
+				1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */,
+				243FA653E2522548D09D8C02 /* SettingsView.swift in Sources */,
 				60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

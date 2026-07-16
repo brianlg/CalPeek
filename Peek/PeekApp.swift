@@ -8,10 +8,10 @@ struct PeekApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        // No visible scene. `Settings` is an empty placeholder so SwiftUI has
-        // a valid scene graph without ever showing a window.
+        // The settings window is the app's only SwiftUI scene; everything else
+        // hangs off the status item.
         Settings {
-            EmptyView()
+            SettingsView()
         }
     }
 }

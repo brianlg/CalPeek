@@ -8,6 +8,8 @@ struct DayEvent: Identifiable {
     let title: String
     let timeText: String
     let color: Color
+    /// Video-conference link detected in the event, if any.
+    let joinURL: URL?
 }
 
 /// Read-only bridge to the user's calendars. Tracks which days in the currently
@@ -73,7 +75,8 @@ final class CalendarEventsModel {
                     timeText: event.isAllDay
                         ? String(localized: "all-day")
                         : event.startDate.formatted(date: .omitted, time: .shortened),
-                    color: Color(cgColor: event.calendar.cgColor)
+                    color: Color(cgColor: event.calendar.cgColor),
+                    joinURL: MeetingLinkParser.link(in: event)?.url
                 )
             }
     }

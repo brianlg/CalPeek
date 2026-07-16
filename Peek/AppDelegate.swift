@@ -7,6 +7,10 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
+    /// App-lifetime source of the next joinable meeting, feeding the menu bar
+    /// countdown, the context menu's join item, and the popover banner.
+    private let nextMeeting = NextMeetingModel()
+    private var joinHotKey: GlobalHotKey?
 
     private var dateChangeObservers: [NSObjectProtocol] = []
     private var appearanceObservation: NSKeyValueObservation?
@@ -16,6 +20,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configureStatusItem()
         observeDateChanges()
         observeAppearanceChanges()
+
+        nextMeeting.onChange = { [weak self] in self?.refreshNextMeetingUI() }
+        refreshNextMeetingUI()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -23,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dateChangeObservers = []
         appearanceObservation?.invalidate()
         appearanceObservation = nil
+        joinHotKey = nil
     }
 
     // MARK: - Status item
@@ -43,6 +51,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // while left-click continues to toggle the popover.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.toolTip = String(localized: "Peek")
+        // The glyph image sits left of the (usually empty) countdown title.
+        button.imagePosition = .imageLeft
+        button.font = NSFont.menuBarFont(ofSize: 0)
 
         refreshIcon()
     }
@@ -123,7 +134,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.appearance = nil // inherit system light/dark appearance
         // Let SwiftUI drive the popover size so the view's layout is the single
         // source of truth.
-        let hosting = NSHostingController(rootView: CalendarPopoverView())
+        let hosting = NSHostingController(rootView: CalendarPopoverView(nextMeetingModel: nextMeeting))
         hosting.sizingOptions = .preferredContentSize
         popover.contentViewController = hosting
     }
@@ -144,6 +155,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 assertionFailure("Cannot show popover - status item button is nil")
                 return
             }
+            // Freshen the banner so it reflects any just-added events.
+            nextMeeting.refresh()
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             // Bring the popover's window forward so it can receive key events.
             popover.contentViewController?.view.window?.makeKey()
@@ -164,6 +177,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func makeContextMenu() -> NSMenu {
         let menu = NSMenu()
 
+        if let meeting = nextMeeting.nextMeeting {
+            let joinItem = NSMenuItem(
+                title: String(localized: "Join “\(meeting.title)”"),
+                action: #selector(joinNextMeetingFromMenu),
+                keyEquivalent: ""
+            )
+            joinItem.target = self
+            menu.addItem(joinItem)
+            menu.addItem(.separator())
+        }
+
         let colorItem = NSMenuItem(title: String(localized: "Weekday Color"), action: nil, keyEquivalent: "")
         colorItem.submenu = makeWeekdayColorMenu()
         menu.addItem(colorItem)
@@ -176,6 +200,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         loginItem.target = self
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(loginItem)
+
+        let settingsItem = NSMenuItem(
+            title: String(localized: "Settings…"),
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
 
         menu.addItem(.separator())
 
@@ -216,6 +248,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let raw = sender.representedObject as? String else { return }
         UserDefaults.standard.set(raw, forKey: WeekdayColor.defaultsKey)
         refreshIcon()
+    }
+
+    // MARK: - Next meeting
+
+    /// Updates the countdown text next to the glyph and (de)registers the
+    /// global join hotkey to match current preferences.
+    private func refreshNextMeetingUI() {
+        if let button = statusItem?.button {
+            if let text = nextMeeting.menuBarText {
+                button.title = text
+                button.toolTip = nextMeeting.nextMeeting?.title ?? String(localized: "Peek")
+            } else {
+                button.title = ""
+                button.toolTip = String(localized: "Peek")
+            }
+        }
+        updateJoinHotKey()
+    }
+
+    private func updateJoinHotKey() {
+        if Preferences.joinHotKeyEnabled {
+            guard joinHotKey == nil else { return }
+            joinHotKey = GlobalHotKey.joinMeeting { [weak self] in
+                self?.nextMeeting.joinNextMeeting()
+            }
+        } else {
+            joinHotKey = nil
+        }
+    }
+
+    @objc private func joinNextMeetingFromMenu() {
+        nextMeeting.joinNextMeeting()
+    }
+
+    @objc private func openSettings() {
+        // SwiftUI's Settings scene has no public AppKit-side opener; this
+        // selector is how LSUIElement apps surface it (macOS 13+ name).
+        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        NSApp.activate()
     }
 
     @objc private func toggleLaunchAtLogin() {
