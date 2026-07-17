@@ -45,6 +45,13 @@ struct CalendarPopoverView: View {
     @State private var selectedDate: Date?
     /// The day currently under the pointer, for the hover highlight.
     @State private var hoveredDate: Date?
+    /// Day-number frames in the grid's coordinate space, so the single
+    /// floating hover chip knows where to glide.
+    @State private var dayFrames: [Date: CGRect] = [:]
+    /// Where the floating hover chip currently sits. Retains its last position
+    /// while hidden so it fades out in place instead of jumping to .zero.
+    @State private var chipFrame: CGRect = .zero
+    @State private var isChipVisible = false
 
     /// Calendar-style red used for the "today" circle and the year picker
     /// selection, matching Apple's Calendar app regardless of the user's
@@ -219,6 +226,19 @@ struct CalendarPopoverView: View {
                 dayCell(for: date)
             }
         }
+        .coordinateSpace(name: "dayGrid")
+        .onPreferenceChange(DayFramePreferenceKey.self) { dayFrames = $0 }
+        // One floating chip glides between cells rather than each cell
+        // drawing its own hover highlight, so only one is ever visible.
+        .background { hoverChip }
+        .onChange(of: hoveredDate) {
+            if let date = hoveredDate, let frame = dayFrames[date] {
+                chipFrame = frame
+                isChipVisible = true
+            } else {
+                isChipVisible = false
+            }
+        }
         // Re-identify per month so the transition plays on change.
         .id(monthOffset)
         .transition(
@@ -230,6 +250,15 @@ struct CalendarPopoverView: View {
         )
         .frame(maxWidth: .infinity, alignment: .top)
         .clipped()
+    }
+
+    /// Collects each day number's frame in the grid's coordinate space so the
+    /// floating hover chip can be positioned over the hovered cell.
+    private struct DayFramePreferenceKey: PreferenceKey {
+        static var defaultValue: [Date: CGRect] { [:] }
+        static func reduce(value: inout [Date: CGRect], nextValue: () -> [Date: CGRect]) {
+            value.merge(nextValue()) { _, new in new }
+        }
     }
 
     private func dayCell(for date: Date) -> some View {
@@ -244,19 +273,31 @@ struct CalendarPopoverView: View {
             Text(String(calendar.component(.day, from: date)))
                 .font(.system(size: 15, weight: isToday ? .bold : .regular))
                 .foregroundStyle(isToday ? accent : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
+                // Mimic Liquid Glass lensing: the digit bulges under the chip
+                // as it passes over, on the same spring the chip glides with.
+                .scaleEffect(isHovered ? 1.18 : 1)
+                .animation(.spring(response: 0.28, dampingFraction: 0.8), value: isHovered)
                 .frame(maxWidth: .infinity)
                 .background {
-                    dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
+                    dayHighlight(isSelected: isSelected)
+                }
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: DayFramePreferenceKey.self,
+                            value: [date: proxy.frame(in: .named("dayGrid"))]
+                        )
+                    }
                 }
 
             // Reserve the dots' space on every cell so row height stays
             // stable; the HStack centers whichever dots are present.
             HStack(spacing: Layout.eventDotSpacing) {
                 if hasEvent {
-                    agendaDot(events.eventDotColor, isToday: isToday, inMonth: inMonth)
+                    agendaDot(events.eventDotColor, inMonth: inMonth)
                 }
                 if hasReminder {
-                    agendaDot(events.reminderDotColor, isToday: isToday, inMonth: inMonth)
+                    agendaDot(events.reminderDotColor, inMonth: inMonth)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -272,7 +313,6 @@ struct CalendarPopoverView: View {
                 hoveredDate = nil
             }
         }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
         .animation(.easeOut(duration: 0.12), value: isSelected)
         .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
             DayEventsPopover(
@@ -284,28 +324,40 @@ struct CalendarPopoverView: View {
         }
     }
 
-    /// Squircle highlight behind a day number. Precedence: today (accent-tinted
-    /// fill, with the digit drawn in the same accent at full strength) over the
-    /// selected day (system grey selection fill) over hover (faint fill). Sizes
-    /// all states to the same shape so they swap without shifting the layout.
+    /// Squircle highlight behind the selected day number. Today carries no
+    /// static highlight of its own — its bold accent digit is the
+    /// differentiator, and hover is handled by the single floating chip.
     @ViewBuilder
-    private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
+    private func dayHighlight(isSelected: Bool) -> some View {
         let size = Layout.todayCircleSize
-        // Continuous corners give the native macOS squircle curve rather than
-        // a mathematical rounded rect.
-        let shape = RoundedRectangle(cornerRadius: 9, style: .continuous)
-        if isToday {
-            // Frosted-glass grey chip; the accent-colored digit on top stays
-            // the loudest thing in the cell.
-            shape.fill(Color.primary.opacity(0.12)).frame(width: size, height: size)
-        } else if isSelected {
+        if isSelected {
             // Apple's standard grey for selected, unemphasized content —
             // adapts to light and dark mode automatically.
-            shape.fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+            daySquircle.fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
                 .frame(width: size, height: size)
-        } else if isHovered {
-            shape.fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
         }
+    }
+
+    /// Continuous corners give the native macOS squircle curve rather than a
+    /// mathematical rounded rect.
+    private var daySquircle: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 9, style: .continuous)
+    }
+
+    /// The single Liquid Glass chip that follows the cursor across day cells.
+    private var hoverChip: some View {
+        Group {
+            if #available(macOS 26.0, *) {
+                Color.clear.glassEffect(.regular, in: daySquircle)
+            } else {
+                daySquircle.fill(.ultraThinMaterial)
+            }
+        }
+        .frame(width: Layout.todayCircleSize, height: Layout.todayCircleSize)
+        .position(x: chipFrame.midX, y: chipFrame.midY)
+        .opacity(isChipVisible ? 1 : 0)
+        .animation(.spring(response: 0.28, dampingFraction: 0.8), value: chipFrame)
+        .animation(.easeOut(duration: 0.12), value: isChipVisible)
     }
 
     private func isSameDay(_ lhs: Date?, _ rhs: Date) -> Bool {
@@ -313,10 +365,8 @@ struct CalendarPopoverView: View {
     }
 
     /// A single agenda dot in the given calendar/list color.
-    private func agendaDot(_ color: Color, isToday: Bool, inMonth: Bool) -> some View {
-        // Today's dots sit on the grey chip and recede slightly so the accent
-        // digit stays the loudest thing in the cell.
-        let fill = isToday ? color.opacity(0.7) : (inMonth ? color : color.opacity(0.4))
+    private func agendaDot(_ color: Color, inMonth: Bool) -> some View {
+        let fill = inMonth ? color : color.opacity(0.4)
         return Circle()
             .fill(fill)
             .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
