@@ -33,7 +33,9 @@ struct DayItem: Identifiable, Sendable {
 final class CalendarEventsModel {
     /// Start-of-day dates that have at least one event.
     private(set) var daysWithEvents: Set<Date> = []
-    /// Start-of-day dates that have at least one reminder due (incl. completed).
+    /// Start-of-day dates that have at least one reminder due. Today and
+    /// future days count completed reminders too; past days only count open
+    /// ones, so resolved history doesn't keep its dot.
     private(set) var daysWithReminders: Set<Date> = []
     /// True when the user has denied (or can't grant) calendar access, so the
     /// view can point them at System Settings instead of silently showing no dots.
@@ -119,6 +121,9 @@ final class CalendarEventsModel {
         // EKEventStoreChanged notification then re-fetches authoritatively.
         if let index = reminderSnapshots.firstIndex(where: { $0.id == reminderID }) {
             reminderSnapshots[index] = reminderSnapshots[index].completing(completed)
+            if let calendar = lastWindow?.calendar {
+                daysWithReminders = markedReminderDays(calendar: calendar)
+            }
         }
     }
 
@@ -253,8 +258,18 @@ final class CalendarEventsModel {
             let all = await ReminderFetcher.allSnapshots(from: sendableStore, calendar: calendar)
             guard let self, self.reminderFetchGeneration == generation else { return }
             self.reminderSnapshots = all.filter { $0.dueDate >= start && $0.dueDate < end }
-            self.daysWithReminders = Set(self.reminderSnapshots.map { calendar.startOfDay(for: $0.dueDate) })
+            self.daysWithReminders = self.markedReminderDays(calendar: calendar)
         }
+    }
+
+    /// The dot-marker days for the current snapshots: every day with a due
+    /// reminder, except past days whose reminders are all completed.
+    private func markedReminderDays(calendar: Calendar) -> Set<Date> {
+        let today = calendar.startOfDay(for: Date())
+        return Set(reminderSnapshots.compactMap { snapshot in
+            let day = calendar.startOfDay(for: snapshot.dueDate)
+            return day < today && snapshot.isCompleted ? nil : day
+        })
     }
 
     private func storeChanged() {
