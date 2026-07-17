@@ -198,10 +198,8 @@ final class CalendarEventsModel {
     }
 
     private func fetch(days: [Date], calendar: Calendar) {
-        // Only reachable with full event access, so the default calendar (and
-        // its user-chosen color) is readable here.
-        if let cgColor = store.defaultCalendarForNewEvents?.cgColor {
-            eventDotColor = Color(cgColor: cgColor)
+        if let color = store.defaultEventColor {
+            eventDotColor = color
         }
         guard let first = days.first, let last = days.last else {
             daysWithEvents = []
@@ -244,8 +242,8 @@ final class CalendarEventsModel {
             daysWithReminders = []
             return
         }
-        if let cgColor = store.defaultCalendarForNewReminders()?.cgColor {
-            reminderDotColor = Color(cgColor: cgColor)
+        if let color = store.defaultReminderColor {
+            reminderDotColor = color
         }
         let start = calendar.startOfDay(for: first)
         reminderFetchGeneration += 1

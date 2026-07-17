@@ -10,13 +10,16 @@ import SwiftUI
 struct MenuBarIconView: View {
     let date: Date
     let weekdayColor: Color
-    /// Shows the "unseen agenda" badge dot in the top-right corner.
-    var showsBadge: Bool = false
+    /// Colors of the "unseen agenda" badge dots stacked on the trailing edge,
+    /// vertically centered — one per kind of item on today's agenda (event,
+    /// reminder). Empty hides the badge.
+    var badgeDots: [Color] = []
 
     private enum Badge {
         static let size: CGFloat = 5
-        /// Room reserved beside the glyph so the dot renders clear of the text
-        /// and isn't clipped by the rasterized image bounds.
+        static let spacing: CGFloat = 2
+        /// Room reserved beside the glyph so the dots render clear of the text
+        /// and aren't clipped by the rasterized image bounds.
         static let inset: CGFloat = 6
     }
 
@@ -38,12 +41,16 @@ struct MenuBarIconView: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
         }
-        .padding(.trailing, showsBadge ? Badge.inset : 0)
+        .padding(.trailing, badgeDots.isEmpty ? 0 : Badge.inset)
         .overlay(alignment: .trailing) {
-            if showsBadge {
-                Circle()
-                    .fill(Color(nsColor: .systemOrange))
-                    .frame(width: Badge.size, height: Badge.size)
+            if !badgeDots.isEmpty {
+                VStack(spacing: Badge.spacing) {
+                    ForEach(Array(badgeDots.enumerated()), id: \.offset) { _, color in
+                        Circle()
+                            .fill(color)
+                            .frame(width: Badge.size, height: Badge.size)
+                    }
+                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -52,7 +59,7 @@ struct MenuBarIconView: View {
 
     private var accessibilityText: String {
         let base = "\(weekday), \(String(localized: "day \(day)"))"
-        guard showsBadge else { return base }
+        guard !badgeDots.isEmpty else { return base }
         return "\(base), \(String(localized: "has events today"))"
     }
 }

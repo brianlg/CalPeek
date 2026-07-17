@@ -10,7 +10,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// App-lifetime source of the next joinable meeting, feeding the menu bar
     /// countdown, the context menu's join item, and the popover banner.
     private let nextMeeting = NextMeetingModel()
-    /// Drives the orange "unseen agenda" dot on the menu bar icon.
+    /// Drives the agenda dots on the menu bar icon, tinted with the user's
+    /// default calendar and default reminders list colors.
     private let todayBadge = TodayBadgeModel()
     private var joinHotKey: GlobalHotKey?
     /// Created on first open and reused; strong reference plus
@@ -87,10 +88,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return (match == .darkAqua || match == .vibrantDark) ? .dark : .light
         }()
 
+        var badgeDots: [Color] = []
+        if todayBadge.showsEventDot { badgeDots.append(todayBadge.eventDotColor) }
+        if todayBadge.showsReminderDot { badgeDots.append(todayBadge.reminderDotColor) }
+
         let view = MenuBarIconView(
             date: Date(),
             weekdayColor: currentWeekdayColor.color,
-            showsBadge: todayBadge.isShowing
+            badgeDots: badgeDots
         )
         .environment(\.colorScheme, colorScheme)
 

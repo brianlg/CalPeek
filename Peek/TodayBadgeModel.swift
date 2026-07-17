@@ -1,25 +1,39 @@
 import EventKit
 import Foundation
+import SwiftUI
 
-/// Drives the "unseen agenda" badge on the menu bar icon: shown when today has
-/// at least one event or incomplete reminder the user hasn't viewed by
-/// clicking today's cell in the calendar. Acknowledging snapshots the
-/// identifiers of today's items, so a new item arriving later re-arms the
-/// badge, while edits to already-seen items stay silent. The snapshot is
+/// Drives the per-kind agenda dots on the menu bar icon.
+///
+/// The event dot is presence-based: shown while today still has an upcoming
+/// or in-progress event, and gone once the last one ends. The reminder dot is
+/// unseen-based: shown when today has an incomplete reminder the user hasn't
+/// viewed by clicking today's cell in the calendar. Acknowledging snapshots
+/// the reminder identifiers, so a new reminder arriving later re-arms the
+/// dot, while edits to already-seen ones stay silent. The snapshot is
 /// persisted across relaunches and only counts for the day it was taken.
 ///
 /// Read-only against the store and never triggers the permission prompt —
 /// that stays with the calendar popover's first-open flow.
 @Observable @MainActor
 final class TodayBadgeModel {
-    private(set) var isShowing = false
+    /// True while today has an event that hasn't ended yet.
+    private(set) var showsEventDot = false
+    /// True when today has an unseen incomplete reminder.
+    private(set) var showsReminderDot = false
+    /// Badge tints from the user's default calendar and default reminders
+    /// list, matching the popover's day-cell dots. Fallbacks mirror
+    /// `CalendarEventsModel`'s.
+    private(set) var eventDotColor = Color(nsColor: .systemRed)
+    private(set) var reminderDotColor = Color(nsColor: .systemOrange)
 
-    /// Fires when `isShowing` flips so the AppKit status item can re-render.
+    /// Fires when any dot state changes so the AppKit status item can re-render.
     @ObservationIgnored var onChange: (@MainActor () -> Void)?
 
     /// Start-of-day the user last viewed the agenda for.
     private static let acknowledgedDayKey = "agendaAcknowledgedDay"
-    /// Identifiers of the events that were on today's agenda when it was viewed.
+    /// Identities of the reminders that were on today's agenda when it was
+    /// viewed. (Key name predates the reminder-only snapshot — events used to
+    /// be acknowledged too; keeping it avoids a defaults migration.)
     private static let acknowledgedIDsKey = "agendaAcknowledgedEventIDs"
 
     private let store = EKEventStore()
@@ -82,12 +96,13 @@ final class TodayBadgeModel {
         timer?.invalidate()
     }
 
-    /// Records that the user has viewed today's agenda as it currently stands.
-    /// Items added later today aren't in the snapshot, so they re-arm the badge.
+    /// Records that the user has viewed today's reminders as they currently
+    /// stand. Reminders added later today aren't in the snapshot, so they
+    /// re-arm the dot. Events are unaffected — their dot tracks presence only.
     func acknowledgeToday() {
         let defaults = UserDefaults.standard
         defaults.set(Calendar.current.startOfDay(for: Date()), forKey: Self.acknowledgedDayKey)
-        defaults.set(todayIdentities(), forKey: Self.acknowledgedIDsKey)
+        defaults.set(todayReminderIDs, forKey: Self.acknowledgedIDsKey)
         refresh()
     }
 
@@ -97,15 +112,25 @@ final class TodayBadgeModel {
     }
 
     private func recompute() {
-        let newValue = computeIsShowing()
-        guard newValue != isShowing else { return }
-        isShowing = newValue
+        // `endDate > now` keeps in-progress events counted as upcoming, so
+        // the dot survives until the last event of the day has ended.
+        let now = Date()
+        let newState = (
+            eventDot: todayEvents().contains { $0.endDate > now },
+            reminderDot: hasUnseenReminders(),
+            eventColor: store.defaultEventColor ?? eventDotColor,
+            reminderColor: store.defaultReminderColor ?? reminderDotColor
+        )
+        let oldState = (showsEventDot, showsReminderDot, eventDotColor, reminderDotColor)
+        guard newState != oldState else { return }
+        (showsEventDot, showsReminderDot, eventDotColor, reminderDotColor) = newState
         onChange?()
     }
 
-    private func computeIsShowing() -> Bool {
-        let identities = todayIdentities()
-        guard !identities.isEmpty else { return false }
+    /// Completing a reminder removes it from `todayReminderIDs`, so a
+    /// completed-only day never shows the dot.
+    private func hasUnseenReminders() -> Bool {
+        guard !todayReminderIDs.isEmpty else { return false }
 
         // A snapshot from a previous day doesn't count — everything is unseen.
         let defaults = UserDefaults.standard
@@ -115,14 +140,7 @@ final class TodayBadgeModel {
         }
 
         let seen = Set(defaults.stringArray(forKey: Self.acknowledgedIDsKey) ?? [])
-        return identities.contains { !seen.contains($0) }
-    }
-
-    /// Every item on today's agenda: events plus the cached incomplete
-    /// reminders. Completing a reminder removes it from the universe, so a
-    /// completed-only day never badges.
-    private func todayIdentities() -> [String] {
-        todayEvents().map(Self.identity) + todayReminderIDs
+        return todayReminderIDs.contains { !seen.contains($0) }
     }
 
     /// Refreshes the incomplete-reminders-due-today cache. The fetch is
@@ -167,12 +185,5 @@ final class TodayBadgeModel {
         guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return [] }
         let predicate = store.predicateForEvents(withStart: today, end: end, calendars: nil)
         return store.events(matching: predicate)
-    }
-
-    /// Stable per-event key: `eventIdentifier` survives edits, so a time or
-    /// title change to an already-seen event doesn't re-arm the badge.
-    private static func identity(_ event: EKEvent) -> String {
-        event.eventIdentifier
-            ?? "\(event.title ?? "")-\(event.startDate.timeIntervalSinceReferenceDate)"
     }
 }

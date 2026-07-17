@@ -84,6 +84,28 @@ enum ReminderFetcher {
     }
 }
 
+/// The user's per-kind item colors, from Apple's recommended settings surface:
+/// `defaultCalendarForNewEvents` reflects the Calendar app's "Default
+/// Calendar" setting; `defaultCalendarForNewReminders()` reflects the
+/// Reminders app's "Default List" setting.
+extension EKEventStore {
+    /// Color of the user's default calendar, or nil without full event access
+    /// or when no default calendar is set.
+    var defaultEventColor: Color? {
+        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess,
+              let cgColor = defaultCalendarForNewEvents?.cgColor else { return nil }
+        return Color(cgColor: cgColor)
+    }
+
+    /// Color of the user's default reminders list, or nil without full
+    /// reminders access or when no default list is set.
+    var defaultReminderColor: Color? {
+        guard RemindersAccess.hasFullAccess,
+              let cgColor = defaultCalendarForNewReminders()?.cgColor else { return nil }
+        return Color(cgColor: cgColor)
+    }
+}
+
 extension Notification.Name {
     /// Posted by `SettingsView` when the Show Reminders toggle changes state
     /// or Reminders access is freshly granted. Models respond by resetting
