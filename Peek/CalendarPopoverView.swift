@@ -23,6 +23,7 @@ struct CalendarPopoverView: View {
         static let totalDays = daysPerWeek * numberOfWeeks // 42
         static let todayCircleSize: CGFloat = 32
         static let eventDotSize: CGFloat = 4
+        static let eventDotSpacing: CGFloat = 3
         static let headerSpacing: CGFloat = 5
         static let contentSpacing: CGFloat = 12
     }
@@ -234,7 +235,8 @@ struct CalendarPopoverView: View {
     private func dayCell(for date: Date) -> some View {
         let isToday = calendar.isDateInToday(date)
         let inMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
-        let hasEvent = events.hasItems(on: date, calendar: calendar)
+        let hasEvent = events.hasEvents(on: date, calendar: calendar)
+        let hasReminder = events.hasReminders(on: date, calendar: calendar)
         let isSelected = isSameDay(selectedDate, date)
         let isHovered = isSameDay(hoveredDate, date)
 
@@ -247,10 +249,18 @@ struct CalendarPopoverView: View {
                     dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
                 }
 
-            // Reserve the dot's space on every cell so row height stays stable.
-            Circle()
-                .fill(eventDotColor(isToday: isToday, inMonth: inMonth, hasEvent: hasEvent))
-                .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
+            // Reserve the dots' space on every cell so row height stays
+            // stable; the HStack centers whichever dots are present.
+            HStack(spacing: Layout.eventDotSpacing) {
+                if hasEvent {
+                    agendaDot(events.eventDotColor, isToday: isToday, inMonth: inMonth)
+                }
+                if hasReminder {
+                    agendaDot(events.reminderDotColor, isToday: isToday, inMonth: inMonth)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: Layout.eventDotSize)
         }
         .frame(height: Layout.rowHeight)
         .contentShape(Rectangle())
@@ -297,12 +307,14 @@ struct CalendarPopoverView: View {
         lhs.map { calendar.isDate($0, inSameDayAs: rhs) } ?? false
     }
 
-    private func eventDotColor(isToday: Bool, inMonth: Bool, hasEvent: Bool) -> Color {
-        guard hasEvent else { return .clear }
-        // Today's dot overlaps the filled accent circle behind the day number,
-        // so it must contrast with the circle, not the popover background.
-        if isToday { return .white }
-        return inMonth ? .secondary : Color.secondary.opacity(0.4)
+    /// A single agenda dot in the given calendar/list color.
+    private func agendaDot(_ color: Color, isToday: Bool, inMonth: Bool) -> some View {
+        // Today's dots overlap the filled accent circle behind the day number,
+        // so they must contrast with the circle, not the popover background.
+        let fill = isToday ? Color.white : (inMonth ? color : color.opacity(0.4))
+        return Circle()
+            .fill(fill)
+            .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
     }
 
     // MARK: - Day selection

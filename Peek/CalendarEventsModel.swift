@@ -39,6 +39,16 @@ final class CalendarEventsModel {
     /// view can point them at System Settings instead of silently showing no dots.
     private(set) var accessDenied = false
 
+    /// Tint for event dots: the color of the user's default calendar (the
+    /// Calendar app's "Default Calendar" setting, via
+    /// `defaultCalendarForNewEvents`). Falls back to Calendar-red until access
+    /// is granted or when no default exists.
+    private(set) var eventDotColor = Color(nsColor: .systemRed)
+    /// Tint for reminder dots: the color of the user's default list (the
+    /// Reminders app's "Default List" setting, via
+    /// `defaultCalendarForNewReminders()`). Falls back to Reminders-orange.
+    private(set) var reminderDotColor = Color(nsColor: .systemOrange)
+
     private let store = EKEventStore()
     /// The window last loaded, so we can reload it when the store changes.
     private var lastWindow: (days: [Date], calendar: Calendar)?
@@ -74,9 +84,12 @@ final class CalendarEventsModel {
         observers.forEach(NotificationCenter.default.removeObserver)
     }
 
-    func hasItems(on date: Date, calendar: Calendar) -> Bool {
-        let day = calendar.startOfDay(for: date)
-        return daysWithEvents.contains(day) || daysWithReminders.contains(day)
+    func hasEvents(on date: Date, calendar: Calendar) -> Bool {
+        daysWithEvents.contains(calendar.startOfDay(for: date))
+    }
+
+    func hasReminders(on date: Date, calendar: Calendar) -> Bool {
+        daysWithReminders.contains(calendar.startOfDay(for: date))
     }
 
     /// Fetches the events and reminders on a single day, sorted with all-day
@@ -185,6 +198,11 @@ final class CalendarEventsModel {
     }
 
     private func fetch(days: [Date], calendar: Calendar) {
+        // Only reachable with full event access, so the default calendar (and
+        // its user-chosen color) is readable here.
+        if let cgColor = store.defaultCalendarForNewEvents?.cgColor {
+            eventDotColor = Color(cgColor: cgColor)
+        }
         guard let first = days.first, let last = days.last else {
             daysWithEvents = []
             return
@@ -225,6 +243,9 @@ final class CalendarEventsModel {
             reminderSnapshots = []
             daysWithReminders = []
             return
+        }
+        if let cgColor = store.defaultCalendarForNewReminders()?.cgColor {
+            reminderDotColor = Color(cgColor: cgColor)
         }
         let start = calendar.startOfDay(for: first)
         reminderFetchGeneration += 1
