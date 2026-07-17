@@ -1,5 +1,4 @@
 import AppKit
-import ServiceManagement
 import SwiftUI
 
 /// Owns the menu bar status item and the calendar popover.
@@ -213,15 +212,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         colorItem.submenu = makeWeekdayColorMenu()
         menu.addItem(colorItem)
 
-        let loginItem = NSMenuItem(
-            title: String(localized: "Launch at Login"),
-            action: #selector(toggleLaunchAtLogin),
-            keyEquivalent: ""
-        )
-        loginItem.target = self
-        loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
-        menu.addItem(loginItem)
-
         let settingsItem = NSMenuItem(
             title: String(localized: "Settings…"),
             action: #selector(openSettings),
@@ -318,20 +308,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         NSApp.activate()
         settingsWindow?.makeKeyAndOrderFront(nil)
-    }
-
-    @objc private func toggleLaunchAtLogin() {
-        do {
-            if SMAppService.mainApp.status == .enabled {
-                try SMAppService.mainApp.unregister()
-            } else {
-                try SMAppService.mainApp.register()
-            }
-        } catch {
-            // Registration can fail for builds outside /Applications; leave the
-            // previous state in place rather than crashing.
-            NSLog("Failed to toggle Launch at Login: %@", error.localizedDescription)
-        }
     }
 
     @objc private func quit() {
