@@ -284,22 +284,25 @@ struct CalendarPopoverView: View {
         }
     }
 
-    /// Circular highlight behind a day number. Precedence: today (filled accent)
-    /// over the selected day (system grey selection fill) over hover (faint
-    /// fill). Sizes all states to the same circle so they swap without shifting
-    /// the layout.
+    /// Squircle highlight behind a day number. Precedence: today (accent-tinted
+    /// fill, with the digit drawn in the same accent at full strength) over the
+    /// selected day (system grey selection fill) over hover (faint fill). Sizes
+    /// all states to the same shape so they swap without shifting the layout.
     @ViewBuilder
     private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
         let size = Layout.todayCircleSize
+        // Continuous corners give the native macOS squircle curve rather than
+        // a mathematical rounded rect.
+        let shape = RoundedRectangle(cornerRadius: 9, style: .continuous)
         if isToday {
-            Circle().fill(accent).frame(width: size, height: size)
+            shape.fill(accent).frame(width: size, height: size)
         } else if isSelected {
             // Apple's standard grey for selected, unemphasized content —
             // adapts to light and dark mode automatically.
-            Circle().fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+            shape.fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
                 .frame(width: size, height: size)
         } else if isHovered {
-            Circle().fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
+            shape.fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
         }
     }
 
@@ -309,8 +312,8 @@ struct CalendarPopoverView: View {
 
     /// A single agenda dot in the given calendar/list color.
     private func agendaDot(_ color: Color, isToday: Bool, inMonth: Bool) -> some View {
-        // Today's dots overlap the filled accent circle behind the day number,
-        // so they must contrast with the circle, not the popover background.
+        // Today's dots overlap the solid accent fill behind the day number,
+        // so they must contrast with the fill, not the popover background.
         let fill = isToday ? Color.white : (inMonth ? color : color.opacity(0.4))
         return Circle()
             .fill(fill)
