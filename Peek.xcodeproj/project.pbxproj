@@ -19,6 +19,7 @@
 		60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A438FD825076DC8EA1B8470E /* WeekdayColor.swift */; };
 		693C78AC8BECDD841933CC3A /* MeetingLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */; };
 		909515D149A2EF1B70125E83 /* TodayBadgeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */; };
+		92C5C996201EE4B217C15531 /* RemindersSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CFDC58094073D8728CB4DBB /* RemindersSupport.swift */; };
 		AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121195A122D71217E9761085 /* AppDelegate.swift */; };
 		F5924861CD6E97849DA2F415 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A975481247ACCE26852C9E0C /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,7 @@
 		121195A122D71217E9761085 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingLinkParser.swift; sourceTree = "<group>"; };
 		3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
+		3CFDC58094073D8728CB4DBB /* RemindersSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSupport.swift; sourceTree = "<group>"; };
 		49AA0AAA9BC02340D9B544C0 /* Peek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Peek.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D07979DD49EE8B5576C2CC8 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		8A7A02D5B6D098F423410E4C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 				AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */,
 				077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */,
 				4D07979DD49EE8B5576C2CC8 /* Preferences.swift */,
+				3CFDC58094073D8728CB4DBB /* RemindersSupport.swift */,
 				8A7A02D5B6D098F423410E4C /* SettingsView.swift */,
 				AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */,
 				A438FD825076DC8EA1B8470E /* WeekdayColor.swift */,
@@ -161,6 +164,7 @@
 				35068B22367FA2AA14DDCAB5 /* NextMeetingModel.swift in Sources */,
 				267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */,
 				1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */,
+				92C5C996201EE4B217C15531 /* RemindersSupport.swift in Sources */,
 				243FA653E2522548D09D8C02 /* SettingsView.swift in Sources */,
 				909515D149A2EF1B70125E83 /* TodayBadgeModel.swift in Sources */,
 				60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */,

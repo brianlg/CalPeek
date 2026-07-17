@@ -1,3 +1,4 @@
+import EventKit
 import ServiceManagement
 import SwiftUI
 
@@ -11,8 +12,13 @@ struct SettingsView: View {
     private var leadWindowMinutes = Preferences.leadWindowMinutesDefault
     @AppStorage(Preferences.joinHotKeyEnabledKey)
     private var joinHotKeyEnabled = Preferences.joinHotKeyEnabledDefault
+    @AppStorage(Preferences.showRemindersKey)
+    private var showReminders = Preferences.showRemindersDefault
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    /// True after the user denied Reminders access, so the footer can point
+    /// them at System Settings.
+    @State private var remindersDenied = false
 
     var body: some View {
         Form {
@@ -37,6 +43,17 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section {
+                Toggle(String(localized: "Show Reminders"), isOn: $showReminders)
+                    .onChange(of: showReminders) { _, enabled in
+                        handleShowRemindersChange(enabled)
+                    }
+            } header: {
+                Text(String(localized: "Reminders"))
+            } footer: {
+                remindersFooter
+            }
+
             Section(String(localized: "General")) {
                 Toggle(String(localized: "Launch at Login"), isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
@@ -47,6 +64,65 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .fixedSize()
+    }
+
+    /// Requests Reminders access the first time the toggle is enabled. If the
+    /// user denies (now or previously), flip the toggle back off so it honestly
+    /// reflects state, and point at the System Settings privacy pane.
+    private func handleShowRemindersChange(_ enabled: Bool) {
+        guard enabled else {
+            remindersDenied = false
+            notifyRemindersSettingChanged()
+            return
+        }
+        switch EKEventStore.authorizationStatus(for: .reminder) {
+        case .fullAccess:
+            remindersDenied = false
+            notifyRemindersSettingChanged()
+        case .notDetermined:
+            Task {
+                if await RemindersAccess.request() {
+                    remindersDenied = false
+                    notifyRemindersSettingChanged()
+                } else {
+                    showReminders = false
+                    remindersDenied = true
+                }
+            }
+        default:
+            // Denied, restricted, or write-only — none of which allow reading.
+            showReminders = false
+            remindersDenied = true
+        }
+    }
+
+    /// Tells the models to reset their stores and refetch, so reminders
+    /// appear (or disappear) immediately without an app restart.
+    private func notifyRemindersSettingChanged() {
+        NotificationCenter.default.post(name: .remindersSettingDidChange, object: nil)
+    }
+
+    @ViewBuilder
+    private var remindersFooter: some View {
+        if remindersDenied {
+            HStack(spacing: 4) {
+                Text(String(localized: "Reminders access is off."))
+                    .foregroundStyle(.secondary)
+                Button(String(localized: "Open Settings")) {
+                    let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders"
+                    if let url = URL(string: pane) {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color(nsColor: .systemRed))
+            }
+            .font(.system(size: 11))
+        } else {
+            Text(String(localized: "Show reminders with a due date alongside events."))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {

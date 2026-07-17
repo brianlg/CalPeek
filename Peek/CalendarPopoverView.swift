@@ -37,7 +37,8 @@ struct CalendarPopoverView: View {
     @FocusState private var isFocused: Bool
     /// Controls presentation of the scrolling year picker popover.
     @State private var isYearPickerPresented = false
-    /// Read-only source of which displayed days have calendar events.
+    /// Source of which displayed days have events or due reminders, and the
+    /// per-day rows behind each cell's popover.
     @State private var events = CalendarEventsModel()
     /// The day whose events popover is currently open, if any.
     @State private var selectedDate: Date?
@@ -233,7 +234,7 @@ struct CalendarPopoverView: View {
     private func dayCell(for date: Date) -> some View {
         let isToday = calendar.isDateInToday(date)
         let inMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
-        let hasEvent = events.hasEvents(on: date, calendar: calendar)
+        let hasEvent = events.hasItems(on: date, calendar: calendar)
         let isSelected = isSameDay(selectedDate, date)
         let isHovered = isSameDay(hoveredDate, date)
 
@@ -266,8 +267,9 @@ struct CalendarPopoverView: View {
         .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
             DayEventsPopover(
                 date: date,
-                events: events.events(on: date, calendar: calendar),
-                accent: accent
+                items: events.items(on: date, calendar: calendar),
+                accent: accent,
+                toggleReminder: { events.setReminderCompleted($0, $1) }
             )
         }
     }
@@ -480,13 +482,16 @@ private struct YearPickerPopover: View {
     }
 }
 
-/// Popover listing a single day's events, presented when a day cell is tapped.
-/// Shows a colored dot per event's calendar, its start time (or "all-day"), and
-/// its title. Falls back to "No Events" when the day is empty.
+/// Popover listing a single day's events and reminders, presented when a day
+/// cell is tapped. Events show a filled dot in their calendar's color;
+/// reminders show a circular checkbox in their list's color that toggles
+/// completion, matching Calendar.app. Falls back to "No Events" when the day
+/// is empty.
 private struct DayEventsPopover: View {
     let date: Date
-    let events: [DayEvent]
+    let items: [DayItem]
     let accent: Color
+    let toggleReminder: (String, Bool) -> Void
 
     private enum Layout {
         static let width: CGFloat = 240
@@ -499,15 +504,15 @@ private struct DayEventsPopover: View {
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.primary)
 
-            if events.isEmpty {
+            if items.isEmpty {
                 Text(String(localized: "No Events"))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 10) {
-                        ForEach(events) { event in
-                            eventRow(event)
+                        ForEach(items) { item in
+                            itemRow(item)
                         }
                     }
                 }
@@ -518,26 +523,41 @@ private struct DayEventsPopover: View {
         .frame(width: Layout.width)
     }
 
-    private func eventRow(_ event: DayEvent) -> some View {
+    private func itemRow(_ item: DayItem) -> some View {
         HStack(alignment: .top, spacing: 8) {
-            Circle()
-                .fill(event.color)
-                .frame(width: 8, height: 8)
-                .padding(.top, 3)
+            switch item.kind {
+            case .event:
+                Circle()
+                    .fill(item.color)
+                    .frame(width: 8, height: 8)
+                    .padding(.top, 3)
+            case .reminder(let isCompleted, let reminderID):
+                Button {
+                    toggleReminder(reminderID, !isCompleted)
+                } label: {
+                    Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(item.color)
+                }
+                .buttonStyle(.plain)
+                .help(isCompleted
+                    ? String(localized: "Mark reminder incomplete")
+                    : String(localized: "Mark reminder complete"))
+            }
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(event.title)
+                Text(item.title)
                     .font(.system(size: 13))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(isCompletedReminder(item) ? .secondary : .primary)
                     .lineLimit(2)
-                Text(event.timeText)
+                Text(item.timeText)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 0)
 
-            if let url = event.joinURL {
+            if let url = item.joinURL {
                 Button {
                     NSWorkspace.shared.open(url)
                 } label: {
@@ -549,6 +569,11 @@ private struct DayEventsPopover: View {
                 .help(String(localized: "Join meeting"))
             }
         }
+    }
+
+    private func isCompletedReminder(_ item: DayItem) -> Bool {
+        if case .reminder(let isCompleted, _) = item.kind { return isCompleted }
+        return false
     }
 }
 

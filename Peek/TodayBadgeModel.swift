@@ -2,11 +2,11 @@ import EventKit
 import Foundation
 
 /// Drives the "unseen agenda" badge on the menu bar icon: shown when today has
-/// at least one event the user hasn't viewed by clicking today's cell in the
-/// calendar. Acknowledging snapshots the identifiers of today's events, so a
-/// new event arriving later re-arms the badge, while edits to already-seen
-/// events stay silent. The snapshot is persisted across relaunches and only
-/// counts for the day it was taken.
+/// at least one event or incomplete reminder the user hasn't viewed by
+/// clicking today's cell in the calendar. Acknowledging snapshots the
+/// identifiers of today's items, so a new item arriving later re-arms the
+/// badge, while edits to already-seen items stay silent. The snapshot is
+/// persisted across relaunches and only counts for the day it was taken.
 ///
 /// Read-only against the store and never triggers the permission prompt —
 /// that stays with the calendar popover's first-open flow.
@@ -23,6 +23,11 @@ final class TodayBadgeModel {
     private static let acknowledgedIDsKey = "agendaAcknowledgedEventIDs"
 
     private let store = EKEventStore()
+    /// Identities of incomplete reminders due today, refreshed asynchronously
+    /// by `refreshReminders()` since EventKit has no synchronous reminder read.
+    private var todayReminderIDs: [String] = []
+    /// Drops stale async reminder results when refreshes overlap.
+    private var reminderFetchGeneration = 0
     /// Written once in `init`, read again only in the nonisolated `deinit` —
     /// same pattern as `NextMeetingModel`'s tokens.
     @ObservationIgnored
@@ -37,6 +42,8 @@ final class TodayBadgeModel {
         let names: [(Notification.Name, AnyObject?)] = [
             (.EKEventStoreChanged, store),
             (.NSCalendarDayChanged, nil),
+            // Defaults changes catch the Show Reminders toggle flipping.
+            (UserDefaults.didChangeNotification, UserDefaults.standard),
         ]
         observers = names.map { name, object in
             NotificationCenter.default.addObserver(
@@ -47,6 +54,19 @@ final class TodayBadgeModel {
                 MainActor.assumeIsolated { self?.refresh() }
             }
         }
+        // A store created before the Reminders grant serves empty reminder
+        // fetches until it forgets its cached state, so reset before the
+        // refresh when the Show Reminders setting changes.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: .remindersSettingDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.store.reset()
+                self?.refresh()
+            }
+        })
 
         // A 30s tick picks up the initial fetch once the popover flow has
         // obtained calendar access; `refresh` is a no-op when nothing changed.
@@ -63,15 +83,20 @@ final class TodayBadgeModel {
     }
 
     /// Records that the user has viewed today's agenda as it currently stands.
-    /// Events added later today aren't in the snapshot, so they re-arm the badge.
+    /// Items added later today aren't in the snapshot, so they re-arm the badge.
     func acknowledgeToday() {
         let defaults = UserDefaults.standard
         defaults.set(Calendar.current.startOfDay(for: Date()), forKey: Self.acknowledgedDayKey)
-        defaults.set(todayEvents().map(Self.identity), forKey: Self.acknowledgedIDsKey)
+        defaults.set(todayIdentities(), forKey: Self.acknowledgedIDsKey)
         refresh()
     }
 
     func refresh() {
+        refreshReminders()
+        recompute()
+    }
+
+    private func recompute() {
         let newValue = computeIsShowing()
         guard newValue != isShowing else { return }
         isShowing = newValue
@@ -79,8 +104,8 @@ final class TodayBadgeModel {
     }
 
     private func computeIsShowing() -> Bool {
-        let events = todayEvents()
-        guard !events.isEmpty else { return false }
+        let identities = todayIdentities()
+        guard !identities.isEmpty else { return false }
 
         // A snapshot from a previous day doesn't count — everything is unseen.
         let defaults = UserDefaults.standard
@@ -90,7 +115,45 @@ final class TodayBadgeModel {
         }
 
         let seen = Set(defaults.stringArray(forKey: Self.acknowledgedIDsKey) ?? [])
-        return events.contains { !seen.contains(Self.identity($0)) }
+        return identities.contains { !seen.contains($0) }
+    }
+
+    /// Every item on today's agenda: events plus the cached incomplete
+    /// reminders. Completing a reminder removes it from the universe, so a
+    /// completed-only day never badges.
+    private func todayIdentities() -> [String] {
+        todayEvents().map(Self.identity) + todayReminderIDs
+    }
+
+    /// Refreshes the incomplete-reminders-due-today cache. The fetch is
+    /// async-only in EventKit, so results land after the enclosing `refresh`;
+    /// a change recomputes the badge again.
+    private func refreshReminders() {
+        guard Preferences.showReminders, RemindersAccess.hasFullAccess else {
+            if !todayReminderIDs.isEmpty {
+                todayReminderIDs = []
+                recompute()
+            }
+            return
+        }
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return }
+
+        reminderFetchGeneration += 1
+        let generation = reminderFetchGeneration
+        let sendableStore = SendableEventStore(store: store)
+        Task { [weak self] in
+            let snapshots = await ReminderFetcher.incompleteSnapshots(
+                from: sendableStore, start: today, end: end, calendar: calendar)
+            // Prefixed so reminder identities can't collide with event
+            // identifiers in the persisted acknowledgment snapshot.
+            let ids = snapshots.map { "reminder:" + $0.id }
+            guard let self, self.reminderFetchGeneration == generation,
+                  Set(ids) != Set(self.todayReminderIDs) else { return }
+            self.todayReminderIDs = ids
+            self.recompute()
+        }
     }
 
     private func todayEvents() -> [EKEvent] {

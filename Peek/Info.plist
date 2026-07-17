@@ -24,6 +24,8 @@
 	<true/>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Peek shows a dot on days that have events in your calendar.</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>Peek shows reminders with a due date alongside your calendar events.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

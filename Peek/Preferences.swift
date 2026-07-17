@@ -7,12 +7,14 @@ enum Preferences {
     static let showMeetingTitleKey = "showMeetingTitleInMenuBar"
     static let leadWindowMinutesKey = "nextMeetingLeadWindowMinutes"
     static let joinHotKeyEnabledKey = "joinHotKeyEnabled"
+    static let showRemindersKey = "showReminders"
 
     static let showNextMeetingDefault = true
     static let showMeetingTitleDefault = true
     /// 0 means "any time today" (no lead-window limit).
     static let leadWindowMinutesDefault = 60
     static let joinHotKeyEnabledDefault = false
+    static let showRemindersDefault = false
 
     static var showNextMeeting: Bool {
         bool(forKey: showNextMeetingKey, default: showNextMeetingDefault)
@@ -28,6 +30,10 @@ enum Preferences {
 
     static var joinHotKeyEnabled: Bool {
         bool(forKey: joinHotKeyEnabledKey, default: joinHotKeyEnabledDefault)
+    }
+
+    static var showReminders: Bool {
+        bool(forKey: showRemindersKey, default: showRemindersDefault)
     }
 
     private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {
