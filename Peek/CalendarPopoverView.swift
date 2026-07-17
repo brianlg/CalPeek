@@ -242,8 +242,8 @@ struct CalendarPopoverView: View {
 
         return VStack(spacing: 2) {
             Text(String(calendar.component(.day, from: date)))
-                .font(.system(size: 15, weight: isToday ? .semibold : .regular))
-                .foregroundStyle(isToday ? Color.white : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
+                .font(.system(size: 15, weight: isToday ? .bold : .regular))
+                .foregroundStyle(isToday ? accent : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
                 .frame(maxWidth: .infinity)
                 .background {
                     dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
@@ -295,7 +295,9 @@ struct CalendarPopoverView: View {
         // a mathematical rounded rect.
         let shape = RoundedRectangle(cornerRadius: 9, style: .continuous)
         if isToday {
-            shape.fill(accent).frame(width: size, height: size)
+            // Frosted-glass grey chip; the accent-colored digit on top stays
+            // the loudest thing in the cell.
+            shape.fill(Color.primary.opacity(0.12)).frame(width: size, height: size)
         } else if isSelected {
             // Apple's standard grey for selected, unemphasized content —
             // adapts to light and dark mode automatically.
@@ -312,9 +314,9 @@ struct CalendarPopoverView: View {
 
     /// A single agenda dot in the given calendar/list color.
     private func agendaDot(_ color: Color, isToday: Bool, inMonth: Bool) -> some View {
-        // Today's dots overlap the solid accent fill behind the day number,
-        // so they must contrast with the fill, not the popover background.
-        let fill = isToday ? Color.white : (inMonth ? color : color.opacity(0.4))
+        // Today's dots sit on the grey chip and recede slightly so the accent
+        // digit stays the loudest thing in the cell.
+        let fill = isToday ? color.opacity(0.7) : (inMonth ? color : color.opacity(0.4))
         return Circle()
             .fill(fill)
             .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
