@@ -8,8 +8,10 @@ struct PeekApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
-        // The settings window is the app's only SwiftUI scene; everything else
-        // hangs off the status item.
+        // An App must declare at least one scene, but this one is never
+        // opened: macOS 14 removed AppKit-side access to the Settings scene,
+        // so `AppDelegate.openSettings()` hosts `SettingsView` in its own
+        // window instead.
         Settings {
             SettingsView()
         }

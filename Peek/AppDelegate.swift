@@ -13,6 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Drives the orange "unseen agenda" dot on the menu bar icon.
     private let todayBadge = TodayBadgeModel()
     private var joinHotKey: GlobalHotKey?
+    /// Created on first open and reused; strong reference plus
+    /// `isReleasedWhenClosed = false` keeps AppKit from deallocating it when
+    /// the user closes it.
+    private var settingsWindow: NSWindow?
 
     private var dateChangeObservers: [NSObjectProtocol] = []
     private var appearanceObservation: NSKeyValueObservation?
@@ -295,10 +299,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openSettings() {
-        // SwiftUI's Settings scene has no public AppKit-side opener; this
-        // selector is how LSUIElement apps surface it (macOS 13+ name).
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        // macOS 14 removed the `showSettingsWindow:` selector, and SwiftUI's
+        // replacement (`SettingsLink` / the `openSettings` environment action)
+        // only works from inside a live SwiftUI hierarchy — so an LSUIElement
+        // app opening settings from an NSMenu has to own the window itself.
+        if settingsWindow == nil {
+            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
+            window.title = String(localized: "Peek Settings")
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            settingsWindow = window
+        }
         NSApp.activate()
+        settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
     @objc private func toggleLaunchAtLogin() {
