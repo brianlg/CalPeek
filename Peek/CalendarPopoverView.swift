@@ -22,8 +22,9 @@ struct CalendarPopoverView: View {
         static let numberOfWeeks = 6
         static let totalDays = daysPerWeek * numberOfWeeks // 42
         static let todayCircleSize: CGFloat = 32
-        static let eventDotSize: CGFloat = 4
-        static let eventDotSpacing: CGFloat = 3
+        static let agendaBarWidth: CGFloat = 16
+        static let agendaBarHeight: CGFloat = 3
+        static let agendaBarSegmentSpacing: CGFloat = 1
         static let headerSpacing: CGFloat = 5
         static let contentSpacing: CGFloat = 12
     }
@@ -228,9 +229,6 @@ struct CalendarPopoverView: View {
         }
         .coordinateSpace(name: "dayGrid")
         .onPreferenceChange(DayFramePreferenceKey.self) { dayFrames = $0 }
-        // One floating chip glides between cells rather than each cell
-        // drawing its own hover highlight, so only one is ever visible.
-        .background { hoverChip }
         .onChange(of: hoveredDate) {
             if let date = hoveredDate, let frame = dayFrames[date] {
                 chipFrame = frame
@@ -250,6 +248,11 @@ struct CalendarPopoverView: View {
         )
         .frame(maxWidth: .infinity, alignment: .top)
         .clipped()
+        // One floating chip glides between cells rather than each cell drawing
+        // its own hover highlight, so only one is ever visible. Attached
+        // outside .clipped() so the chip isn't sheared off on the top row;
+        // backgrounds render behind the grid content either way.
+        .background { hoverChip }
     }
 
     /// Collects each day number's frame in the grid's coordinate space so the
@@ -271,15 +274,15 @@ struct CalendarPopoverView: View {
 
         return VStack(spacing: 2) {
             Text(String(calendar.component(.day, from: date)))
-                .font(.system(size: 15, weight: isToday ? .bold : .regular))
-                .foregroundStyle(isToday ? accent : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
+                .font(.system(size: 15))
+                .foregroundStyle(isToday ? Color.white : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
                 // Mimic Liquid Glass lensing: the digit bulges under the chip
                 // as it passes over, on the same spring the chip glides with.
                 .scaleEffect(isHovered ? 1.18 : 1)
                 .animation(.spring(response: 0.28, dampingFraction: 0.8), value: isHovered)
                 .frame(maxWidth: .infinity)
                 .background {
-                    dayHighlight(isSelected: isSelected)
+                    dayHighlight(isToday: isToday, isSelected: isSelected)
                 }
                 .background {
                     GeometryReader { proxy in
@@ -290,18 +293,11 @@ struct CalendarPopoverView: View {
                     }
                 }
 
-            // Reserve the dots' space on every cell so row height stays
-            // stable; the HStack centers whichever dots are present.
-            HStack(spacing: Layout.eventDotSpacing) {
-                if hasEvent {
-                    agendaDot(events.eventDotColor, inMonth: inMonth)
-                }
-                if hasReminder {
-                    agendaDot(events.reminderDotColor, inMonth: inMonth)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: Layout.eventDotSize)
+            // Reserve the underline's space on every cell so row height stays
+            // stable whether or not the day has agenda items.
+            agendaUnderline(hasEvent: hasEvent, hasReminder: hasReminder, isToday: isToday, inMonth: inMonth)
+                .frame(maxWidth: .infinity)
+                .frame(height: Layout.agendaBarHeight)
         }
         .frame(height: Layout.rowHeight)
         .contentShape(Rectangle())
@@ -324,13 +320,15 @@ struct CalendarPopoverView: View {
         }
     }
 
-    /// Squircle highlight behind the selected day number. Today carries no
-    /// static highlight of its own — its bold accent digit is the
-    /// differentiator, and hover is handled by the single floating chip.
+    /// Highlight behind a day number. Today is a filled accent circle with a
+    /// white digit, matching Calendar.app; hover is handled by the single
+    /// floating chip.
     @ViewBuilder
-    private func dayHighlight(isSelected: Bool) -> some View {
+    private func dayHighlight(isToday: Bool, isSelected: Bool) -> some View {
         let size = Layout.todayCircleSize
-        if isSelected {
+        if isToday {
+            Circle().fill(accent).frame(width: size, height: size)
+        } else if isSelected {
             // Apple's standard grey for selected, unemphasized content —
             // adapts to light and dark mode automatically.
             daySquircle.fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
@@ -348,9 +346,12 @@ struct CalendarPopoverView: View {
     private var hoverChip: some View {
         Group {
             if #available(macOS 26.0, *) {
-                Color.clear.glassEffect(.regular, in: daySquircle)
+                // A light primary tint frosts the glass so the chip stays
+                // visible over the popover's fairly uniform background.
+                Color.clear.glassEffect(.regular.tint(Color.primary.opacity(0.1)), in: daySquircle)
             } else {
                 daySquircle.fill(.ultraThinMaterial)
+                    .overlay(daySquircle.fill(Color.primary.opacity(0.06)))
             }
         }
         .frame(width: Layout.todayCircleSize, height: Layout.todayCircleSize)
@@ -364,12 +365,28 @@ struct CalendarPopoverView: View {
         lhs.map { calendar.isDate($0, inSameDayAs: rhs) } ?? false
     }
 
-    /// A single agenda dot in the given calendar/list color.
-    private func agendaDot(_ color: Color, inMonth: Bool) -> some View {
-        let fill = inMonth ? color : color.opacity(0.4)
-        return Circle()
-            .fill(fill)
-            .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
+    /// One bar under the day number, split into colored segments by source
+    /// (events, reminders), so a busy day reads at a glance without counting
+    /// individual dots.
+    @ViewBuilder
+    private func agendaUnderline(hasEvent: Bool, hasReminder: Bool, isToday: Bool, inMonth: Bool) -> some View {
+        let colors: [Color] = [
+            hasEvent ? events.eventDotColor : nil,
+            hasReminder ? events.reminderDotColor : nil,
+        ].compactMap { $0 }
+        if !colors.isEmpty {
+            HStack(spacing: Layout.agendaBarSegmentSpacing) {
+                ForEach(colors.indices, id: \.self) { index in
+                    // The bar overlaps today's filled accent circle, so it
+                    // must contrast with the circle, not the popover
+                    // background; the segment gap keeps the split legible.
+                    Rectangle()
+                        .fill(isToday ? Color.white : (inMonth ? colors[index] : colors[index].opacity(0.4)))
+                }
+            }
+            .frame(width: Layout.agendaBarWidth, height: Layout.agendaBarHeight)
+            .clipShape(Capsule())
+        }
     }
 
     // MARK: - Day selection
