@@ -23,7 +23,7 @@ struct CalendarPopoverView: View {
         static let totalDays = daysPerWeek * numberOfWeeks // 42
         static let todayCircleSize: CGFloat = 32
         static let agendaBarWidth: CGFloat = 16
-        static let agendaBarHeight: CGFloat = 3
+        static let agendaBarHeight: CGFloat = 2
         static let agendaBarSegmentSpacing: CGFloat = 1
         static let headerSpacing: CGFloat = 5
         static let contentSpacing: CGFloat = 12
