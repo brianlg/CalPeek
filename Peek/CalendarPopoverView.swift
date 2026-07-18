@@ -25,7 +25,7 @@ struct CalendarPopoverView: View {
         static let eventDotSize: CGFloat = 4
         /// Width of the see-through ring punched out of the today circle
         /// around each dot.
-        static let eventDotCutoutWidth: CGFloat = 0.5
+        static let eventDotCutoutWidth: CGFloat = 1
         static let eventDotSpacing: CGFloat = 2
         static let eventDotNudge: CGFloat = -1
         static let headerSpacing: CGFloat = 5
@@ -251,7 +251,11 @@ struct CalendarPopoverView: View {
             )
         )
         .frame(maxWidth: .infinity, alignment: .top)
-        .clipped()
+        // Hide the horizontal month-slide transition without cutting off the
+        // highlight circles, which overhang the top row's bounds (they're
+        // taller than the day-number text they center on): clip the sides
+        // tight but give the mask vertical slack.
+        .mask(Rectangle().padding(.vertical, -Layout.todayCircleSize / 2))
     }
 
     private func dayCell(for date: Date) -> some View {
