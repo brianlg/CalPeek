@@ -540,8 +540,8 @@ private struct YearPickerPopover: View {
 /// Popover listing a single day's events and reminders, presented when a day
 /// cell is tapped. Events show a filled dot in their calendar's color;
 /// reminders show a circular checkbox in their list's color that toggles
-/// completion, matching Calendar.app. Falls back to "No Events" when the day
-/// is empty.
+/// completion, matching Calendar.app. Falls back to "Nothing here." when the
+/// day is empty.
 private struct DayEventsPopover: View {
     let date: Date
     let items: [DayItem]
@@ -560,7 +560,7 @@ private struct DayEventsPopover: View {
                 .foregroundStyle(.primary)
 
             if items.isEmpty {
-                Text(String(localized: "No Events"))
+                Text(String(localized: "Nothing here."))
                     .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             } else {
