@@ -27,8 +27,8 @@ struct NextMeeting {
 
 /// App-lifetime bridge to the user's calendars for the "next meeting" feature.
 /// Read-only, and never triggers the permission prompt itself — that stays
-/// with the calendar popover's first-open flow — so launching the app doesn't
-/// front-load a privacy dialog.
+/// with the Settings window's Show Calendar toggle — so launching the app
+/// doesn't front-load a privacy dialog.
 @Observable @MainActor
 final class NextMeetingModel {
     /// The next event today with a recognizable video-conference link that
@@ -63,8 +63,22 @@ final class NextMeetingModel {
             }
         }
 
+        // A store created before the calendar grant serves empty fetches until
+        // it forgets its cached state, so reset before refreshing when the
+        // Show Calendar setting changes.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: .calendarSettingDidChange,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.store.reset()
+                self?.refresh()
+            }
+        })
+
         // A 30s tick keeps the countdown fresh and picks up the initial fetch
-        // once the popover flow has obtained calendar access.
+        // once the Settings toggle has obtained calendar access.
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
@@ -102,7 +116,7 @@ final class NextMeetingModel {
     }
 
     private func computeNextMeeting() -> NextMeeting? {
-        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return nil }
+        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return nil }
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
         store.refreshSourcesIfNecessary()

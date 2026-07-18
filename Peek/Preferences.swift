@@ -1,3 +1,4 @@
+import EventKit
 import Foundation
 
 /// UserDefaults keys and defaults for the settings window, kept in one place so
@@ -8,6 +9,7 @@ enum Preferences {
     static let leadWindowMinutesKey = "nextMeetingLeadWindowMinutes"
     static let joinHotKeyEnabledKey = "joinHotKeyEnabled"
     static let showRemindersKey = "showReminders"
+    static let showCalendarKey = "showCalendar"
 
     static let showNextMeetingDefault = true
     static let showMeetingTitleDefault = true
@@ -15,6 +17,11 @@ enum Preferences {
     static let leadWindowMinutesDefault = 60
     static let joinHotKeyEnabledDefault = false
     static let showRemindersDefault = false
+    /// Installs that granted calendar access before this toggle existed keep
+    /// showing events; fresh installs start off until the user opts in.
+    static var showCalendarDefault: Bool {
+        EKEventStore.authorizationStatus(for: .event) == .fullAccess
+    }
 
     static var showNextMeeting: Bool {
         bool(forKey: showNextMeetingKey, default: showNextMeetingDefault)
@@ -34,6 +41,10 @@ enum Preferences {
 
     static var showReminders: Bool {
         bool(forKey: showRemindersKey, default: showRemindersDefault)
+    }
+
+    static var showCalendar: Bool {
+        bool(forKey: showCalendarKey, default: showCalendarDefault)
     }
 
     private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {

@@ -13,7 +13,7 @@ import SwiftUI
 /// persisted across relaunches and only counts for the day it was taken.
 ///
 /// Read-only against the store and never triggers the permission prompt —
-/// that stays with the calendar popover's first-open flow.
+/// that stays with the Settings window's Show Calendar toggle.
 @Observable @MainActor
 final class TodayBadgeModel {
     /// True while today has an event that hasn't ended yet.
@@ -68,19 +68,21 @@ final class TodayBadgeModel {
                 MainActor.assumeIsolated { self?.refresh() }
             }
         }
-        // A store created before the Reminders grant serves empty reminder
-        // fetches until it forgets its cached state, so reset before the
-        // refresh when the Show Reminders setting changes.
-        observers.append(NotificationCenter.default.addObserver(
-            forName: .remindersSettingDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.store.reset()
-                self?.refresh()
-            }
-        })
+        // A store created before a grant serves empty fetches until it
+        // forgets its cached state, so reset before the refresh when the
+        // Show Reminders or Show Calendar setting changes.
+        for name: Notification.Name in [.remindersSettingDidChange, .calendarSettingDidChange] {
+            observers.append(NotificationCenter.default.addObserver(
+                forName: name,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    self?.store.reset()
+                    self?.refresh()
+                }
+            })
+        }
 
         // A 30s tick picks up the initial fetch once the popover flow has
         // obtained calendar access; `refresh` is a no-op when nothing changed.
@@ -175,7 +177,7 @@ final class TodayBadgeModel {
     }
 
     private func todayEvents() -> [EKEvent] {
-        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return [] }
+        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return [] }
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
         store.refreshSourcesIfNecessary()
