@@ -1,3 +1,4 @@
+import EventKit
 import SwiftUI
 
 /// Compact month calendar shown in the popover. Fixed 300pt wide, adapts to
@@ -306,12 +307,7 @@ struct CalendarPopoverView: View {
         .animation(.easeOut(duration: 0.12), value: isHovered)
         .animation(.easeOut(duration: 0.12), value: isSelected)
         .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
-            DayEventsPopover(
-                date: date,
-                items: events.items(on: date, calendar: calendar),
-                accent: accent,
-                toggleReminder: { events.setReminderCompleted($0, $1) }
-            )
+            DayEventsPopover(date: date, model: events, calendar: calendar, accent: accent)
         }
     }
 
@@ -544,38 +540,122 @@ private struct YearPickerPopover: View {
 /// day is empty.
 private struct DayEventsPopover: View {
     let date: Date
-    let items: [DayItem]
+    let model: CalendarEventsModel
+    let calendar: Calendar
     let accent: Color
-    let toggleReminder: (String, Bool) -> Void
+
+    private enum Mode {
+        case list, newEvent, newReminder
+    }
+
+    @State private var mode: Mode = .list
+    /// Measured height of the list's row stack, so the ScrollView can report
+    /// a real ideal height to the popover (see `listContent`).
+    @State private var listHeight: CGFloat = 0
 
     private enum Layout {
         static let width: CGFloat = 240
+        static let formWidth: CGFloat = 280
         static let maxListHeight: CGFloat = 240
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.primary)
-
-            if items.isEmpty {
-                Text(String(localized: "Nothing here."))
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 10) {
-                        ForEach(items) { item in
-                            itemRow(item)
-                        }
-                    }
+            HStack(spacing: 6) {
+                Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+                if mode == .list {
+                    plusControl
                 }
-                .frame(maxHeight: Layout.maxListHeight)
+            }
+
+            switch mode {
+            case .list:
+                listContent
+            case .newEvent:
+                NewEventForm(date: date, model: model, calendar: calendar) { mode = .list }
+            case .newReminder:
+                NewReminderForm(date: date, model: model, calendar: calendar) { mode = .list }
             }
         }
         .padding(14)
-        .frame(width: Layout.width)
+        .frame(width: mode == .list ? Layout.width : Layout.formWidth)
+        .animation(.easeOut(duration: 0.12), value: mode)
+    }
+
+    @ViewBuilder
+    private var listContent: some View {
+        let items = model.items(on: date, calendar: calendar)
+        if items.isEmpty {
+            Text(String(localized: "Nothing here."))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(items) { item in
+                        itemRow(item)
+                    }
+                }
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.height
+                } action: { height in
+                    listHeight = height
+                }
+            }
+            // A ScrollView has no ideal height of its own, so after the
+            // popover shrinks for a form it would stay small instead of
+            // refitting the list. Sizing it to the measured row stack keeps
+            // NSPopover's contentSize tracking the real list height.
+            .frame(height: listHeight > 0 ? min(listHeight, Layout.maxListHeight) : nil)
+        }
+    }
+
+    /// The header "+" control: a two-option menu when both events and
+    /// reminders can be created, a direct button when only one can, and
+    /// nothing when neither.
+    @ViewBuilder
+    private var plusControl: some View {
+        let canEvents = model.canCreateEvents
+        let canReminders = model.canCreateReminders
+        if canEvents && canReminders {
+            Menu {
+                Button(String(localized: "New Event")) { mode = .newEvent }
+                Button(String(localized: "New Reminder")) { mode = .newReminder }
+            } label: {
+                plusGlyph
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            // The borderless menu style drops backgrounds inside its label,
+            // so the chip is drawn around the Menu instead.
+            .frame(width: 24, height: 24)
+            .background(Circle().fill(Color.primary.opacity(0.08)))
+            .contentShape(Circle())
+        } else if canEvents || canReminders {
+            Button {
+                mode = canEvents ? .newEvent : .newReminder
+            } label: {
+                plusGlyph
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(Color.primary.opacity(0.08)))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .help(canEvents
+                ? String(localized: "New Event")
+                : String(localized: "New Reminder"))
+        }
+    }
+
+    /// Plus icon styled to match the month header's chevron chips.
+    private var plusGlyph: some View {
+        Image(systemName: "plus")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.primary)
     }
 
     private func itemRow(_ item: DayItem) -> some View {
@@ -588,7 +668,7 @@ private struct DayEventsPopover: View {
                     .padding(.top, 3)
             case .reminder(let isCompleted, let reminderID):
                 Button {
-                    toggleReminder(reminderID, !isCompleted)
+                    model.setReminderCompleted(reminderID, !isCompleted)
                 } label: {
                     Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
                         .font(.system(size: 12))
@@ -629,6 +709,294 @@ private struct DayEventsPopover: View {
     private func isCompletedReminder(_ item: DayItem) -> Bool {
         if case .reminder(let isCompleted, _) = item.kind { return isCompleted }
         return false
+    }
+}
+
+/// Borderless date/time field with individually clickable, typeable segments
+/// (month, day, year, hour, minute, AM/PM), matching the Calendar app's event
+/// inspector. SwiftUI's DatePicker always draws a bezel, so this wraps
+/// NSDatePicker's text-field style directly.
+private struct SegmentedDateField: NSViewRepresentable {
+    @Binding var date: Date
+    /// When false (all-day), only the date segments show.
+    var showsTime: Bool
+
+    func makeNSView(context: Context) -> NSDatePicker {
+        let picker = NSDatePicker()
+        picker.datePickerStyle = .textField
+        picker.isBezeled = false
+        picker.isBordered = false
+        picker.drawsBackground = false
+        picker.font = .systemFont(ofSize: 12)
+        picker.target = context.coordinator
+        picker.action = #selector(Coordinator.dateChanged(_:))
+        return picker
+    }
+
+    func updateNSView(_ picker: NSDatePicker, context: Context) {
+        context.coordinator.parent = self
+        picker.datePickerElements = showsTime ? [.yearMonthDay, .hourMinute] : [.yearMonthDay]
+        if picker.dateValue != date {
+            picker.dateValue = date
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    @MainActor final class Coordinator: NSObject {
+        var parent: SegmentedDateField
+
+        init(_ parent: SegmentedDateField) {
+            self.parent = parent
+        }
+
+        @objc func dateChanged(_ sender: NSDatePicker) {
+            parent.date = sender.dateValue
+        }
+    }
+}
+
+/// Inline event-creation form shown inside the day popover.
+private struct NewEventForm: View {
+    let date: Date
+    let model: CalendarEventsModel
+    let calendar: Calendar
+    let dismiss: () -> Void
+
+    @State private var title = ""
+    @State private var isAllDay = false
+    @State private var startTime: Date
+    @State private var endTime: Date
+    @State private var selectedCalendarID: String
+    @State private var saveFailed = false
+    @FocusState private var titleFocused: Bool
+
+    private let calendars: [EKCalendar]
+
+    init(date: Date, model: CalendarEventsModel, calendar: Calendar, dismiss: @escaping () -> Void) {
+        self.date = date
+        self.model = model
+        self.calendar = calendar
+        self.dismiss = dismiss
+        let start = Self.defaultStart(on: date, calendar: calendar)
+        _startTime = State(initialValue: start)
+        _endTime = State(initialValue: start.addingTimeInterval(3600))
+        calendars = model.writableEventCalendars()
+        _selectedCalendarID = State(initialValue: calendars.first?.calendarIdentifier ?? "")
+    }
+
+    /// Today opens at the next half-hour boundary (capped at 23:00); other
+    /// days open at 9:00 AM.
+    private static func defaultStart(on date: Date, calendar: Calendar) -> Date {
+        let dayStart = calendar.startOfDay(for: date)
+        guard calendar.isDateInToday(date) else {
+            return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: dayStart) ?? dayStart
+        }
+        let now = Date()
+        var hour = calendar.component(.hour, from: now)
+        var minute = calendar.component(.minute, from: now)
+        switch minute {
+        case 0: break
+        case 1...30: minute = 30
+        default: minute = 0; hour += 1
+        }
+        if hour > 23 { hour = 23; minute = 0 }
+        return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: dayStart) ?? dayStart
+    }
+
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var canCreate: Bool {
+        !trimmedTitle.isEmpty && (isAllDay || endTime > startTime)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextField(String(localized: "Event title"), text: $title)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 12))
+                .focused($titleFocused)
+                .onSubmit { if canCreate { create() } }
+
+            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+                GridRow {
+                    fieldLabel(String(localized: "All Day:"))
+                    Toggle(String(localized: "All Day"), isOn: $isAllDay)
+                        .labelsHidden()
+                        .toggleStyle(.checkbox)
+                }
+                GridRow {
+                    fieldLabel(String(localized: "Starts:"))
+                    SegmentedDateField(date: $startTime, showsTime: !isAllDay)
+                }
+                GridRow {
+                    fieldLabel(String(localized: "Ends:"))
+                    SegmentedDateField(date: $endTime, showsTime: !isAllDay)
+                }
+            }
+            .onChange(of: startTime) { old, new in
+                // Keep the duration when the start moves.
+                endTime = endTime.addingTimeInterval(new.timeIntervalSince(old))
+            }
+
+            if calendars.count > 1 {
+                calendarPicker
+            }
+
+            if saveFailed {
+                Text(String(localized: "Couldn't save."))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+            }
+
+            formFooter(createEnabled: canCreate, create: create, dismiss: dismiss)
+        }
+        .onExitCommand(perform: dismiss)
+        .onAppear {
+            // The popover panel may not be key yet when the form appears;
+            // deferring the focus request keeps it from being dropped.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { titleFocused = true }
+        }
+    }
+
+    private var calendarPicker: some View {
+        Picker(String(localized: "Calendar"), selection: $selectedCalendarID) {
+            ForEach(calendars, id: \.calendarIdentifier) { cal in
+                calendarOptionLabel(cal).tag(cal.calendarIdentifier)
+            }
+        }
+        .font(.system(size: 12))
+    }
+
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 12))
+            .gridColumnAlignment(.trailing)
+    }
+
+    private func create() {
+        guard let target = calendars.first(where: { $0.calendarIdentifier == selectedCalendarID }) else {
+            saveFailed = true
+            return
+        }
+        do {
+            try model.createEvent(
+                title: trimmedTitle,
+                start: startTime,
+                end: endTime,
+                isAllDay: isAllDay,
+                eventCalendar: target,
+                in: calendar
+            )
+            dismiss()
+        } catch {
+            NSLog("Failed to save event: %@", error.localizedDescription)
+            saveFailed = true
+        }
+    }
+}
+
+/// Inline reminder-creation form shown inside the day popover.
+private struct NewReminderForm: View {
+    let date: Date
+    let model: CalendarEventsModel
+    let calendar: Calendar
+    let dismiss: () -> Void
+
+    @State private var title = ""
+    @State private var selectedCalendarID: String
+    @State private var saveFailed = false
+    @FocusState private var titleFocused: Bool
+
+    private let calendars: [EKCalendar]
+
+    init(date: Date, model: CalendarEventsModel, calendar: Calendar, dismiss: @escaping () -> Void) {
+        self.date = date
+        self.model = model
+        self.calendar = calendar
+        self.dismiss = dismiss
+        calendars = model.writableReminderCalendars()
+        _selectedCalendarID = State(initialValue: calendars.first?.calendarIdentifier ?? "")
+    }
+
+    private var trimmedTitle: String {
+        title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            TextField(String(localized: "Reminder title"), text: $title)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(size: 12))
+                .focused($titleFocused)
+                .onSubmit { if !trimmedTitle.isEmpty { create() } }
+
+            if calendars.count > 1 {
+                Picker(String(localized: "List"), selection: $selectedCalendarID) {
+                    ForEach(calendars, id: \.calendarIdentifier) { cal in
+                        calendarOptionLabel(cal).tag(cal.calendarIdentifier)
+                    }
+                }
+                .font(.system(size: 12))
+            }
+
+            if saveFailed {
+                Text(String(localized: "Couldn't save."))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.red)
+            }
+
+            formFooter(createEnabled: !trimmedTitle.isEmpty, create: create, dismiss: dismiss)
+        }
+        .onExitCommand(perform: dismiss)
+        .onAppear {
+            // The popover panel may not be key yet when the form appears;
+            // deferring the focus request keeps it from being dropped.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { titleFocused = true }
+        }
+    }
+
+    private func create() {
+        guard let target = calendars.first(where: { $0.calendarIdentifier == selectedCalendarID }) else {
+            saveFailed = true
+            return
+        }
+        do {
+            try model.createReminder(title: trimmedTitle, dueDate: date, reminderCalendar: target, in: calendar)
+            dismiss()
+        } catch {
+            NSLog("Failed to save reminder: %@", error.localizedDescription)
+            saveFailed = true
+        }
+    }
+}
+
+/// A calendar/list picker row: colored dot plus title.
+private func calendarOptionLabel(_ cal: EKCalendar) -> some View {
+    HStack(spacing: 6) {
+        Circle()
+            .fill(Color(cgColor: cal.cgColor))
+            .frame(width: 8, height: 8)
+        Text(cal.title)
+    }
+}
+
+/// Shared Cancel/Create footer for the creation forms.
+private func formFooter(
+    createEnabled: Bool,
+    create: @escaping () -> Void,
+    dismiss: @escaping () -> Void
+) -> some View {
+    HStack {
+        Spacer(minLength: 0)
+        Button(String(localized: "Cancel"), action: dismiss)
+            .font(.system(size: 12))
+        Button(String(localized: "Create"), action: create)
+            .font(.system(size: 12))
+            .keyboardShortcut(.defaultAction)
+            .disabled(!createEnabled)
     }
 }
 

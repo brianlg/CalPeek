@@ -33,9 +33,9 @@ struct DayItem: Identifiable, Sendable {
 final class CalendarEventsModel {
     /// Start-of-day dates that have at least one event.
     private(set) var daysWithEvents: Set<Date> = []
-    /// Start-of-day dates that have at least one reminder due. Today and
-    /// future days count completed reminders too; past days only count open
-    /// ones, so resolved history doesn't keep its dot.
+    /// Start-of-day dates that have at least one reminder due. Future days
+    /// count completed reminders too; today and past days only count open
+    /// ones, so a fully checked-off day doesn't keep its dot.
     private(set) var daysWithReminders: Set<Date> = []
     /// True when the user has denied (or can't grant) calendar access, so the
     /// view can point them at System Settings instead of silently showing no dots.
@@ -127,6 +127,83 @@ final class CalendarEventsModel {
                 daysWithReminders = markedReminderDays(calendar: calendar)
             }
         }
+    }
+
+    /// Whether the day popover can offer event creation.
+    var canCreateEvents: Bool {
+        Preferences.showCalendar && CalendarAccess.hasFullAccess
+    }
+
+    /// Whether the day popover can offer reminder creation.
+    var canCreateReminders: Bool {
+        Preferences.showReminders && RemindersAccess.hasFullAccess
+    }
+
+    var defaultEventCalendar: EKCalendar? {
+        store.defaultCalendarForNewEvents
+    }
+
+    var defaultReminderCalendar: EKCalendar? {
+        store.defaultCalendarForNewReminders()
+    }
+
+    /// Calendars a new event may be saved into: the default calendar first,
+    /// then the rest alphabetically.
+    func writableEventCalendars() -> [EKCalendar] {
+        writableCalendars(for: .event, default: defaultEventCalendar)
+    }
+
+    /// Reminder lists a new reminder may be saved into, default list first.
+    func writableReminderCalendars() -> [EKCalendar] {
+        writableCalendars(for: .reminder, default: defaultReminderCalendar)
+    }
+
+    private func writableCalendars(for entityType: EKEntityType, default defaultCalendar: EKCalendar?) -> [EKCalendar] {
+        let writable = store.calendars(for: entityType).filter(\.allowsContentModifications)
+        let rest = writable
+            .filter { $0.calendarIdentifier != defaultCalendar?.calendarIdentifier }
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
+        if let defaultCalendar, writable.contains(where: { $0.calendarIdentifier == defaultCalendar.calendarIdentifier }) {
+            return [defaultCalendar] + rest
+        }
+        return rest
+    }
+
+    /// Creates an event spanning `start`–`end`. All-day events cover the days
+    /// containing them and ignore the times.
+    func createEvent(
+        title: String,
+        start: Date,
+        end: Date,
+        isAllDay: Bool,
+        eventCalendar: EKCalendar,
+        in cal: Calendar
+    ) throws {
+        let event = EKEvent(eventStore: store)
+        event.title = title
+        event.calendar = eventCalendar
+        event.isAllDay = isAllDay
+        if isAllDay {
+            event.startDate = cal.startOfDay(for: start)
+            event.endDate = cal.startOfDay(for: max(start, end))
+        } else {
+            event.startDate = start
+            event.endDate = end
+        }
+        try store.save(event, span: .thisEvent, commit: true)
+    }
+
+    /// Creates a reminder due on the given day (date-only, no time — rendered
+    /// as "all-day" like other no-time reminders).
+    func createReminder(title: String, dueDate: Date, reminderCalendar: EKCalendar, in cal: Calendar) throws {
+        let reminder = EKReminder(eventStore: store)
+        reminder.title = title
+        reminder.calendar = reminderCalendar
+        reminder.dueDateComponents = cal.dateComponents([.year, .month, .day], from: dueDate)
+        try store.save(reminder, commit: true)
+        // The async snapshot fetch is the only way new reminders reach the
+        // popover; kick it off now instead of waiting for EKEventStoreChanged.
+        storeChanged()
     }
 
     /// Loads events and reminders for the given day window. Never requests
@@ -256,12 +333,13 @@ final class CalendarEventsModel {
     }
 
     /// The dot-marker days for the current snapshots: every day with a due
-    /// reminder, except past days whose reminders are all completed.
+    /// reminder, except days up through today whose reminders are all
+    /// completed — checking off the last of today's reminders clears its dot.
     private func markedReminderDays(calendar: Calendar) -> Set<Date> {
         let today = calendar.startOfDay(for: Date())
         return Set(reminderSnapshots.compactMap { snapshot in
             let day = calendar.startOfDay(for: snapshot.dueDate)
-            return day < today && snapshot.isCompleted ? nil : day
+            return day <= today && snapshot.isCompleted ? nil : day
         })
     }
 
