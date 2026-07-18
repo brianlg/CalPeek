@@ -662,10 +662,11 @@ private struct DayEventsPopover: View {
         HStack(alignment: .top, spacing: 8) {
             switch item.kind {
             case .event:
-                Circle()
-                    .fill(item.color)
-                    .frame(width: 8, height: 8)
-                    .padding(.top, 3)
+                // Same glyph metrics as the reminder checkbox below so the
+                // two dot styles line up in a mixed list.
+                Image(systemName: "circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(item.color)
             case .reminder(let isCompleted, let reminderID):
                 Button {
                     model.setReminderCompleted(reminderID, !isCompleted)
@@ -718,8 +719,10 @@ private struct DayEventsPopover: View {
 /// NSDatePicker's text-field style directly.
 private struct SegmentedDateField: NSViewRepresentable {
     @Binding var date: Date
-    /// When false (all-day), only the date segments show.
-    var showsTime: Bool
+    /// Which segments this field shows (date-only or time-only). Date and
+    /// time are separate fields side by side rather than one combined picker,
+    /// which would insert the locale's "," between them.
+    var elements: NSDatePicker.ElementFlags
 
     func makeNSView(context: Context) -> NSDatePicker {
         let picker = NSDatePicker()
@@ -735,7 +738,7 @@ private struct SegmentedDateField: NSViewRepresentable {
 
     func updateNSView(_ picker: NSDatePicker, context: Context) {
         context.coordinator.parent = self
-        picker.datePickerElements = showsTime ? [.yearMonthDay, .hourMinute] : [.yearMonthDay]
+        picker.datePickerElements = elements
         if picker.dateValue != date {
             picker.dateValue = date
         }
@@ -829,11 +832,11 @@ private struct NewEventForm: View {
                 }
                 GridRow {
                     fieldLabel(String(localized: "Starts:"))
-                    SegmentedDateField(date: $startTime, showsTime: !isAllDay)
+                    dateTimeField($startTime)
                 }
                 GridRow {
                     fieldLabel(String(localized: "Ends:"))
-                    SegmentedDateField(date: $endTime, showsTime: !isAllDay)
+                    dateTimeField($endTime)
                 }
             }
             .onChange(of: startTime) { old, new in
@@ -874,6 +877,17 @@ private struct NewEventForm: View {
         Text(text)
             .font(.system(size: 12))
             .gridColumnAlignment(.trailing)
+    }
+
+    /// Date field with a separate time field beside it when not all-day.
+    private func dateTimeField(_ date: Binding<Date>) -> some View {
+        HStack(spacing: 6) {
+            SegmentedDateField(date: date, elements: [.yearMonthDay])
+            if !isAllDay {
+                SegmentedDateField(date: date, elements: [.hourMinute])
+            }
+        }
+        .fixedSize()
     }
 
     private func create() {

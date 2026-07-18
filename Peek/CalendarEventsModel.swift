@@ -104,6 +104,10 @@ final class CalendarEventsModel {
         let reminders = reminderItems(on: date, calendar: calendar)
         return (events + reminders).sorted { lhs, rhs in
             if lhs.sortsAsAllDay != rhs.sortsAsAllDay { return lhs.sortsAsAllDay }
+            // Within the all-day group, events come before reminders.
+            if lhs.sortsAsAllDay, (lhs.kind == .event) != (rhs.kind == .event) {
+                return lhs.kind == .event
+            }
             if lhs.sortDate != rhs.sortDate { return lhs.sortDate < rhs.sortDate }
             return lhs.title < rhs.title
         }
