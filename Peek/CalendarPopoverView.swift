@@ -23,7 +23,8 @@ struct CalendarPopoverView: View {
         static let totalDays = daysPerWeek * numberOfWeeks // 42
         static let todayCircleSize: CGFloat = 32
         static let eventDotSize: CGFloat = 4
-        static let eventDotSpacing: CGFloat = 3
+        static let eventDotSpacing: CGFloat = 2
+        static let eventDotNudge: CGFloat = -1
         static let headerSpacing: CGFloat = 5
         static let contentSpacing: CGFloat = 12
     }
@@ -261,6 +262,8 @@ struct CalendarPopoverView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: Layout.eventDotSize)
+            // Nudge the dots toward the digit without affecting layout.
+            .offset(y: Layout.eventDotNudge)
         }
         .frame(height: Layout.rowHeight)
         .contentShape(Rectangle())
