@@ -26,6 +26,10 @@ struct CalendarPopoverView: View {
         static let eventDotSpacing: CGFloat = 2
         static let eventDotNudge: CGFloat = -1
         static let headerSpacing: CGFloat = 5
+        /// Height of the header nav chips (chevron circles and Today capsule),
+        /// with the shared grey fill that adapts to light/dark mode.
+        static let navChipSize: CGFloat = 24
+        static let navChipFill = Color.primary.opacity(0.08)
         static let contentSpacing: CGFloat = 12
     }
     
@@ -103,16 +107,29 @@ struct CalendarPopoverView: View {
 
             Spacer()
 
-            // Previous / Today / Next cluster, matching Calendar.app's layout.
-            Button { changeMonth(by: -1) } label: { chevron("chevron.left") }
+            // Previous / Today / Next cluster, matching Calendar.app's grey
+            // chip styling: circular chips for the chevrons, a capsule for
+            // "Today". Center-aligned within its own stack so the chip
+            // outlines line up regardless of the row's baseline alignment.
+            HStack(spacing: Layout.headerSpacing) {
+                Button { changeMonth(by: -1) } label: { chevron("chevron.left") }
+                    .buttonStyle(.plain)
+                Button(action: goToToday) {
+                    Text(String(localized: "Today"))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        // Never let the label compress away when the header
+                        // runs tight; the month/year side yields instead.
+                        .fixedSize()
+                        .padding(.horizontal, 10)
+                        .frame(height: Layout.navChipSize)
+                        .background(Capsule().fill(Layout.navChipFill))
+                }
                 .buttonStyle(.plain)
-            Button(String(localized: "Today"), action: goToToday)
-                .buttonStyle(.plain)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(accent)
                 .accessibilityLabel(String(localized: "Today"))
-            Button { changeMonth(by: 1) } label: { chevron("chevron.right") }
-                .buttonStyle(.plain)
+                Button { changeMonth(by: 1) } label: { chevron("chevron.right") }
+                    .buttonStyle(.plain)
+            }
         }
     }
 
@@ -184,10 +201,11 @@ struct CalendarPopoverView: View {
 
     private func chevron(_ name: String) -> some View {
         Image(systemName: name)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.secondary)
-            .frame(width: 20, height: 20)
-            .contentShape(Rectangle())
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(.primary)
+            .frame(width: Layout.navChipSize, height: Layout.navChipSize)
+            .background(Circle().fill(Layout.navChipFill))
+            .contentShape(Circle())
     }
 
     // MARK: - Weekday header
