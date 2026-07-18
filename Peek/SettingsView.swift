@@ -14,14 +14,50 @@ struct SettingsView: View {
     private var joinHotKeyEnabled = Preferences.joinHotKeyEnabledDefault
     @AppStorage(Preferences.showRemindersKey)
     private var showReminders = Preferences.showRemindersDefault
+    @AppStorage(Preferences.showCalendarKey)
+    private var showCalendar = Preferences.showCalendarDefault
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     /// True after the user denied Reminders access, so the footer can point
     /// them at System Settings.
     @State private var remindersDenied = false
+    /// True after the user denied calendar access, mirroring `remindersDenied`.
+    @State private var calendarDenied = false
 
     var body: some View {
         Form {
+            Section(String(localized: "General")) {
+                Toggle(String(localized: "Launch at Login"), isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, newValue in
+                        setLaunchAtLogin(newValue)
+                    }
+            }
+
+            Section {
+                Toggle(isOn: $showCalendar) {
+                    toggleLabel(
+                        String(localized: "Show Calendar"),
+                        help: String(localized: "We'll ask for Calendar access so you can see your events in the app. Tap one to check the details.")
+                    )
+                }
+                .onChange(of: showCalendar) { _, enabled in
+                    handleShowCalendarChange(enabled)
+                }
+                Toggle(isOn: $showReminders) {
+                    toggleLabel(
+                        String(localized: "Show Reminders"),
+                        help: String(localized: "We'll ask for Reminders access to show your date-specific reminders alongside your events, and you can check them off without leaving the app.")
+                    )
+                }
+                .onChange(of: showReminders) { _, enabled in
+                    handleShowRemindersChange(enabled)
+                }
+            } header: {
+                Text(String(localized: "Permissions"))
+            } footer: {
+                permissionsFooter
+            }
+
             Section {
                 Toggle(String(localized: "Show next meeting in menu bar"), isOn: $showNextMeeting)
                 Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
@@ -42,28 +78,99 @@ struct SettingsView: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
-
-            Section {
-                Toggle(String(localized: "Show Reminders"), isOn: $showReminders)
-                    .onChange(of: showReminders) { _, enabled in
-                        handleShowRemindersChange(enabled)
-                    }
-            } header: {
-                Text(String(localized: "Reminders"))
-            } footer: {
-                remindersFooter
-            }
-
-            Section(String(localized: "General")) {
-                Toggle(String(localized: "Launch at Login"), isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, newValue in
-                        setLaunchAtLogin(newValue)
-                    }
-            }
+            // The next-meeting feature reads from the calendar, so it has
+            // nothing to show until Show Calendar is on.
+            .disabled(!showCalendar)
         }
         .formStyle(.grouped)
         .frame(width: 400)
         .fixedSize()
+    }
+
+    /// Requests calendar access the first time the toggle is enabled — this is
+    /// the only place the standard permission prompt starts. If the user
+    /// denies (now or previously), flip the toggle back off so it honestly
+    /// reflects state, and point at the System Settings privacy pane.
+    private func handleShowCalendarChange(_ enabled: Bool) {
+        guard enabled else {
+            calendarDenied = false
+            notifyCalendarSettingChanged()
+            return
+        }
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .fullAccess:
+            calendarDenied = false
+            notifyCalendarSettingChanged()
+        case .notDetermined:
+            Task {
+                if await CalendarAccess.request() {
+                    calendarDenied = false
+                    notifyCalendarSettingChanged()
+                } else {
+                    showCalendar = false
+                    calendarDenied = true
+                }
+            }
+        default:
+            // Denied, restricted, or write-only — none of which allow reading.
+            showCalendar = false
+            calendarDenied = true
+        }
+    }
+
+    /// Tells the models to reset their stores and refetch, so events appear
+    /// (or disappear) immediately without an app restart.
+    private func notifyCalendarSettingChanged() {
+        NotificationCenter.default.post(name: .calendarSettingDidChange, object: nil)
+    }
+
+    /// Toggle label with a caption underneath, matching the System Settings
+    /// title-and-description row style.
+    private func toggleLabel(_ title: String, help: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+            Text(help)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// One footer for both permission toggles: a System Settings pointer for
+    /// each denied grant. Empty otherwise — the toggles carry their own help
+    /// text.
+    @ViewBuilder
+    private var permissionsFooter: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if calendarDenied {
+                accessDeniedRow(
+                    String(localized: "Calendar access is off."),
+                    pane: "Privacy_Calendars"
+                )
+            }
+            if remindersDenied {
+                accessDeniedRow(
+                    String(localized: "Reminders access is off."),
+                    pane: "Privacy_Reminders"
+                )
+            }
+        }
+        .font(.system(size: 11))
+    }
+
+    private func accessDeniedRow(_ message: String, pane: String) -> some View {
+        HStack(spacing: 4) {
+            Text(message)
+                .foregroundStyle(.secondary)
+            Button(String(localized: "Open Settings")) {
+                let query = "x-apple.systempreferences:com.apple.preference.security?" + pane
+                if let url = URL(string: query) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color(nsColor: .systemRed))
+        }
     }
 
     /// Requests Reminders access the first time the toggle is enabled. If the
@@ -100,29 +207,6 @@ struct SettingsView: View {
     /// appear (or disappear) immediately without an app restart.
     private func notifyRemindersSettingChanged() {
         NotificationCenter.default.post(name: .remindersSettingDidChange, object: nil)
-    }
-
-    @ViewBuilder
-    private var remindersFooter: some View {
-        if remindersDenied {
-            HStack(spacing: 4) {
-                Text(String(localized: "Reminders access is off."))
-                    .foregroundStyle(.secondary)
-                Button(String(localized: "Open Settings")) {
-                    let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders"
-                    if let url = URL(string: pane) {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color(nsColor: .systemRed))
-            }
-            .font(.system(size: 11))
-        } else {
-            Text(String(localized: "Show reminders with a due date alongside events."))
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        }
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {

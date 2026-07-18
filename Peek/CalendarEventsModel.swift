@@ -73,13 +73,15 @@ final class CalendarEventsModel {
         ) { [weak self] _ in
             MainActor.assumeIsolated { self?.storeChanged() }
         })
-        observers.append(NotificationCenter.default.addObserver(
-            forName: .remindersSettingDidChange,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.remindersSettingChanged() }
-        })
+        for name: Notification.Name in [.remindersSettingDidChange, .calendarSettingDidChange] {
+            observers.append(NotificationCenter.default.addObserver(
+                forName: name,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.accessSettingChanged() }
+            })
+        }
     }
 
     deinit {
@@ -127,31 +129,22 @@ final class CalendarEventsModel {
         }
     }
 
-    /// Loads events and reminders for the given day window, requesting
-    /// calendar access on first use. If access is denied or restricted, the
-    /// sets stay empty and no dots show. Reminders access is never requested
-    /// here — that stays with the Settings toggle.
+    /// Loads events and reminders for the given day window. Never requests
+    /// access — both calendar and Reminders prompts start from their Settings
+    /// toggles. With the calendar toggle off (or access not yet decided) the
+    /// sets stay empty and no dots show; with the toggle on but access
+    /// revoked, `accessDenied` drives the popover's System Settings pointer.
     func load(days: [Date], calendar: Calendar) {
         lastWindow = (days, calendar)
 
-        switch EKEventStore.authorizationStatus(for: .event) {
-        case .fullAccess:
+        if !Preferences.showCalendar {
+            accessDenied = false
+            daysWithEvents = []
+        } else if EKEventStore.authorizationStatus(for: .event) == .fullAccess {
             accessDenied = false
             fetch(days: days, calendar: calendar)
-        case .notDetermined:
-            Task { [weak self] in
-                let granted = (try? await self?.store.requestFullAccessToEvents()) ?? false
-                if granted {
-                    self?.accessDenied = false
-                    self?.fetch(days: days, calendar: calendar)
-                } else {
-                    self?.accessDenied = true
-                    self?.daysWithEvents = []
-                }
-            }
-        default:
-            // Denied, restricted, or write-only — none of which allow reading.
-            accessDenied = true
+        } else {
+            accessDenied = EKEventStore.authorizationStatus(for: .event) != .notDetermined
             daysWithEvents = []
         }
 
@@ -159,7 +152,7 @@ final class CalendarEventsModel {
     }
 
     private func eventItems(on date: Date, calendar: Calendar) -> [DayItem] {
-        guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { return [] }
+        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return [] }
         store.refreshSourcesIfNecessary()
         let start = calendar.startOfDay(for: date)
         guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
@@ -273,17 +266,16 @@ final class CalendarEventsModel {
     }
 
     private func storeChanged() {
+        // `load` re-applies the toggle and access gating, so a revoked grant
+        // clears the dots instead of serving the stale set.
         guard let window = lastWindow else { return }
-        if EKEventStore.authorizationStatus(for: .event) == .fullAccess {
-            fetch(days: window.days, calendar: window.calendar)
-        }
-        fetchReminders(days: window.days, calendar: window.calendar)
+        load(days: window.days, calendar: window.calendar)
     }
 
-    private func remindersSettingChanged() {
-        // A store created before the Reminders grant serves empty reminder
-        // fetches until it forgets its cached state — without this, newly
-        // enabled reminders wouldn't appear until an app restart.
+    private func accessSettingChanged() {
+        // A store created before a grant serves empty fetches until it forgets
+        // its cached state — without this, newly enabled events or reminders
+        // wouldn't appear until an app restart.
         store.reset()
         storeChanged()
     }
