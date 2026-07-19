@@ -299,9 +299,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // only works from inside a live SwiftUI hierarchy — so an LSUIElement
         // app opening settings from an NSMenu has to own the window itself.
         if settingsWindow == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: SettingsView()))
-            window.title = String(localized: "Peek Settings")
+            // NSTabViewController's toolbar style is what draws the native
+            // Settings-window tabs (icon over label, centered under the
+            // title); a hosted SwiftUI TabView only gets that treatment
+            // inside the Settings scene, which this window is not.
+            let tabs = SettingsTabViewController()
+            tabs.tabStyle = .toolbar
+
+            // NSTabViewController ignores the hosted SwiftUI views' ideal
+            // sizes unless each child advertises one; with it set, the window
+            // opens fitted to the form and animates to size on tab switch.
+            let generalVC = NSHostingController(rootView: GeneralSettingsView())
+            generalVC.preferredContentSize = generalVC.view.fittingSize
+            // The tab controller propagates the selected child's title onto
+            // the window (asynchronously, after the switch animation), so
+            // each child carries the fixed window title. Tab labels are the
+            // items' `label`, set below.
+            generalVC.title = String(localized: "Settings")
+            let general = NSTabViewItem(viewController: generalVC)
+            general.label = String(localized: "General")
+            general.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
+
+            let appearanceVC = NSHostingController(rootView: AppearanceSettingsView())
+            appearanceVC.preferredContentSize = appearanceVC.view.fittingSize
+            appearanceVC.title = String(localized: "Settings")
+            let appearance = NSTabViewItem(viewController: appearanceVC)
+            appearance.label = String(localized: "Appearance")
+            appearance.image = NSImage(systemSymbolName: "paintpalette", accessibilityDescription: nil)
+
+            tabs.tabViewItems = [general, appearance]
+
+            let window = NSWindow(contentViewController: tabs)
+            window.title = String(localized: "Settings")
             window.styleMask = [.titled, .closable]
+            window.toolbarStyle = .preference
             window.isReleasedWhenClosed = false
             window.center()
             settingsWindow = window
@@ -312,5 +343,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+}
+
+/// Keeps the settings window's title pinned to "Settings" — the base class
+/// propagates the selected child controller's (empty) title onto the window,
+/// which reads as "Untitled".
+private final class SettingsTabViewController: NSTabViewController {
+    private func pinWindowTitle() {
+        view.window?.title = String(localized: "Settings")
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        pinWindowTitle()
+    }
+
+    override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
+        super.tabView(tabView, didSelect: tabViewItem)
+        pinWindowTitle()
     }
 }

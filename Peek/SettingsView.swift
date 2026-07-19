@@ -2,8 +2,23 @@ import EventKit
 import ServiceManagement
 import SwiftUI
 
-/// The app's settings window (opened from the status item's right-click menu).
+/// Root of the settings UI for the SwiftUI `Settings` scene. The AppKit
+/// window opened from the status item menu builds the same tabs with
+/// `NSTabViewController` (see `AppDelegate.openSettings`), which is what
+/// renders the native icon-over-label toolbar style outside that scene.
 struct SettingsView: View {
+    var body: some View {
+        TabView {
+            GeneralSettingsView()
+                .tabItem { Label(String(localized: "General"), systemImage: "gearshape") }
+            AppearanceSettingsView()
+                .tabItem { Label(String(localized: "Appearance"), systemImage: "paintpalette") }
+        }
+    }
+}
+
+/// The General settings tab.
+struct GeneralSettingsView: View {
     @AppStorage(Preferences.showNextMeetingKey)
     private var showNextMeeting = Preferences.showNextMeetingDefault
     @AppStorage(Preferences.showMeetingTitleKey)
@@ -222,6 +237,22 @@ struct SettingsView: View {
             NSLog("Failed to toggle Launch at Login: %@", error.localizedDescription)
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
+    }
+}
+
+/// The Appearance settings tab — placeholder until appearance options land.
+struct AppearanceSettingsView: View {
+    var body: some View {
+        Form {
+            Section {
+                Text(String(localized: "Appearance settings are coming soon."))
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 400)
+        .fixedSize()
     }
 }
 
