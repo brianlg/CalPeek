@@ -549,7 +549,7 @@ private struct DayEventsPopover: View {
     let accent: Color
 
     private enum Mode {
-        case list, newEvent, newReminder
+        case list, create
     }
 
     @State private var mode: Mode = .list
@@ -565,23 +565,18 @@ private struct DayEventsPopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 6) {
-                Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
-                Spacer(minLength: 0)
-                if mode == .list {
-                    plusControl
-                }
-            }
-
             switch mode {
             case .list:
+                HStack(spacing: 6) {
+                    Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Spacer(minLength: 0)
+                    plusControl
+                }
                 listContent
-            case .newEvent:
-                NewEventForm(date: date, model: model, calendar: calendar) { mode = .list }
-            case .newReminder:
-                NewReminderForm(date: date, model: model, calendar: calendar) { mode = .list }
+            case .create:
+                NewItemForm(date: date, model: model, calendar: calendar, accent: accent) { mode = .list }
             }
         }
         .padding(14)
@@ -617,31 +612,14 @@ private struct DayEventsPopover: View {
         }
     }
 
-    /// The header "+" control: a two-option menu when both events and
-    /// reminders can be created, a direct button when only one can, and
-    /// nothing when neither.
+    /// The header "+" control: opens the creation form (which defaults to a
+    /// new event when events are writable). Hidden when nothing can be
+    /// created.
     @ViewBuilder
     private var plusControl: some View {
-        let canEvents = model.canCreateEvents
-        let canReminders = model.canCreateReminders
-        if canEvents && canReminders {
-            Menu {
-                Button(String(localized: "New Event")) { mode = .newEvent }
-                Button(String(localized: "New Reminder")) { mode = .newReminder }
-            } label: {
-                plusGlyph
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .fixedSize()
-            // The borderless menu style drops backgrounds inside its label,
-            // so the chip is drawn around the Menu instead.
-            .frame(width: 24, height: 24)
-            .background(Circle().fill(Color.primary.opacity(0.08)))
-            .contentShape(Circle())
-        } else if canEvents || canReminders {
+        if model.canCreateEvents || model.canCreateReminders {
             Button {
-                mode = canEvents ? .newEvent : .newReminder
+                mode = .create
             } label: {
                 plusGlyph
                     .frame(width: 24, height: 24)
@@ -649,7 +627,7 @@ private struct DayEventsPopover: View {
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .help(canEvents
+            .help(model.canCreateEvents
                 ? String(localized: "New Event")
                 : String(localized: "New Reminder"))
         }
@@ -763,33 +741,55 @@ private struct SegmentedDateField: NSViewRepresentable {
     }
 }
 
-/// Inline event-creation form shown inside the day popover.
-private struct NewEventForm: View {
+/// Inline creation form shown inside the day popover. One view handles both
+/// events and reminders, switched by a capsule segmented control in place of
+/// the date heading; keeping it a single view preserves the title and each
+/// kind's fields while the user flips between the two.
+private struct NewItemForm: View {
+    enum Kind {
+        case event, reminder
+    }
+
     let date: Date
     let model: CalendarEventsModel
     let calendar: Calendar
+    let accent: Color
     let dismiss: () -> Void
 
+    @State private var kind: Kind
+    /// Tracks `kind` for the segmented control's sliding thumb, updated in
+    /// its own `withAnimation` transaction. Animating off `kind` directly
+    /// would also interpolate the popover-resize reposition (AppKit windows
+    /// are bottom-origin), drifting the thumb vertically mid-slide.
+    @State private var thumbKind: Kind
     @State private var title = ""
     @State private var isAllDay = false
     @State private var startTime: Date
     @State private var endTime: Date
-    @State private var selectedCalendarID: String
+    @State private var selectedEventCalendarID: String
+    @State private var selectedReminderListID: String
     @State private var saveFailed = false
     @FocusState private var titleFocused: Bool
 
-    private let calendars: [EKCalendar]
+    private let eventCalendars: [EKCalendar]
+    private let reminderLists: [EKCalendar]
 
-    init(date: Date, model: CalendarEventsModel, calendar: Calendar, dismiss: @escaping () -> Void) {
+    init(date: Date, model: CalendarEventsModel, calendar: Calendar, accent: Color, dismiss: @escaping () -> Void) {
         self.date = date
         self.model = model
         self.calendar = calendar
+        self.accent = accent
         self.dismiss = dismiss
+        eventCalendars = model.writableEventCalendars()
+        reminderLists = model.writableReminderCalendars()
+        let initialKind: Kind = eventCalendars.isEmpty ? .reminder : .event
+        _kind = State(initialValue: initialKind)
+        _thumbKind = State(initialValue: initialKind)
         let start = Self.defaultStart(on: date, calendar: calendar)
         _startTime = State(initialValue: start)
         _endTime = State(initialValue: start.addingTimeInterval(3600))
-        calendars = model.writableEventCalendars()
-        _selectedCalendarID = State(initialValue: calendars.first?.calendarIdentifier ?? "")
+        _selectedEventCalendarID = State(initialValue: eventCalendars.first?.calendarIdentifier ?? "")
+        _selectedReminderListID = State(initialValue: reminderLists.first?.calendarIdentifier ?? "")
     }
 
     /// Today opens at the next half-hour boundary (capped at 23:00); other
@@ -816,40 +816,44 @@ private struct NewEventForm: View {
     }
 
     private var canCreate: Bool {
-        !trimmedTitle.isEmpty && (isAllDay || endTime > startTime)
+        switch kind {
+        case .event:
+            return !trimmedTitle.isEmpty && (isAllDay || endTime > startTime)
+        case .reminder:
+            return !trimmedTitle.isEmpty
+        }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField(String(localized: "Event title"), text: $title)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 12))
-                .focused($titleFocused)
-                .onSubmit { if canCreate { create() } }
+            header
 
-            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
-                GridRow {
-                    fieldLabel(String(localized: "All Day:"))
-                    Toggle(String(localized: "All Day"), isOn: $isAllDay)
-                        .labelsHidden()
-                        .toggleStyle(.checkbox)
-                }
-                GridRow {
-                    fieldLabel(String(localized: "Starts:"))
-                    dateTimeField($startTime)
-                }
-                GridRow {
-                    fieldLabel(String(localized: "Ends:"))
-                    dateTimeField($endTime)
-                }
-            }
-            .onChange(of: startTime) { old, new in
-                // Keep the duration when the start moves.
-                endTime = endTime.addingTimeInterval(new.timeIntervalSince(old))
-            }
+            TextField(
+                kind == .event
+                    ? String(localized: "Event title")
+                    : String(localized: "Reminder title"),
+                text: $title
+            )
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 12))
+            .focused($titleFocused)
+            .onSubmit { if canCreate { create() } }
 
-            if calendars.count > 1 {
-                calendarPicker
+            if kind == .event {
+                eventFields
+                if eventCalendars.count > 1 {
+                    calendarPicker(
+                        String(localized: "Calendar"),
+                        options: eventCalendars,
+                        selection: $selectedEventCalendarID
+                    )
+                }
+            } else if reminderLists.count > 1 {
+                calendarPicker(
+                    String(localized: "List"),
+                    options: reminderLists,
+                    selection: $selectedReminderListID
+                )
             }
 
             if saveFailed {
@@ -861,6 +865,9 @@ private struct NewEventForm: View {
             formFooter(createEnabled: canCreate, create: create, dismiss: dismiss)
         }
         .onExitCommand(perform: dismiss)
+        .onChange(of: kind) {
+            saveFailed = false
+        }
         .onAppear {
             // The popover panel may not be key yet when the form appears;
             // deferring the focus request keeps it from being dropped.
@@ -868,9 +875,91 @@ private struct NewEventForm: View {
         }
     }
 
-    private var calendarPicker: some View {
-        Picker(String(localized: "Calendar"), selection: $selectedCalendarID) {
-            ForEach(calendars, id: \.calendarIdentifier) { cal in
+    /// Event/Reminder capsule switcher when both kinds are writable,
+    /// otherwise a plain heading for the only available kind.
+    @ViewBuilder
+    private var header: some View {
+        if !eventCalendars.isEmpty && !reminderLists.isEmpty {
+            segmentedControl
+        } else {
+            Text(kind == .event
+                ? String(localized: "New Event")
+                : String(localized: "New Reminder"))
+                .font(.system(size: 13, weight: .semibold))
+        }
+    }
+
+    /// Capsule-style segmented control matching Calendar.app's Event/Reminder
+    /// switcher; the selected segment fills with the today-circle accent.
+    /// The selection thumb is a single persistent capsule that slides between
+    /// segments (like the native control's) rather than a background inserted
+    /// into the selected segment, which would animate in from its initial
+    /// geometry while the popover is resizing.
+    private var segmentedControl: some View {
+        HStack(spacing: 0) {
+            segment(String(localized: "Event"), .event)
+            segment(String(localized: "Reminder"), .reminder)
+        }
+        .background(alignment: .leading) {
+            GeometryReader { geo in
+                Capsule()
+                    .fill(accent)
+                    .frame(width: geo.size.width / 2)
+                    .offset(x: thumbKind == .reminder ? geo.size.width / 2 : 0)
+            }
+        }
+        .padding(2)
+        .background(Capsule().fill(Color.primary.opacity(0.06)))
+    }
+
+    private func segment(_ label: String, _ value: Kind) -> some View {
+        Button {
+            // The fields swap and the popover resizes instantly (as in
+            // Calendar.app); only the thumb's slide is animated.
+            kind = value
+            withAnimation(.snappy(duration: 0.25)) { thumbKind = value }
+        } label: {
+            Text(label)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(thumbKind == value ? Color.white : Color.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 22)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(kind == value ? .isSelected : [])
+    }
+
+    private var eventFields: some View {
+        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow {
+                fieldLabel(String(localized: "All Day:"))
+                Toggle(String(localized: "All Day"), isOn: $isAllDay)
+                    .labelsHidden()
+                    .toggleStyle(.checkbox)
+            }
+            GridRow {
+                fieldLabel(String(localized: "Starts:"))
+                dateTimeField($startTime)
+            }
+            GridRow {
+                fieldLabel(String(localized: "Ends:"))
+                dateTimeField($endTime)
+            }
+        }
+        .onChange(of: startTime) { old, new in
+            // Keep the duration when the start moves.
+            endTime = endTime.addingTimeInterval(new.timeIntervalSince(old))
+        }
+    }
+
+    private func calendarPicker(
+        _ label: String,
+        options: [EKCalendar],
+        selection: Binding<String>
+    ) -> some View {
+        Picker(label, selection: selection) {
+            ForEach(options, id: \.calendarIdentifier) { cal in
                 calendarOptionLabel(cal).tag(cal.calendarIdentifier)
             }
         }
@@ -895,97 +984,31 @@ private struct NewEventForm: View {
     }
 
     private func create() {
-        guard let target = calendars.first(where: { $0.calendarIdentifier == selectedCalendarID }) else {
-            saveFailed = true
-            return
-        }
         do {
-            try model.createEvent(
-                title: trimmedTitle,
-                start: startTime,
-                end: endTime,
-                isAllDay: isAllDay,
-                eventCalendar: target,
-                in: calendar
-            )
-            dismiss()
-        } catch {
-            NSLog("Failed to save event: %@", error.localizedDescription)
-            saveFailed = true
-        }
-    }
-}
-
-/// Inline reminder-creation form shown inside the day popover.
-private struct NewReminderForm: View {
-    let date: Date
-    let model: CalendarEventsModel
-    let calendar: Calendar
-    let dismiss: () -> Void
-
-    @State private var title = ""
-    @State private var selectedCalendarID: String
-    @State private var saveFailed = false
-    @FocusState private var titleFocused: Bool
-
-    private let calendars: [EKCalendar]
-
-    init(date: Date, model: CalendarEventsModel, calendar: Calendar, dismiss: @escaping () -> Void) {
-        self.date = date
-        self.model = model
-        self.calendar = calendar
-        self.dismiss = dismiss
-        calendars = model.writableReminderCalendars()
-        _selectedCalendarID = State(initialValue: calendars.first?.calendarIdentifier ?? "")
-    }
-
-    private var trimmedTitle: String {
-        title.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            TextField(String(localized: "Reminder title"), text: $title)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 12))
-                .focused($titleFocused)
-                .onSubmit { if !trimmedTitle.isEmpty { create() } }
-
-            if calendars.count > 1 {
-                Picker(String(localized: "List"), selection: $selectedCalendarID) {
-                    ForEach(calendars, id: \.calendarIdentifier) { cal in
-                        calendarOptionLabel(cal).tag(cal.calendarIdentifier)
-                    }
+            switch kind {
+            case .event:
+                guard let target = eventCalendars.first(where: { $0.calendarIdentifier == selectedEventCalendarID }) else {
+                    saveFailed = true
+                    return
                 }
-                .font(.system(size: 12))
+                try model.createEvent(
+                    title: trimmedTitle,
+                    start: startTime,
+                    end: endTime,
+                    isAllDay: isAllDay,
+                    eventCalendar: target,
+                    in: calendar
+                )
+            case .reminder:
+                guard let target = reminderLists.first(where: { $0.calendarIdentifier == selectedReminderListID }) else {
+                    saveFailed = true
+                    return
+                }
+                try model.createReminder(title: trimmedTitle, dueDate: date, reminderCalendar: target, in: calendar)
             }
-
-            if saveFailed {
-                Text(String(localized: "Couldn't save."))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.red)
-            }
-
-            formFooter(createEnabled: !trimmedTitle.isEmpty, create: create, dismiss: dismiss)
-        }
-        .onExitCommand(perform: dismiss)
-        .onAppear {
-            // The popover panel may not be key yet when the form appears;
-            // deferring the focus request keeps it from being dropped.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { titleFocused = true }
-        }
-    }
-
-    private func create() {
-        guard let target = calendars.first(where: { $0.calendarIdentifier == selectedCalendarID }) else {
-            saveFailed = true
-            return
-        }
-        do {
-            try model.createReminder(title: trimmedTitle, dueDate: date, reminderCalendar: target, in: calendar)
             dismiss()
         } catch {
-            NSLog("Failed to save reminder: %@", error.localizedDescription)
+            NSLog("Failed to save item: %@", error.localizedDescription)
             saveFailed = true
         }
     }
