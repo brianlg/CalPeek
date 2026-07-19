@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         configureStatusItem()
         observeDateChanges()
         observeAppearanceChanges()
+        observeAppearancePreferenceChanges()
 
         nextMeeting.onChange = { [weak self] in self?.refreshNextMeetingUI() }
         refreshNextMeetingUI()
@@ -88,8 +89,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }()
 
         var badgeDots: [Color] = []
-        if todayBadge.showsEventDot { badgeDots.append(todayBadge.eventDotColor) }
-        if todayBadge.showsReminderDot { badgeDots.append(todayBadge.reminderDotColor) }
+        if todayBadge.showsEventDot {
+            badgeDots.append(Preferences.calendarEventsColor.overrideColor ?? todayBadge.eventDotColor)
+        }
+        if todayBadge.showsReminderDot {
+            badgeDots.append(Preferences.remindersColor.overrideColor ?? todayBadge.reminderDotColor)
+        }
 
         let view = MenuBarIconView(
             date: Date(),
@@ -130,6 +135,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 MainActor.assumeIsolated { self?.refreshIcon() }
             }
         }
+    }
+
+    private func observeAppearancePreferenceChanges() {
+        // The Appearance settings tab writes color choices to UserDefaults;
+        // the rasterized status-item image (weekday label, badge dots) has to
+        // be re-rendered to pick them up.
+        dateChangeObservers.append(NotificationCenter.default.addObserver(
+            forName: UserDefaults.didChangeNotification,
+            object: UserDefaults.standard,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshIcon() }
+        })
     }
 
     private func observeAppearanceChanges() {

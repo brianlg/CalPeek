@@ -10,6 +10,9 @@ enum Preferences {
     static let joinHotKeyEnabledKey = "joinHotKeyEnabled"
     static let showRemindersKey = "showReminders"
     static let showCalendarKey = "showCalendar"
+    static let todayMarkerColorKey = "todayMarkerColor"
+    static let calendarEventsColorKey = "calendarEventsColor"
+    static let remindersColorKey = "remindersColor"
 
     static let showNextMeetingDefault = true
     static let showMeetingTitleDefault = true
@@ -45,6 +48,14 @@ enum Preferences {
 
     static var showCalendar: Bool {
         bool(forKey: showCalendarKey, default: showCalendarDefault)
+    }
+
+    static var todayMarkerColor: WeekdayColor { themeColor(forKey: todayMarkerColorKey) }
+    static var calendarEventsColor: WeekdayColor { themeColor(forKey: calendarEventsColorKey) }
+    static var remindersColor: WeekdayColor { themeColor(forKey: remindersColorKey) }
+
+    private static func themeColor(forKey key: String) -> WeekdayColor {
+        UserDefaults.standard.string(forKey: key).flatMap(WeekdayColor.init(rawValue:)) ?? .auto
     }
 
     private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {

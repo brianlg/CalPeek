@@ -240,19 +240,91 @@ struct GeneralSettingsView: View {
     }
 }
 
-/// The Appearance settings tab — placeholder until appearance options land.
+/// The Appearance settings tab: theme color pickers backed by the shared
+/// `WeekdayColor` palette.
 struct AppearanceSettingsView: View {
+    @AppStorage(WeekdayColor.defaultsKey)
+    private var weekdayColorRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.todayMarkerColorKey)
+    private var todayMarkerRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.calendarEventsColorKey)
+    private var calendarEventsRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.remindersColorKey)
+    private var remindersRaw = WeekdayColor.auto.rawValue
+
+    /// Read-only store for showing what the Automatic event/reminder colors
+    /// currently resolve to (the user's default calendar/list colors).
+    private let store = EKEventStore()
+
     var body: some View {
         Form {
-            Section {
-                Text(String(localized: "Appearance settings are coming soon."))
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .center)
+            Section(String(localized: "Menubar Icon")) {
+                ThemeColorPicker(
+                    title: String(localized: "Weekday Color"),
+                    automaticSwatch: Color(nsColor: .secondaryLabelColor),
+                    selection: $weekdayColorRaw
+                )
+            }
+
+            Section(String(localized: "Theme")) {
+                ThemeColorPicker(
+                    title: String(localized: "Today Marker"),
+                    automaticSwatch: Color(nsColor: .systemRed),
+                    selection: $todayMarkerRaw
+                )
+                ThemeColorPicker(
+                    title: String(localized: "Calendar Events"),
+                    automaticSwatch: store.defaultEventColor ?? Color(nsColor: .systemRed),
+                    selection: $calendarEventsRaw
+                )
+                ThemeColorPicker(
+                    title: String(localized: "Reminders"),
+                    automaticSwatch: store.defaultReminderColor ?? Color(nsColor: .systemOrange),
+                    selection: $remindersRaw
+                )
             }
         }
         .formStyle(.grouped)
         .frame(width: 400)
         .fixedSize()
+    }
+}
+
+/// Labeled menu picker over the shared color palette: Automatic (showing the
+/// color it currently resolves to), then the explicit colors, each with a
+/// swatch dot. Swatches are pre-rendered `NSImage`s because bare SwiftUI
+/// shapes are dropped from macOS menu items.
+private struct ThemeColorPicker: View {
+    let title: String
+    let automaticSwatch: Color
+    @Binding var selection: String
+
+    var body: some View {
+        Picker(title, selection: $selection) {
+            swatchLabel(automaticSwatch, WeekdayColor.auto.displayName)
+                .tag(WeekdayColor.auto.rawValue)
+            Divider()
+            ForEach(WeekdayColor.allCases.filter { $0 != .auto }) { option in
+                swatchLabel(option.color, option.displayName)
+                    .tag(option.rawValue)
+            }
+        }
+    }
+
+    private func swatchLabel(_ color: Color, _ name: String) -> some View {
+        HStack(spacing: 6) {
+            Image(nsImage: Self.swatch(color))
+            Text(name)
+        }
+    }
+
+    private static func swatch(_ color: Color) -> NSImage {
+        let size = NSSize(width: 14, height: 14)
+        return NSImage(size: size, flipped: false) { rect in
+            NSColor(color).setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            return true
+        }
     }
 }
 

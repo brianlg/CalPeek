@@ -58,10 +58,29 @@ struct CalendarPopoverView: View {
     /// The day currently under the pointer, for the hover highlight.
     @State private var hoveredDate: Date?
 
-    /// Calendar-style red used for the "today" circle and the year picker
-    /// selection, matching Apple's Calendar app regardless of the user's
-    /// system accent color.
-    private let accent = Color(nsColor: .systemRed)
+    @AppStorage(Preferences.todayMarkerColorKey)
+    private var todayMarkerRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.calendarEventsColorKey)
+    private var calendarEventsRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.remindersColorKey)
+    private var remindersRaw = WeekdayColor.auto.rawValue
+
+    /// Accent for the "today" circle, year picker selection, and other
+    /// highlights. Automatic is Calendar-app red regardless of the system
+    /// accent; the user can pick another color in Appearance settings.
+    private var accent: Color {
+        (WeekdayColor(rawValue: todayMarkerRaw) ?? .auto).overrideColor
+            ?? Color(nsColor: .systemRed)
+    }
+
+    /// Month-grid dot tints, honoring the Appearance overrides and falling
+    /// back to the user's default calendar/list colors.
+    private var eventDotColor: Color {
+        (WeekdayColor(rawValue: calendarEventsRaw) ?? .auto).overrideColor ?? events.eventDotColor
+    }
+    private var reminderDotColor: Color {
+        (WeekdayColor(rawValue: remindersRaw) ?? .auto).overrideColor ?? events.reminderDotColor
+    }
     
     /// The user's calendar, honoring their system "first day of week" setting so
     /// the grid aligns with Apple's Calendar app and the current region.
@@ -283,10 +302,10 @@ struct CalendarPopoverView: View {
             // stable; the HStack centers whichever dots are present.
             HStack(spacing: Layout.eventDotSpacing) {
                 if hasEvent {
-                    agendaDot(events.eventDotColor, isToday: isToday, inMonth: inMonth)
+                    agendaDot(eventDotColor, isToday: isToday, inMonth: inMonth)
                 }
                 if hasReminder {
-                    agendaDot(events.reminderDotColor, isToday: isToday, inMonth: inMonth)
+                    agendaDot(reminderDotColor, isToday: isToday, inMonth: inMonth)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -557,6 +576,22 @@ private struct DayEventsPopover: View {
     /// a real ideal height to the popover (see `listContent`).
     @State private var listHeight: CGFloat = 0
 
+    @AppStorage(Preferences.calendarEventsColorKey)
+    private var calendarEventsRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.remindersColorKey)
+    private var remindersRaw = WeekdayColor.auto.rawValue
+
+    /// Row glyph tint: the Appearance override for the item's kind, or the
+    /// item's own calendar/list color when set to Automatic.
+    private func tint(for item: DayItem) -> Color {
+        switch item.kind {
+        case .event:
+            return (WeekdayColor(rawValue: calendarEventsRaw) ?? .auto).overrideColor ?? item.color
+        case .reminder:
+            return (WeekdayColor(rawValue: remindersRaw) ?? .auto).overrideColor ?? item.color
+        }
+    }
+
     private enum Layout {
         static let width: CGFloat = 240
         static let formWidth: CGFloat = 280
@@ -648,14 +683,14 @@ private struct DayEventsPopover: View {
                 // two dot styles line up in a mixed list.
                 Image(systemName: "circle.fill")
                     .font(.system(size: 12))
-                    .foregroundStyle(item.color)
+                    .foregroundStyle(tint(for: item))
             case .reminder(let isCompleted, let reminderID):
                 Button {
                     model.setReminderCompleted(reminderID, !isCompleted)
                 } label: {
                     Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
                         .font(.system(size: 12))
-                        .foregroundStyle(item.color)
+                        .foregroundStyle(tint(for: item))
                 }
                 .buttonStyle(.plain)
                 .help(isCompleted

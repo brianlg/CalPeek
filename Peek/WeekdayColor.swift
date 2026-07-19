@@ -1,10 +1,12 @@
 import SwiftUI
 
-/// Curated palette of foreground colors for the menu bar weekday label.
+/// Curated palette shared by all of the appearance color settings (menu bar
+/// weekday label, today marker, event/reminder tints).
 ///
 /// Each case maps to a SwiftUI `Color` chosen to read against both light and
-/// dark menu bars. `.auto` defers to the system's secondary label color,
-/// which tracks appearance and accessibility settings automatically.
+/// dark menu bars. `.auto` defers to a per-setting system color — the
+/// secondary label color for the weekday label, and each setting's own
+/// default elsewhere (see `overrideColor`).
 enum WeekdayColor: String, CaseIterable, Identifiable {
     case auto
     case red
@@ -30,7 +32,7 @@ enum WeekdayColor: String, CaseIterable, Identifiable {
         case .green: return String(localized: "Green")
         case .blue: return String(localized: "Blue")
         case .purple: return String(localized: "Purple")
-        case .gray: return String(localized: "Gray")
+        case .gray: return String(localized: "Graphite")
         }
     }
 
@@ -45,5 +47,11 @@ enum WeekdayColor: String, CaseIterable, Identifiable {
         case .purple: return .purple
         case .gray: return .gray
         }
+    }
+
+    /// The user's explicit color pick, or nil for `.auto` — callers supply
+    /// their own system-derived default in that case.
+    var overrideColor: Color? {
+        self == .auto ? nil : color
     }
 }
