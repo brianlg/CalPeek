@@ -199,11 +199,21 @@ final class CalendarEventsModel {
 
     /// Creates a reminder due on the given day (date-only, no time — rendered
     /// as "all-day" like other no-time reminders).
-    func createReminder(title: String, dueDate: Date, reminderCalendar: EKCalendar, in cal: Calendar) throws {
+    func createReminder(title: String, dueDate: Date, time: Date?, reminderCalendar: EKCalendar, in cal: Calendar) throws {
         let reminder = EKReminder(eventStore: store)
         reminder.title = title
         reminder.calendar = reminderCalendar
-        reminder.dueDateComponents = cal.dateComponents([.year, .month, .day], from: dueDate)
+        var components = cal.dateComponents([.year, .month, .day], from: dueDate)
+        if let time {
+            components.hour = cal.component(.hour, from: time)
+            components.minute = cal.component(.minute, from: time)
+            // Match Reminders.app, where a timed reminder alerts at its due
+            // time.
+            if let fireDate = cal.date(from: components) {
+                reminder.addAlarm(EKAlarm(absoluteDate: fireDate))
+            }
+        }
+        reminder.dueDateComponents = components
         try store.save(reminder, commit: true)
         // The async snapshot fetch is the only way new reminders reach the
         // popover; kick it off now instead of waiting for EKEventStoreChanged.

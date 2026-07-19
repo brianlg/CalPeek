@@ -705,11 +705,14 @@ private struct SegmentedDateField: NSViewRepresentable {
     /// time are separate fields side by side rather than one combined picker,
     /// which would insert the locale's "," between them.
     var elements: NSDatePicker.ElementFlags
+    /// Draws the system's bezeled text-field-and-stepper style instead of
+    /// the borderless inline one.
+    var showsStepper = false
 
     func makeNSView(context: Context) -> NSDatePicker {
         let picker = NSDatePicker()
-        picker.datePickerStyle = .textField
-        picker.isBezeled = false
+        picker.datePickerStyle = showsStepper ? .textFieldAndStepper : .textField
+        picker.isBezeled = showsStepper
         picker.isBordered = false
         picker.drawsBackground = false
         picker.font = .systemFont(ofSize: 12)
@@ -768,6 +771,9 @@ private struct NewItemForm: View {
     @State private var endTime: Date
     @State private var selectedEventCalendarID: String
     @State private var selectedReminderListID: String
+    @State private var reminderDate: Date
+    @State private var reminderHasTime = false
+    @State private var reminderTime: Date
     @State private var saveFailed = false
     @FocusState private var titleFocused: Bool
 
@@ -788,6 +794,8 @@ private struct NewItemForm: View {
         let start = Self.defaultStart(on: date, calendar: calendar)
         _startTime = State(initialValue: start)
         _endTime = State(initialValue: start.addingTimeInterval(3600))
+        _reminderDate = State(initialValue: date)
+        _reminderTime = State(initialValue: start)
         _selectedEventCalendarID = State(initialValue: eventCalendars.first?.calendarIdentifier ?? "")
         _selectedReminderListID = State(initialValue: reminderLists.first?.calendarIdentifier ?? "")
     }
@@ -848,12 +856,15 @@ private struct NewItemForm: View {
                         selection: $selectedEventCalendarID
                     )
                 }
-            } else if reminderLists.count > 1 {
-                calendarPicker(
-                    String(localized: "List"),
-                    options: reminderLists,
-                    selection: $selectedReminderListID
-                )
+            } else {
+                reminderFields
+                if reminderLists.count > 1 {
+                    calendarPicker(
+                        String(localized: "List"),
+                        options: reminderLists,
+                        selection: $selectedReminderListID
+                    )
+                }
             }
 
             if saveFailed {
@@ -953,6 +964,28 @@ private struct NewItemForm: View {
         }
     }
 
+    private var reminderFields: some View {
+        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow {
+                fieldLabel(String(localized: "Date:"))
+                SegmentedDateField(date: $reminderDate, elements: [.yearMonthDay])
+                    .fixedSize()
+            }
+            GridRow {
+                fieldLabel(String(localized: "Time:"))
+                HStack(spacing: 8) {
+                    Toggle(String(localized: "Time"), isOn: $reminderHasTime)
+                        .labelsHidden()
+                        .toggleStyle(.checkbox)
+                    if reminderHasTime {
+                        SegmentedDateField(date: $reminderTime, elements: [.hourMinute], showsStepper: true)
+                            .fixedSize()
+                    }
+                }
+            }
+        }
+    }
+
     private func calendarPicker(
         _ label: String,
         options: [EKCalendar],
@@ -1004,7 +1037,13 @@ private struct NewItemForm: View {
                     saveFailed = true
                     return
                 }
-                try model.createReminder(title: trimmedTitle, dueDate: date, reminderCalendar: target, in: calendar)
+                try model.createReminder(
+                    title: trimmedTitle,
+                    dueDate: reminderDate,
+                    time: reminderHasTime ? reminderTime : nil,
+                    reminderCalendar: target,
+                    in: calendar
+                )
             }
             dismiss()
         } catch {
