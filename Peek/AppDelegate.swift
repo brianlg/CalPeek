@@ -169,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Let SwiftUI drive the popover size so the view's layout is the single
         // source of truth.
         let hosting = NSHostingController(
-            rootView: CalendarPopoverView(nextMeetingModel: nextMeeting, todayBadgeModel: todayBadge)
+            rootView: CalendarPopoverView(nextMeetingModel: nextMeeting)
         )
         hosting.sizingOptions = .preferredContentSize
         popover.contentViewController = hosting

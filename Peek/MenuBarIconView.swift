@@ -10,9 +10,9 @@ import SwiftUI
 struct MenuBarIconView: View {
     let date: Date
     let weekdayColor: Color
-    /// Colors of the "unseen agenda" badge dots stacked on the trailing edge,
-    /// vertically centered — one per kind of item on today's agenda (event,
-    /// reminder). Empty hides the badge.
+    /// Colors of the agenda badge dots stacked on the trailing edge,
+    /// vertically centered — one per kind of outstanding item on today's
+    /// agenda (event, reminder). Empty hides the badge.
     var badgeDots: [Color] = []
 
     private enum Badge {
