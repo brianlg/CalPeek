@@ -12,6 +12,10 @@ Before writing any non-trivial code — especially anything touching UI, layout,
 
 Do not invent bespoke solutions out of convenience. "It works" is not the bar; "it's how a well-built native Mac app would do it" is.
 
+## Ask before assuming
+
+When a **functional** question comes up — how a feature should behave, UX semantics, what's in scope — ask the user before assuming an answer. Implementation details are yours to decide; product behavior is theirs.
+
 ## Design bar: ship-quality, native feel
 
 Treat every UI change as production Mac software. It should be HIG-compliant, pixel-tuned, and indistinguishable from a first-party menu-bar app. Respect light/dark mode, wallpaper-tinted menu bars, Dynamic Type where relevant, and the app's existing minimal aesthetic. Polish is part of "done," not a follow-up.
