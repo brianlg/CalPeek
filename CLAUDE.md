@@ -29,7 +29,13 @@ For every code change:
    xcodebuild -scheme Peek -configuration Debug build
    ```
 2. **For any UI change, visually verify at runtime.** Use the `verify` skill — build, launch, and drive the app, then screenshot to confirm it actually looks and behaves right. Don't claim a UI change works without seeing it.
-3. **Auto-commit the completed task** on the current branch with a descriptive message. **Never push** unless explicitly asked.
+3. **Auto-commit the completed task** with a descriptive message. **Never push** unless explicitly asked.
+
+## Branching
+
+- **Features and multi-commit work start on a new branch** (`feature/...` or `fix/...`) cut from `main`. Commit there as tasks complete.
+- **Small single-commit fixes** may land directly on the current branch — no branch ceremony for one-liners.
+- **Never merge into `main` yourself.** When a branch is done and verified, stop and tell the user it's ready for review; they merge.
 
 ## Build & project generation
 
