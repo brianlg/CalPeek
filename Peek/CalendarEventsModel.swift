@@ -1,5 +1,6 @@
 import EventKit
 import Foundation
+import os
 import SwiftUI
 
 /// A single event or reminder flattened into just what the day popover needs
@@ -131,7 +132,7 @@ final class CalendarEventsModel {
         do {
             try store.save(reminder, commit: true)
         } catch {
-            NSLog("Failed to save reminder: %@", error.localizedDescription)
+            Logger.peek.error("Failed to save reminder: \(error.localizedDescription)")
             return
         }
         // Optimistic local update for instant checkbox feedback; the
@@ -347,7 +348,7 @@ final class CalendarEventsModel {
         var error: NSDictionary?
         NSAppleScript(source: source)?.executeAndReturnError(&error)
         if let error {
-            NSLog("Calendar day-view script failed: %@", error)
+            Logger.peek.error("Calendar day-view script failed: \(error)")
         }
     }
 

@@ -55,3 +55,22 @@ enum WeekdayColor: String, CaseIterable, Identifiable {
         self == .auto ? nil : color
     }
 }
+
+extension Color {
+    /// Black or white, whichever stays legible on top of this color as a
+    /// fill — hardcoded white digits and dots vanish on light accents like
+    /// yellow. Computed from WCAG relative luminance, but with the flip
+    /// threshold raised well past the mathematical crossover (~0.18):
+    /// platform convention keeps white on mid-tone fills (red, green,
+    /// orange), so only genuinely light fills switch to black.
+    var contrastingForeground: Color {
+        guard let srgb = NSColor(self).usingColorSpace(.sRGB) else { return .white }
+        func linear(_ component: CGFloat) -> CGFloat {
+            component <= 0.03928 ? component / 12.92 : pow((component + 0.055) / 1.055, 2.4)
+        }
+        let luminance = 0.2126 * linear(srgb.redComponent)
+            + 0.7152 * linear(srgb.greenComponent)
+            + 0.0722 * linear(srgb.blueComponent)
+        return luminance > 0.55 ? .black : .white
+    }
+}

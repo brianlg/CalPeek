@@ -1,4 +1,5 @@
 import EventKit
+import os
 import ServiceManagement
 import SwiftUI
 
@@ -234,7 +235,7 @@ struct GeneralSettingsView: View {
         } catch {
             // Registration can fail for builds outside /Applications; reflect
             // the real state rather than lying in the toggle.
-            NSLog("Failed to toggle Launch at Login: %@", error.localizedDescription)
+            Logger.peek.error("Failed to toggle Launch at Login: \(error.localizedDescription)")
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }

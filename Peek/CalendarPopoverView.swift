@@ -1,4 +1,5 @@
 import EventKit
+import os
 import SwiftUI
 
 /// Compact month calendar shown in the popover. Fixed 300pt wide, adapts to
@@ -53,6 +54,10 @@ struct CalendarPopoverView: View {
     @State private var selectedDate: Date?
     /// The day currently under the pointer, for the hover highlight.
     @State private var hoveredDate: Date?
+
+    /// Honors the system Reduce Motion setting (HIG requirement): month
+    /// changes swap the slide-in grid transition for a plain crossfade.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @AppStorage(Preferences.todayMarkerColorKey)
     private var todayMarkerRaw = WeekdayColor.auto.rawValue
@@ -262,13 +267,7 @@ struct CalendarPopoverView: View {
         }
         // Re-identify per month so the transition plays on change.
         .id(monthOffset)
-        .transition(
-            .asymmetric(
-                insertion: .move(edge: slideEdge).combined(with: .opacity),
-                removal: .move(edge: slideEdge == .trailing ? .leading : .trailing)
-                    .combined(with: .opacity)
-            )
-        )
+        .transition(monthTransition)
         .frame(maxWidth: .infinity, alignment: .top)
         // Hide the horizontal month-slide transition without cutting off the
         // highlight circles, which overhang the top row's bounds (they're
@@ -288,7 +287,9 @@ struct CalendarPopoverView: View {
         return VStack(spacing: 2) {
             Text(String(calendar.component(.day, from: date)))
                 .font(.system(size: 15, weight: isToday ? .semibold : .regular))
-                .foregroundStyle(isToday ? Color.white : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
+                // Today's digit sits on the accent fill, so its color derives
+                // from the accent — white on yellow would be unreadable.
+                .foregroundStyle(isToday ? accent.contrastingForeground : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
                 .frame(maxWidth: .infinity)
                 .background {
                     dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
@@ -357,7 +358,7 @@ struct CalendarPopoverView: View {
     private func agendaDot(_ color: Color, isToday: Bool, inMonth: Bool) -> some View {
         // Today's dots overlap the filled accent circle behind the day number,
         // so they must contrast with the circle, not the popover background.
-        let fill = isToday ? Color.white : (inMonth ? color : color.opacity(0.4))
+        let fill = isToday ? accent.contrastingForeground : (inMonth ? color : color.opacity(0.4))
         return Circle()
             .fill(fill)
             .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
@@ -391,9 +392,25 @@ struct CalendarPopoverView: View {
 
     // MARK: - Actions
 
+    /// The horizontal slide, or a short crossfade under Reduce Motion.
+    private var monthTransition: AnyTransition {
+        guard !reduceMotion else { return .opacity }
+        return .asymmetric(
+            insertion: .move(edge: slideEdge).combined(with: .opacity),
+            removal: .move(edge: slideEdge == .trailing ? .leading : .trailing)
+                .combined(with: .opacity)
+        )
+    }
+
+    private var monthChangeAnimation: Animation {
+        reduceMotion
+            ? .easeOut(duration: 0.15)
+            : .spring(response: 0.35, dampingFraction: 0.82)
+    }
+
     private func changeMonth(by value: Int) {
         slideEdge = value > 0 ? .trailing : .leading
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+        withAnimation(monthChangeAnimation) {
             monthOffset += value
         }
     }
@@ -401,7 +418,7 @@ struct CalendarPopoverView: View {
     private func goToToday() {
         guard monthOffset != 0 else { return }
         slideEdge = monthOffset > 0 ? .leading : .trailing
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+        withAnimation(monthChangeAnimation) {
             monthOffset = 0
         }
     }
@@ -415,7 +432,7 @@ struct CalendarPopoverView: View {
         let monthsDiff = calendar.dateComponents([.month], from: currentMonthStart, to: target).month ?? 0
         guard monthsDiff != monthOffset else { return }
         slideEdge = monthsDiff > monthOffset ? .trailing : .leading
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.82)) {
+        withAnimation(monthChangeAnimation) {
             monthOffset = monthsDiff
         }
     }
@@ -527,7 +544,7 @@ private struct YearPickerPopover: View {
             HStack {
                 Text(verbatim: String(year))
                     .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                    .foregroundStyle(isSelected ? Color.white : Color.primary)
+                    .foregroundStyle(isSelected ? accent.contrastingForeground : Color.primary)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 12)
@@ -852,6 +869,9 @@ private struct NewItemForm: View {
     @State private var reminderTime: Date
     @State private var saveFailed = false
     @FocusState private var titleFocused: Bool
+    /// Honors the system Reduce Motion setting: the segmented thumb snaps
+    /// between segments instead of sliding.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let eventCalendars: [EKCalendar]
     private let reminderLists: [EKCalendar]
@@ -1004,11 +1024,11 @@ private struct NewItemForm: View {
             // The fields swap and the popover resizes instantly (as in
             // Calendar.app); only the thumb's slide is animated.
             kind = value
-            withAnimation(.snappy(duration: 0.25)) { thumbKind = value }
+            withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) { thumbKind = value }
         } label: {
             Text(label)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(thumbKind == value ? Color.white : Color.primary)
+                .foregroundStyle(thumbKind == value ? accent.contrastingForeground : Color.primary)
                 .frame(maxWidth: .infinity)
                 .frame(height: 22)
                 .contentShape(Capsule())
@@ -1123,7 +1143,7 @@ private struct NewItemForm: View {
             }
             dismiss()
         } catch {
-            NSLog("Failed to save item: %@", error.localizedDescription)
+            Logger.peek.error("Failed to save item: \(error.localizedDescription)")
             saveFailed = true
         }
     }
