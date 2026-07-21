@@ -1,8 +1,9 @@
 # macOS
 .DS_Store
 
-# Local tool config
-.claude/
+# Local tool config — ignore everything under .claude except shared skills
+.claude/*
+!.claude/skills/
 
 # Xcode build output
 build/
