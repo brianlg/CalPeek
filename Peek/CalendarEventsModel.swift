@@ -16,6 +16,17 @@ struct DayItem: Identifiable, Sendable {
     let color: Color
     /// Video-conference link detected in the event, if any. Always nil for reminders.
     let joinURL: URL?
+    /// Deep link that shows this reminder in the Reminders app. Always nil
+    /// for events — Calendar has no working deep-link scheme, so event rows
+    /// go through `CalendarEventsModel.showInCalendarApp` instead.
+    let openURL: URL?
+    /// The event's raw (possibly absent) title and its calendar's title,
+    /// which together let AppleScript select the event in the Calendar app.
+    /// Matching is by summary + start date because neither of EventKit's
+    /// identifiers reliably equals AppleScript's `uid` — iCloud rewrites
+    /// iCalendar UIDs. Nil for reminders.
+    let eventTitle: String?
+    let calendarTitle: String?
     let kind: Kind
     /// All-day events and no-time reminders sort ahead of timed items.
     let sortsAsAllDay: Bool
@@ -260,6 +271,9 @@ final class CalendarEventsModel {
                     : event.startDate.formatted(date: .omitted, time: .shortened),
                 color: Color(cgColor: event.calendar.cgColor),
                 joinURL: MeetingLinkParser.link(in: event)?.url,
+                openURL: nil,
+                eventTitle: event.title,
+                calendarTitle: event.calendar.title,
                 kind: .event,
                 sortsAsAllDay: event.isAllDay,
                 sortDate: event.startDate
@@ -279,11 +293,69 @@ final class CalendarEventsModel {
                         : String(localized: "all-day"),
                     color: snapshot.color,
                     joinURL: nil,
+                    openURL: URL(string: "x-apple-reminderkit://REMCDReminder/\(snapshot.id)"),
+                    eventTitle: nil,
+                    calendarTitle: nil,
                     kind: .reminder(isCompleted: snapshot.isCompleted, reminderID: snapshot.id),
                     sortsAsAllDay: !snapshot.hasDueTime,
                     sortDate: snapshot.dueDate
                 )
             }
+    }
+
+    /// Opens the Calendar app in Day view on the event's start date and
+    /// selects the event there. AppleScript is the only working route — the
+    /// `ical://ekevent` deep-link scheme no longer focuses events. The date
+    /// is assembled property by property because AppleScript date literals
+    /// parse locale-dependently; navigating to it first means the right day
+    /// still shows if the event lookup fails (say, the event was just
+    /// deleted, or it's a recurring occurrence — AppleScript only sees the
+    /// series master). The event is matched by summary + start date scoped
+    /// to its own calendar: neither of EventKit's identifiers reliably
+    /// equals AppleScript's `uid`, since iCloud rewrites iCalendar UIDs.
+    /// The lookup is capped at 5s so a huge store can't hang the script.
+    /// First use triggers the system's automation-consent prompt.
+    func showInCalendarApp(on date: Date, calendar: Calendar, eventTitle: String?, calendarTitle: String?) {
+        let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        guard let year = parts.year, let month = parts.month, let day = parts.day else { return }
+        let secondsIntoDay = (parts.hour ?? 0) * 3600 + (parts.minute ?? 0) * 60 + (parts.second ?? 0)
+        var showLine = ""
+        if let eventTitle, let calendarTitle {
+            showLine = """
+                set eventStart to target + \(secondsIntoDay)
+                try
+                    with timeout of 5 seconds
+                        show (first event of calendar \(Self.quoted(calendarTitle)) whose start date is eventStart and summary is \(Self.quoted(eventTitle)))
+                    end timeout
+                end try
+            """
+        }
+        let source = """
+        set target to current date
+        set time of target to 0
+        set day of target to 1
+        set year of target to \(year)
+        set month of target to \(month)
+        set day of target to \(day)
+        tell application "Calendar"
+            activate
+            switch view to day view
+            view calendar at target
+        \(showLine)
+        end tell
+        """
+        var error: NSDictionary?
+        NSAppleScript(source: source)?.executeAndReturnError(&error)
+        if let error {
+            NSLog("Calendar day-view script failed: %@", error)
+        }
+    }
+
+    /// A string literal safe to splice into AppleScript source.
+    private static func quoted(_ string: String) -> String {
+        "\"" + string
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 
     private func fetch(days: [Date], calendar: Calendar) {

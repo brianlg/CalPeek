@@ -621,7 +621,7 @@ private struct DayEventsPopover: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(items) { item in
-                        itemRow(item)
+                        ItemRow(item: item, tint: tint(for: item), accent: accent, model: model)
                     }
                 }
                 .onGeometryChange(for: CGFloat.self) { proxy in
@@ -666,56 +666,106 @@ private struct DayEventsPopover: View {
             .foregroundStyle(.primary)
     }
 
-    private func itemRow(_ item: DayItem) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            switch item.kind {
-            case .event:
-                // Same glyph metrics as the reminder checkbox below so the
-                // two dot styles line up in a mixed list.
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(tint(for: item))
-            case .reminder(let isCompleted, let reminderID):
-                Button {
-                    model.setReminderCompleted(reminderID, !isCompleted)
-                } label: {
-                    Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
+}
+
+/// One agenda row. A separate view so each row owns its hover state, which
+/// reveals the open-in-app button on its trailing edge.
+private struct ItemRow: View {
+    let item: DayItem
+    let tint: Color
+    let accent: Color
+    let model: CalendarEventsModel
+
+    /// Dismisses the day popover when the user jumps to Calendar/Reminders.
+    @Environment(\.dismiss) private var dismiss
+    @State private var isHovered = false
+
+    var body: some View {
+        // The open button sits outside the top-aligned content so it centers
+        // against the full row height.
+        HStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                switch item.kind {
+                case .event:
+                    // Same glyph metrics as the reminder checkbox below so the
+                    // two dot styles line up in a mixed list.
+                    Image(systemName: "circle.fill")
                         .font(.system(size: 12))
-                        .foregroundStyle(tint(for: item))
+                        .foregroundStyle(tint)
+                case .reminder(let isCompleted, let reminderID):
+                    Button {
+                        model.setReminderCompleted(reminderID, !isCompleted)
+                    } label: {
+                        Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
+                            .font(.system(size: 12))
+                            .foregroundStyle(tint)
+                    }
+                    .buttonStyle(.plain)
+                    .help(isCompleted
+                        ? String(localized: "Mark reminder incomplete")
+                        : String(localized: "Mark reminder complete"))
                 }
-                .buttonStyle(.plain)
-                .help(isCompleted
-                    ? String(localized: "Mark reminder incomplete")
-                    : String(localized: "Mark reminder complete"))
-            }
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(item.title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(isCompletedReminder(item) ? .secondary : .primary)
-                    .lineLimit(2)
-                Text(item.timeText)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 0)
-
-            if let url = item.joinURL {
-                Button {
-                    NSWorkspace.shared.open(url)
-                } label: {
-                    Image(systemName: "video.fill")
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(item.title)
+                        .font(.system(size: 13))
+                        .foregroundStyle(isCompletedReminder ? .secondary : .primary)
+                        .lineLimit(2)
+                    Text(item.timeText)
                         .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(accent)
-                .help(String(localized: "Join meeting"))
+
+                Spacer(minLength: 0)
+
+                if let url = item.joinURL {
+                    Button {
+                        NSWorkspace.shared.open(url)
+                    } label: {
+                        Image(systemName: "video.fill")
+                            .font(.system(size: 11))
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(accent)
+                    .help(String(localized: "Join meeting"))
+                }
             }
+
+            Button {
+                switch item.kind {
+                case .event:
+                    model.showInCalendarApp(
+                        on: item.sortDate,
+                        calendar: Calendar.current,
+                        eventTitle: item.eventTitle,
+                        calendarTitle: item.calendarTitle
+                    )
+                case .reminder:
+                    if let url = item.openURL { NSWorkspace.shared.open(url) }
+                }
+                dismiss()
+            } label: {
+                Image(systemName: "arrow.up.forward.app")
+                    .font(.system(size: 11))
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+            // Fades rather than inserts so revealing it never reflows
+            // the row.
+            .opacity(isHovered ? 1 : 0)
+            .help(item.kind == .event
+                ? String(localized: "Open in Calendar")
+                : String(localized: "Open in Reminders"))
         }
+        // The row's hover region is only its hit-testable content by default,
+        // which excludes the spacer gap and the faded-out button — hovering
+        // there would drop `isHovered` before the button could be clicked.
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 
-    private func isCompletedReminder(_ item: DayItem) -> Bool {
+    private var isCompletedReminder: Bool {
         if case .reminder(let isCompleted, _) = item.kind { return isCompleted }
         return false
     }
