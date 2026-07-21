@@ -47,6 +47,13 @@ struct GeneralSettingsView: View {
                     .onChange(of: launchAtLogin) { _, newValue in
                         setLaunchAtLogin(newValue)
                     }
+                    // The user can flip the login item in System Settings while
+                    // this window is open; re-sync when they come back to Peek.
+                    .onReceive(NotificationCenter.default.publisher(
+                        for: NSApplication.didBecomeActiveNotification
+                    )) { _ in
+                        launchAtLogin = SMAppService.mainApp.status == .enabled
+                    }
             }
 
             Section {
@@ -226,6 +233,9 @@ struct GeneralSettingsView: View {
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
+        // No-op when the toggle change came from a status re-sync rather
+        // than the user, so we never re-register redundantly.
+        guard enabled != (SMAppService.mainApp.status == .enabled) else { return }
         do {
             if enabled {
                 try SMAppService.mainApp.register()
