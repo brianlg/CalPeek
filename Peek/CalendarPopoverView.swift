@@ -758,7 +758,16 @@ private struct ItemRow: View {
                         calendarTitle: item.calendarTitle
                     )
                 case .reminder:
-                    if let url = item.openURL { NSWorkspace.shared.open(url) }
+                    // The deep link is a private scheme; if the OS stops
+                    // handling it, still get the user into Reminders.
+                    if let url = item.openURL, !NSWorkspace.shared.open(url) {
+                        Logger.peek.error("Reminders deep link no longer handled; launching app instead")
+                        if let app = NSWorkspace.shared.urlForApplication(
+                            withBundleIdentifier: "com.apple.reminders"
+                        ) {
+                            NSWorkspace.shared.openApplication(at: app, configuration: .init())
+                        }
+                    }
                 }
                 dismiss()
             } label: {
@@ -846,6 +855,71 @@ private struct NewItemForm: View {
         case event, reminder
     }
 
+    /// Repeat presets matching Calendar.app's quick-create options. Custom
+    /// rules stay in the full apps — that's what the open-in-app buttons
+    /// are for.
+    private enum RepeatOption: String, CaseIterable, Identifiable {
+        case never, daily, weekly, monthly, yearly
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .never: String(localized: "Never")
+            case .daily: String(localized: "Every Day")
+            case .weekly: String(localized: "Every Week")
+            case .monthly: String(localized: "Every Month")
+            case .yearly: String(localized: "Every Year")
+            }
+        }
+
+        var rule: EKRecurrenceRule? {
+            let frequency: EKRecurrenceFrequency
+            switch self {
+            case .never: return nil
+            case .daily: frequency = .daily
+            case .weekly: frequency = .weekly
+            case .monthly: frequency = .monthly
+            case .yearly: frequency = .yearly
+            }
+            return EKRecurrenceRule(recurrenceWith: frequency, interval: 1, end: nil)
+        }
+    }
+
+    /// Alert presets matching Calendar.app's quick-create options. `.atTime`
+    /// applies to events only — timed reminders already alert at their due
+    /// time, so their picker offers just the early offsets.
+    private enum AlertOption: String, CaseIterable, Identifiable {
+        case none, atTime, minutes5, minutes10, minutes30, hour1, day1
+
+        var id: String { rawValue }
+
+        var displayName: String {
+            switch self {
+            case .none: String(localized: "None")
+            case .atTime: String(localized: "At time of event")
+            case .minutes5: String(localized: "5 minutes before")
+            case .minutes10: String(localized: "10 minutes before")
+            case .minutes30: String(localized: "30 minutes before")
+            case .hour1: String(localized: "1 hour before")
+            case .day1: String(localized: "1 day before")
+            }
+        }
+
+        /// Seconds before the start/due time, or nil for no alert.
+        var offset: TimeInterval? {
+            switch self {
+            case .none: nil
+            case .atTime: 0
+            case .minutes5: 5 * 60
+            case .minutes10: 10 * 60
+            case .minutes30: 30 * 60
+            case .hour1: 60 * 60
+            case .day1: 24 * 60 * 60
+            }
+        }
+    }
+
     let date: Date
     let model: CalendarEventsModel
     let calendar: Calendar
@@ -867,6 +941,12 @@ private struct NewItemForm: View {
     @State private var reminderDate: Date
     @State private var reminderHasTime = false
     @State private var reminderTime: Date
+    /// Reveals the notes/repeat/alert rows; stays open once opened, like
+    /// Calendar.app's quick-create details.
+    @State private var showsDetails = false
+    @State private var notes = ""
+    @State private var repeatOption: RepeatOption = .never
+    @State private var alertOption: AlertOption = .none
     @State private var saveFailed = false
     @FocusState private var titleFocused: Bool
     /// Honors the system Reduce Motion setting: the segmented thumb snaps
@@ -919,6 +999,18 @@ private struct NewItemForm: View {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Nil when the notes field is empty, so empty text never lands in the store.
+    private var trimmedNotes: String? {
+        let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Nil for no alert or an all-day event (whose picker is hidden).
+    private var eventAlarm: EKAlarm? {
+        guard !isAllDay, let offset = alertOption.offset else { return nil }
+        return EKAlarm(relativeOffset: -offset)
+    }
+
     private var canCreate: Bool {
         switch kind {
         case .event:
@@ -963,6 +1055,17 @@ private struct NewItemForm: View {
                 }
             }
 
+            if !showsDetails {
+                Button {
+                    showsDetails = true
+                } label: {
+                    Text(String(localized: "Add Details…"))
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
             if saveFailed {
                 Text(String(localized: "Couldn't save."))
                     .font(.system(size: 11))
@@ -974,6 +1077,11 @@ private struct NewItemForm: View {
         .onExitCommand(perform: dismiss)
         .onChange(of: kind) {
             saveFailed = false
+            // "At time of event" isn't offered for reminders; drop it rather
+            // than leave the picker pointing at a hidden option.
+            if kind == .reminder, alertOption == .atTime {
+                alertOption = .none
+            }
         }
         .onAppear {
             // The delayed request is load-bearing, not a hack: the popover
@@ -1057,6 +1165,24 @@ private struct NewItemForm: View {
                 fieldLabel(String(localized: "Ends:"))
                 dateTimeField($endTime)
             }
+            if showsDetails {
+                GridRow {
+                    fieldLabel(String(localized: "Repeat:"))
+                    repeatPicker
+                }
+                // All-day events use day-based alert semantics that don't fit
+                // these time offsets; that nuance stays with Calendar.app.
+                if !isAllDay {
+                    GridRow {
+                        fieldLabel(String(localized: "Alert:"))
+                        alertPicker(includeAtTime: true)
+                    }
+                }
+                GridRow(alignment: .top) {
+                    fieldLabel(String(localized: "Notes:"))
+                    notesField
+                }
+            }
         }
         .onChange(of: startTime) { old, new in
             // Keep the duration when the start moves.
@@ -1083,7 +1209,56 @@ private struct NewItemForm: View {
                     }
                 }
             }
+            if showsDetails {
+                GridRow {
+                    fieldLabel(String(localized: "Repeat:"))
+                    repeatPicker
+                }
+                // A timed reminder already alerts at its due time; the picker
+                // offers only extra early alerts, and needs a time to offset.
+                if reminderHasTime {
+                    GridRow {
+                        fieldLabel(String(localized: "Alert:"))
+                        alertPicker(includeAtTime: false)
+                    }
+                }
+                GridRow(alignment: .top) {
+                    fieldLabel(String(localized: "Notes:"))
+                    notesField
+                }
+            }
         }
+    }
+
+    // MARK: Detail rows
+
+    private var repeatPicker: some View {
+        Picker(String(localized: "Repeat"), selection: $repeatOption) {
+            ForEach(RepeatOption.allCases) { option in
+                Text(option.displayName).tag(option)
+            }
+        }
+        .labelsHidden()
+        .font(.system(size: 12))
+        .fixedSize()
+    }
+
+    private func alertPicker(includeAtTime: Bool) -> some View {
+        Picker(String(localized: "Alert"), selection: $alertOption) {
+            ForEach(AlertOption.allCases.filter { includeAtTime || $0 != .atTime }) { option in
+                Text(option.displayName).tag(option)
+            }
+        }
+        .labelsHidden()
+        .font(.system(size: 12))
+        .fixedSize()
+    }
+
+    private var notesField: some View {
+        TextField(String(localized: "Optional"), text: $notes, axis: .vertical)
+            .lineLimit(1...3)
+            .textFieldStyle(.roundedBorder)
+            .font(.system(size: 12))
     }
 
     private func calendarPicker(
@@ -1129,6 +1304,9 @@ private struct NewItemForm: View {
                     start: startTime,
                     end: endTime,
                     isAllDay: isAllDay,
+                    notes: trimmedNotes,
+                    recurrence: repeatOption.rule,
+                    alarm: eventAlarm,
                     eventCalendar: target,
                     in: calendar
                 )
@@ -1141,6 +1319,9 @@ private struct NewItemForm: View {
                     title: trimmedTitle,
                     dueDate: reminderDate,
                     time: reminderHasTime ? reminderTime : nil,
+                    notes: trimmedNotes,
+                    recurrence: repeatOption.rule,
+                    earlyAlertOffset: reminderHasTime ? alertOption.offset : nil,
                     reminderCalendar: target,
                     in: calendar
                 )

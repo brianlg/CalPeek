@@ -56,4 +56,6 @@ System Events accessibility scripting does NOT see Peek's status item or popover
 - Creating events/reminders during verification writes to the user's REAL calendar. Clean up afterwards:
   `osascript -e 'tell application "Calendar" to tell calendar "Home" to delete (every event whose summary is "...")'`
   (same pattern for Reminders), then quit those apps.
+- Calendar's AppleScript layer can report ghosts: after deleting a (recurring) event, `count of (every event whose summary is …)` may keep returning 1 even though the store is clean. Confirm ground truth visually — Peek's own day popover or Calendar's day view — before re-deleting. EventKit from `swift -e` is NOT an alternative: CLI processes have no usage-description string, so calendar access is auto-denied without a prompt.
+- Pop-up buttons (Picker menus) in the form ignore plain synthetic clicks — the menu opens but a follow-up click doesn't select. Use press-drag-release: mouseDown on the popup, ~600ms, drag to the item, mouseUp there (same technique as SwiftUI Menu).
 - NSPopover height sometimes doesn't shrink until the next open after content gets shorter.

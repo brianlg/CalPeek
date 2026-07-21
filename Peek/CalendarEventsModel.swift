@@ -192,6 +192,9 @@ final class CalendarEventsModel {
         start: Date,
         end: Date,
         isAllDay: Bool,
+        notes: String?,
+        recurrence: EKRecurrenceRule?,
+        alarm: EKAlarm?,
         eventCalendar: EKCalendar,
         in cal: Calendar
     ) throws {
@@ -206,12 +209,26 @@ final class CalendarEventsModel {
             event.startDate = start
             event.endDate = end
         }
+        if let notes { event.notes = notes }
+        if let recurrence { event.addRecurrenceRule(recurrence) }
+        if let alarm { event.addAlarm(alarm) }
         try store.save(event, span: .thisEvent, commit: true)
     }
 
     /// Creates a reminder due on the given day (date-only, no time — rendered
-    /// as "all-day" like other no-time reminders).
-    func createReminder(title: String, dueDate: Date, time: Date?, reminderCalendar: EKCalendar, in cal: Calendar) throws {
+    /// as "all-day" like other no-time reminders). `earlyAlertOffset` adds an
+    /// extra alarm that many seconds before the due time, on top of the
+    /// at-due-time alarm Reminders.app expects.
+    func createReminder(
+        title: String,
+        dueDate: Date,
+        time: Date?,
+        notes: String?,
+        recurrence: EKRecurrenceRule?,
+        earlyAlertOffset: TimeInterval?,
+        reminderCalendar: EKCalendar,
+        in cal: Calendar
+    ) throws {
         let reminder = EKReminder(eventStore: store)
         reminder.title = title
         reminder.calendar = reminderCalendar
@@ -223,9 +240,14 @@ final class CalendarEventsModel {
             // time.
             if let fireDate = cal.date(from: components) {
                 reminder.addAlarm(EKAlarm(absoluteDate: fireDate))
+                if let earlyAlertOffset, earlyAlertOffset > 0 {
+                    reminder.addAlarm(EKAlarm(absoluteDate: fireDate.addingTimeInterval(-earlyAlertOffset)))
+                }
             }
         }
         reminder.dueDateComponents = components
+        if let notes { reminder.notes = notes }
+        if let recurrence { reminder.addRecurrenceRule(recurrence) }
         try store.save(reminder, commit: true)
         // The async snapshot fetch is the only way new reminders reach the
         // popover; kick it off now instead of waiting for EKEventStoreChanged.
@@ -294,6 +316,11 @@ final class CalendarEventsModel {
                         : String(localized: "all-day"),
                     color: snapshot.color,
                     joinURL: nil,
+                    // Private scheme, but the community-standard route: Apple
+                    // publishes no way to link to a reminder, and the
+                    // AppleScript `show` verb is slow on large databases.
+                    // `ItemRow` falls back to launching Reminders if a macOS
+                    // update ever drops the scheme.
                     openURL: URL(string: "x-apple-reminderkit://REMCDReminder/\(snapshot.id)"),
                     eventTitle: nil,
                     calendarTitle: nil,
