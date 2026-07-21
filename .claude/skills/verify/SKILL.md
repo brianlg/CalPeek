@@ -24,6 +24,8 @@ stat -f "%Sm %N" ~/Library/Developer/Xcode/DerivedData/Peek-*/Build/Products/Deb
 
 and `open` that exact path. If you see two Peek glyphs in the menu bar, this is why.
 
+**TCC and code signing**: Calendar/Reminders grants are tied to the app's signing identity. `project.yml` pins `DEVELOPMENT_TEAM` so rebuilds keep a stable identity and grants persist. Never build with `CODE_SIGNING_ALLOWED=NO` or ad-hoc signing — every ad-hoc rebuild is a brand-new app to TCC, silently resetting Calendar/Reminders access (symptoms: event dots vanish, day popover loses its "+", no access-denied footer because status is `.notDetermined`). Re-grant by toggling Show Calendar / Show Reminders off and on in Peek's Settings, which re-triggers the system prompt.
+
 ## Driving the UI
 
 **Prerequisite — Accessibility permission**: posting synthetic CGEvents silently no-ops unless the Claude app ("claude") has Accessibility access (System Settings → Privacy & Security → Accessibility), and a fresh grant only takes effect after the Claude app restarts. Self-test before relying on clicks — post a `mouseMoved` and read the cursor back:

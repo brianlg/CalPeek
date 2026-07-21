@@ -253,9 +253,10 @@ struct AppearanceSettingsView: View {
     @AppStorage(Preferences.remindersColorKey)
     private var remindersRaw = WeekdayColor.auto.rawValue
 
-    /// Read-only store for showing what the Automatic event/reminder colors
-    /// currently resolve to (the user's default calendar/list colors).
-    private let store = EKEventStore()
+    /// Read-only use of the shared store, for showing what the Automatic
+    /// event/reminder colors currently resolve to (the user's default
+    /// calendar/list colors).
+    private let store = EKEventStore.shared
 
     var body: some View {
         Form {

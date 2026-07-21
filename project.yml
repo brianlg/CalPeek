@@ -23,6 +23,9 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         CODE_SIGN_STYLE: Automatic
+        # Stable signing identity so TCC grants (Calendar/Reminders) survive
+        # rebuilds — ad-hoc builds get a new TCC identity on every compile.
+        DEVELOPMENT_TEAM: LK42KQYP3M
         ENABLE_HARDENED_RUNTIME: YES
         COMBINE_HIDPI_IMAGES: YES
         DEAD_CODE_STRIPPING: YES

@@ -38,7 +38,7 @@ final class NextMeetingModel {
     /// Fires after every recompute so the AppKit status item can update.
     @ObservationIgnored var onChange: (@MainActor () -> Void)?
 
-    private let store = EKEventStore()
+    private let store = EKEventStore.shared
     /// Written once in `init`, read again only in the nonisolated `deinit` —
     /// same pattern as `CalendarEventsModel`'s observer token.
     @ObservationIgnored

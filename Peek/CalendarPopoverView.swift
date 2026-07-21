@@ -976,8 +976,12 @@ private struct NewItemForm: View {
             saveFailed = false
         }
         .onAppear {
-            // The popover panel may not be key yet when the form appears;
-            // deferring the focus request keeps it from being dropped.
+            // The delayed request is load-bearing, not a hack: the popover
+            // panel drops focus requests made while it swaps in the form.
+            // Verified alternatives that do NOT work here: `defaultFocus`
+            // (the focus scope activated when the popover opened, not when
+            // the form appears), a synchronous set in `onAppear`, and
+            // `.task` (still too early).
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { titleFocused = true }
         }
     }

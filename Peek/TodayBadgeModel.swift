@@ -26,7 +26,7 @@ final class TodayBadgeModel {
     /// Fires when any dot state changes so the AppKit status item can re-render.
     @ObservationIgnored var onChange: (@MainActor () -> Void)?
 
-    private let store = EKEventStore()
+    private let store = EKEventStore.shared
     /// Identities of incomplete reminders due today, refreshed asynchronously
     /// by `refreshReminders()` since EventKit has no synchronous reminder read.
     private var todayReminderIDs: [String] = []

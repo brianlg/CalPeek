@@ -63,7 +63,7 @@ final class CalendarEventsModel {
     /// `defaultCalendarForNewReminders()`). Falls back to Reminders-orange.
     private(set) var reminderDotColor = Color(nsColor: .systemOrange)
 
-    private let store = EKEventStore()
+    private let store = EKEventStore.shared
     /// The window last loaded, so we can reload it when the store changes.
     private var lastWindow: (days: [Date], calendar: Calendar)?
     /// Reminder snapshots covering the currently loaded window.

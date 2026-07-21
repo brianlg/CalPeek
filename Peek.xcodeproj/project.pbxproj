@@ -120,6 +120,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					157CA9ED69888E284CFAB7C3 = {
+						DevelopmentTeam = LK42KQYP3M;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -188,6 +189,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Peek/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -208,6 +210,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Peek/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

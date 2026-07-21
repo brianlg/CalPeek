@@ -84,6 +84,14 @@ enum ReminderFetcher {
     }
 }
 
+extension EKEventStore {
+    /// The app's single long-lived store, per EventKit's guidance that stores
+    /// are expensive to create and should be held for the app's lifetime.
+    /// Shared by every model so `EKEventStoreChanged` and `reset()` act on
+    /// one consistent view of the user's data instead of three.
+    @MainActor static let shared = EKEventStore()
+}
+
 /// The user's per-kind item colors, from Apple's recommended settings surface:
 /// `defaultCalendarForNewEvents` reflects the Calendar app's "Default
 /// Calendar" setting; `defaultCalendarForNewReminders()` reflects the
