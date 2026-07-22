@@ -138,16 +138,21 @@ struct CalendarPopoverView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: Layout.headerSpacing) {
-            monthMenu
-            yearButton
+        // The row centers the title block against the chip cluster (baseline
+        // alignment would hang the 12pt chip text from the 17pt title's
+        // baseline, floating the title ~2pt high); within the title block,
+        // month and year still share a baseline.
+        HStack(alignment: .center, spacing: Layout.headerSpacing) {
+            HStack(alignment: .firstTextBaseline, spacing: Layout.headerSpacing) {
+                monthMenu
+                yearButton
+            }
 
             Spacer()
 
             // Previous / Today / Next cluster, matching Calendar.app's grey
             // chip styling: circular chips for the chevrons, a capsule for
-            // "Today". Center-aligned within its own stack so the chip
-            // outlines line up regardless of the row's baseline alignment.
+            // "Today".
             HStack(spacing: Layout.headerSpacing) {
                 Button { changeMonth(by: -1) } label: { chevron("chevron.left") }
                     .buttonStyle(.plain)
