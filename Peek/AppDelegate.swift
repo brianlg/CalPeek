@@ -195,6 +195,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // events (or newly granted calendar access).
             nextMeeting.refresh()
             todayBadge.refresh()
+            // The popover's SwiftUI view lives for the app's lifetime, so
+            // `onAppear` fires only once; this tells it to reset to the
+            // current month for each open.
+            NotificationCenter.default.post(name: .popoverWillShow, object: nil)
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             // Bring the popover's window forward so it can receive key events.
             popover.contentViewController?.view.window?.makeKey()
@@ -362,6 +366,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func quit() {
         NSApp.terminate(nil)
     }
+}
+
+extension Notification.Name {
+    /// Posted by `AppDelegate` just before the calendar popover is shown, so
+    /// `CalendarPopoverView` (whose state outlives each presentation) can
+    /// reset navigation to the current month.
+    static let popoverWillShow = Notification.Name("PeekPopoverWillShow")
 }
 
 /// Keeps the settings window's title pinned to "Settings" — the base class
