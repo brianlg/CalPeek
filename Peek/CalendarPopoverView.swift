@@ -959,8 +959,9 @@ private struct NewItemForm: View {
     @State private var reminderDate: Date
     @State private var reminderHasTime = false
     @State private var reminderTime: Date
-    /// Reveals the notes/repeat/alert rows; stays open once opened, like
-    /// Calendar.app's quick-create details.
+    /// Reveals the notes/repeat/alert rows. Collapsing keeps whatever was
+    /// entered — the hidden values still apply on Create, matching how
+    /// Calendar.app preserves collapsed detail fields.
     @State private var showsDetails = false
     @State private var notes = ""
     @State private var repeatOption: RepeatOption = .never
@@ -1055,34 +1056,11 @@ private struct NewItemForm: View {
 
             if kind == .event {
                 eventFields
-                if eventCalendars.count > 1 {
-                    calendarPicker(
-                        String(localized: "Calendar"),
-                        options: eventCalendars,
-                        selection: $selectedEventCalendarID
-                    )
-                }
             } else {
                 reminderFields
-                if reminderLists.count > 1 {
-                    calendarPicker(
-                        String(localized: "List"),
-                        options: reminderLists,
-                        selection: $selectedReminderListID
-                    )
-                }
             }
 
-            if !showsDetails {
-                Button {
-                    showsDetails = true
-                } label: {
-                    Text(String(localized: "Add Details…"))
-                        .font(.system(size: 12))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
+            detailsDisclosure
 
             if saveFailed {
                 Text(String(localized: "Couldn't save."))
@@ -1169,6 +1147,16 @@ private struct NewItemForm: View {
 
     private var eventFields: some View {
         Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+            if eventCalendars.count > 1 {
+                GridRow {
+                    fieldLabel(String(localized: "Calendar:"))
+                    calendarPicker(
+                        String(localized: "Calendar"),
+                        options: eventCalendars,
+                        selection: $selectedEventCalendarID
+                    )
+                }
+            }
             GridRow {
                 fieldLabel(String(localized: "All Day:"))
                 Toggle(String(localized: "All Day"), isOn: $isAllDay)
@@ -1210,6 +1198,16 @@ private struct NewItemForm: View {
 
     private var reminderFields: some View {
         Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
+            if reminderLists.count > 1 {
+                GridRow {
+                    fieldLabel(String(localized: "List:"))
+                    calendarPicker(
+                        String(localized: "List"),
+                        options: reminderLists,
+                        selection: $selectedReminderListID
+                    )
+                }
+            }
             GridRow {
                 fieldLabel(String(localized: "Date:"))
                 SegmentedDateField(date: $reminderDate, elements: [.yearMonthDay])
@@ -1279,6 +1277,9 @@ private struct NewItemForm: View {
             .font(.system(size: 12))
     }
 
+    /// Calendar/list menu picker for a grid row; the visible label is the
+    /// row's `fieldLabel`, so the picker's own is hidden but kept for
+    /// accessibility.
     private func calendarPicker(
         _ label: String,
         options: [EKCalendar],
@@ -1289,7 +1290,33 @@ private struct NewItemForm: View {
                 calendarOptionLabel(cal).tag(cal.calendarIdentifier)
             }
         }
+        .labelsHidden()
         .font(.system(size: 12))
+        .fixedSize()
+    }
+
+    /// Disclosure toggle for the extra detail rows, styled like the system
+    /// disclosure triangle (chevron points right collapsed, down expanded).
+    /// A real `DisclosureGroup` can't be used here: the detail fields must
+    /// live inside the same `Grid` as the basic rows to share the aligned
+    /// label column.
+    private var detailsDisclosure: some View {
+        Button {
+            showsDetails.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .rotationEffect(.degrees(showsDetails ? 90 : 0))
+                Text(showsDetails
+                    ? String(localized: "Hide Details")
+                    : String(localized: "Add Details…"))
+                    .font(.system(size: 12))
+            }
+            .foregroundStyle(.secondary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func fieldLabel(_ text: String) -> some View {
