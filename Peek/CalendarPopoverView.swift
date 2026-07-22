@@ -115,6 +115,12 @@ struct CalendarPopoverView: View {
         .onKeyPress(.upArrow) { changeMonth(by: -12); return .handled }
         .onKeyPress(.downArrow) { changeMonth(by: 12); return .handled }
         .onAppear {
+            // The popover's view (and its @State) lives for the app's
+            // lifetime, so navigation would otherwise persist between opens;
+            // every open starts fresh on the current month.
+            monthOffset = 0
+            selectedDate = nil
+            hoveredDate = nil
             isFocused = true
             events.load(days: monthDays, calendar: calendar)
         }
