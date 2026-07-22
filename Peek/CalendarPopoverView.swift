@@ -19,10 +19,10 @@ struct CalendarPopoverView: View {
         static let daysPerWeek = 7
         static let numberOfWeeks = 6
         static let totalDays = daysPerWeek * numberOfWeeks // 42
-        /// Slightly larger than the other highlight circles so the agenda
-        /// dots cut into its lower edge get breathing room from the rim.
+        /// Today, hover, and selection circles share one size so highlight
+        /// states swap without shifting the layout.
         static let todayCircleSize: CGFloat = 35
-        static let dayCircleSize: CGFloat = 32
+        static let dayCircleSize: CGFloat = 35
         static let eventDotSize: CGFloat = 4
         /// Width of the see-through ring punched out of the today circle
         /// around each dot.
