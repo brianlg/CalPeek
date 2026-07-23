@@ -29,3 +29,23 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         COMBINE_HIDPI_IMAGES: YES
         DEAD_CODE_STRIPPING: YES
+    scheme:
+      testTargets:
+        - PeekTests
+  PeekTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: PeekTests
+    dependencies:
+      - target: Peek
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peek.PeekTests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGN_STYLE: Automatic
+        # Must match the app target's team — a test bundle signed by a
+        # different identity refuses to load into the host process.
+        DEVELOPMENT_TEAM: LK42KQYP3M
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Peek.app/Contents/MacOS/Peek
+        BUNDLE_LOADER: $(TEST_HOST)

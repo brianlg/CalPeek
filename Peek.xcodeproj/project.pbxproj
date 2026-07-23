@@ -21,25 +21,40 @@
 		693C78AC8BECDD841933CC3A /* MeetingLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */; };
 		909515D149A2EF1B70125E83 /* TodayBadgeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */; };
 		92C5C996201EE4B217C15531 /* RemindersSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CFDC58094073D8728CB4DBB /* RemindersSupport.swift */; };
+		98656F029D859DEC0C897A0C /* DateFormatPaddingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321AE0AA69DAF38300BF8E08 /* DateFormatPaddingTests.swift */; };
 		AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121195A122D71217E9761085 /* AppDelegate.swift */; };
+		AF58FAAB72AE0FDA4B603895 /* PaddedDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */; };
 		F5924861CD6E97849DA2F415 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A975481247ACCE26852C9E0C /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		69DFAF001D1B4D3B702E8104 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 16EB7A4F0DD5348CED32BC7E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 157CA9ED69888E284CFAB7C3;
+			remoteInfo = Peek;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeekApp.swift; sourceTree = "<group>"; };
 		0E3815A784200C57D267B397 /* CalendarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarPopoverView.swift; sourceTree = "<group>"; };
 		121195A122D71217E9761085 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingLinkParser.swift; sourceTree = "<group>"; };
+		321AE0AA69DAF38300BF8E08 /* DateFormatPaddingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatPaddingTests.swift; sourceTree = "<group>"; };
 		3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
 		3CFDC58094073D8728CB4DBB /* RemindersSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSupport.swift; sourceTree = "<group>"; };
 		49AA0AAA9BC02340D9B544C0 /* Peek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Peek.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D07979DD49EE8B5576C2CC8 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		58353733F62FEB8DB83E7501 /* PeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		62509D0EDCAAD924CE85A349 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		8A7A02D5B6D098F423410E4C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A438FD825076DC8EA1B8470E /* WeekdayColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayColor.swift; sourceTree = "<group>"; };
 		A975481247ACCE26852C9E0C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayBadgeModel.swift; sourceTree = "<group>"; };
 		AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingModel.swift; sourceTree = "<group>"; };
+		C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaddedDatePicker.swift; sourceTree = "<group>"; };
 		C7FBF3A5FCDF732EEECAFA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventsModel.swift; sourceTree = "<group>"; };
@@ -52,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				96AEED53D1DCDFD61B06071B /* Peek */,
+				703DFD5C0F8BF984270DA8C8 /* PeekTests */,
 				401F7CF4278389F3F37B34CC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -60,8 +76,17 @@
 			isa = PBXGroup;
 			children = (
 				49AA0AAA9BC02340D9B544C0 /* Peek.app */,
+				58353733F62FEB8DB83E7501 /* PeekTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		703DFD5C0F8BF984270DA8C8 /* PeekTests */ = {
+			isa = PBXGroup;
+			children = (
+				321AE0AA69DAF38300BF8E08 /* DateFormatPaddingTests.swift */,
+			);
+			path = PeekTests;
 			sourceTree = "<group>";
 		};
 		96AEED53D1DCDFD61B06071B /* Peek */ = {
@@ -78,6 +103,7 @@
 				2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */,
 				3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */,
 				AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */,
+				C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */,
 				FFF7FD7CD7AB70EB98892DBF /* Peek.entitlements */,
 				077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */,
 				4D07979DD49EE8B5576C2CC8 /* Preferences.swift */,
@@ -110,6 +136,24 @@
 			productReference = 49AA0AAA9BC02340D9B544C0 /* Peek.app */;
 			productType = "com.apple.product-type.application";
 		};
+		16BD94296850993CDEFF120C /* PeekTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 51723B4ED7324FACD6C42042 /* Build configuration list for PBXNativeTarget "PeekTests" */;
+			buildPhases = (
+				5CB74E187E90E107F9AE9D86 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				78EE26D4E0A1FC63DA3BA0EB /* PBXTargetDependency */,
+			);
+			name = PeekTests;
+			packageProductDependencies = (
+			);
+			productName = PeekTests;
+			productReference = 58353733F62FEB8DB83E7501 /* PeekTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -120,6 +164,10 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					157CA9ED69888E284CFAB7C3 = {
+						DevelopmentTeam = LK42KQYP3M;
+						ProvisioningStyle = Automatic;
+					};
+					16BD94296850993CDEFF120C = {
 						DevelopmentTeam = LK42KQYP3M;
 						ProvisioningStyle = Automatic;
 					};
@@ -140,6 +188,7 @@
 			projectRoot = "";
 			targets = (
 				157CA9ED69888E284CFAB7C3 /* Peek */,
+				16BD94296850993CDEFF120C /* PeekTests */,
 			);
 		};
 /* End PBXProject section */
@@ -169,6 +218,7 @@
 				693C78AC8BECDD841933CC3A /* MeetingLinkParser.swift in Sources */,
 				4E5584C125926955262D9098 /* MenuBarIconView.swift in Sources */,
 				35068B22367FA2AA14DDCAB5 /* NextMeetingModel.swift in Sources */,
+				AF58FAAB72AE0FDA4B603895 /* PaddedDatePicker.swift in Sources */,
 				267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */,
 				1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */,
 				92C5C996201EE4B217C15531 /* RemindersSupport.swift in Sources */,
@@ -178,7 +228,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5CB74E187E90E107F9AE9D86 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				98656F029D859DEC0C897A0C /* DateFormatPaddingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		78EE26D4E0A1FC63DA3BA0EB /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 157CA9ED69888E284CFAB7C3 /* Peek */;
+			targetProxy = 69DFAF001D1B4D3B702E8104 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0C1529D292A19F46BDF9D30A /* Release */ = {
@@ -201,6 +267,25 @@
 				SDKROOT = macosx;
 			};
 			name = Release;
+		};
+		29123873EB0F2221DFFAAAFA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.peek.PeekTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Peek.app/Contents/MacOS/Peek";
+			};
+			name = Debug;
 		};
 		44CDDC1BA97DEBEBCDB5DCF0 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -288,6 +373,25 @@
 			};
 			name = Debug;
 		};
+		B7605AB8C5F57793AAEB4B1A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.peek.PeekTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Peek.app/Contents/MacOS/Peek";
+			};
+			name = Release;
+		};
 		B81D035A52C97CE2E6A064D1 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -349,6 +453,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		51723B4ED7324FACD6C42042 /* Build configuration list for PBXNativeTarget "PeekTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				29123873EB0F2221DFFAAAFA /* Debug */,
+				B7605AB8C5F57793AAEB4B1A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		A05E2142728784509B72410C /* Build configuration list for PBXNativeTarget "Peek" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

@@ -830,7 +830,9 @@ private struct SegmentedDateField: NSViewRepresentable {
     var showsStepper = false
 
     func makeNSView(context: Context) -> NSDatePicker {
-        let picker = NSDatePicker()
+        // Padded subclass so single-digit months/days render as "07/28/2026",
+        // matching Calendar.app.
+        let picker = PaddedDatePicker()
         picker.datePickerStyle = showsStepper ? .textFieldAndStepper : .textField
         picker.isBezeled = showsStepper
         picker.isBordered = false
