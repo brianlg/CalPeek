@@ -12,9 +12,14 @@ Before writing any non-trivial code — especially anything touching UI, layout,
 
 Do not invent bespoke solutions out of convenience. "It works" is not the bar; "it's how a well-built native Mac app would do it" is.
 
-## Ask before assuming
+## Working principles
 
-When a **functional** question comes up — how a feature should behave, UX semantics, what's in scope — ask the user before assuming an answer. Implementation details are yours to decide; product behavior is theirs.
+1. **Surface assumptions before building.** State what you're assuming (behavior, scope, environment) up front so it can be corrected — wrong assumptions held silently are the most common failure mode.
+2. **Ask before assuming on functional questions.** How a feature should behave, UX semantics, what's in scope — ask the user. Implementation details are yours to decide; product behavior is theirs.
+3. **Stop and ask when requirements conflict.** If two instructions or constraints can't both hold, don't pick one silently — surface the conflict and let the user resolve it.
+4. **Push back when warranted.** If a request looks wrong, harmful to the codebase, or there's a clearly better way, say so and make the case. Don't be a yes-machine; disagree, then defer if overruled.
+5. **Prefer the boring, obvious solution.** Cleverness is expensive to maintain. Reach for the standard pattern first (see the Apple-first rule above); novelty needs justification.
+6. **Touch only what you're asked to touch.** No drive-by refactors, renames, or style fixes outside the task's scope. If you spot something worth fixing nearby, mention it — don't fold it in.
 
 ## Design bar: ship-quality, native feel
 
