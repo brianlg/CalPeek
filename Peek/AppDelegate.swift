@@ -17,6 +17,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var dateChangeObservers: [NSObjectProtocol] = []
     private var appearanceObservation: NSKeyValueObservation?
 
+    /// Defaults keys the rasterized status-item image reads. Observed via
+    /// per-key KVO so only writes to these keys trigger a re-render —
+    /// `UserDefaults.didChangeNotification` would fire for every write to
+    /// any key, including the system's own bookkeeping.
+    private nonisolated static let iconDefaultsKeys = [
+        WeekdayColor.defaultsKey,
+        Preferences.calendarEventsColorKey,
+        Preferences.remindersColorKey,
+    ]
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         configurePopover()
         configureStatusItem()
@@ -32,6 +42,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dateChangeObservers = []
         appearanceObservation?.invalidate()
         appearanceObservation = nil
+        Self.iconDefaultsKeys.forEach {
+            UserDefaults.standard.removeObserver(self, forKeyPath: $0)
+        }
     }
 
     // MARK: - Status item
@@ -127,16 +140,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func observeAppearancePreferenceChanges() {
-        // The Appearance settings tab writes color choices to UserDefaults;
-        // the rasterized status-item image (weekday label, badge dots) has to
-        // be re-rendered to pick them up.
-        dateChangeObservers.append(NotificationCenter.default.addObserver(
-            forName: UserDefaults.didChangeNotification,
-            object: UserDefaults.standard,
-            queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refreshIcon() }
-        })
+        // The Appearance settings tab and the status-item color menu write
+        // these keys; the rasterized status-item image (weekday label, badge
+        // dots) has to be re-rendered to pick them up. UserDefaults is
+        // KVO-compliant per key.
+        for key in Self.iconDefaultsKeys {
+            UserDefaults.standard.addObserver(self, forKeyPath: key, options: [], context: nil)
+        }
+    }
+
+    // KVO fires on whichever thread wrote the default, so hop to the main
+    // actor rather than assuming it.
+    nonisolated override func observeValue(
+        forKeyPath keyPath: String?,
+        of object: Any?,
+        change: [NSKeyValueChangeKey: Any]?,
+        context: UnsafeMutableRawPointer?
+    ) {
+        guard let keyPath, Self.iconDefaultsKeys.contains(keyPath) else {
+            super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+            return
+        }
+        Task { @MainActor in self.refreshIcon() }
     }
 
     private func observeAppearanceChanges() {
@@ -256,8 +281,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func selectWeekdayColor(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String else { return }
+        // The key's KVO observation re-renders the icon.
         UserDefaults.standard.set(raw, forKey: WeekdayColor.defaultsKey)
-        refreshIcon()
     }
 
     @objc private func openSettings() {

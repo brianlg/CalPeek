@@ -33,21 +33,25 @@ final class TodayBadgeModel {
     /// Drops stale async reminder results when refreshes overlap.
     private var reminderFetchGeneration = 0
     /// Written once in `init`, read again only in the nonisolated `deinit` —
-    /// same pattern as `NextMeetingModel`'s tokens.
+    /// same pattern as `CalendarEventsModel`'s tokens.
     @ObservationIgnored
     private nonisolated(unsafe) var observers: [NSObjectProtocol] = []
+    /// One-shot wake-up for the next moment the event dot changes on its own
+    /// (the end of today's last in-progress/upcoming event). Only ever
+    /// touched on the main actor; `nonisolated(unsafe)` so the nonisolated
+    /// `deinit` can invalidate it.
     @ObservationIgnored
     private nonisolated(unsafe) var timer: Timer?
 
     init() {
         // Store changes catch events and reminders added, completed, or
-        // removed today; the day-change notification recomputes both dots
-        // against the new day's agenda at midnight.
+        // removed today (including the Settings toggles' effects, which
+        // arrive via the setting-change notifications below); the day-change
+        // notification recomputes both dots against the new day's agenda at
+        // midnight.
         let names: [(Notification.Name, AnyObject?)] = [
             (.EKEventStoreChanged, store),
             (.NSCalendarDayChanged, nil),
-            // Defaults changes catch the Show Reminders toggle flipping.
-            (UserDefaults.didChangeNotification, UserDefaults.standard),
         ]
         observers = names.map { name, object in
             NotificationCenter.default.addObserver(
@@ -74,12 +78,6 @@ final class TodayBadgeModel {
             })
         }
 
-        // A 30s tick picks up the initial fetch once the popover flow has
-        // obtained calendar access; `refresh` is a no-op when nothing changed.
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            MainActor.assumeIsolated { self?.refresh() }
-        }
-
         refresh()
     }
 
@@ -97,16 +95,38 @@ final class TodayBadgeModel {
         // `endDate > now` keeps in-progress events counted as upcoming, so
         // the dot survives until the last event of the day has ended.
         let now = Date()
+        let events = todayEvents()
         let newState = (
-            eventDot: todayEvents().contains { $0.endDate > now },
+            eventDot: events.contains { $0.endDate > now },
             reminderDot: !todayReminderIDs.isEmpty,
             eventColor: store.defaultEventColor ?? eventDotColor,
             reminderColor: store.defaultReminderColor ?? reminderDotColor
         )
+        scheduleNextTransition(after: now, events: events)
         let oldState = (showsEventDot, showsReminderDot, eventDotColor, reminderDotColor)
         guard newState != oldState else { return }
         (showsEventDot, showsReminderDot, eventDotColor, reminderDotColor) = newState
         onChange?()
+    }
+
+    /// The badge only changes on its own when an in-progress or upcoming
+    /// event ends — data edits arrive via `EKEventStoreChanged` and the
+    /// midnight rollover via `NSCalendarDayChanged` — so wake exactly once,
+    /// at the next end time, instead of polling. A Mac asleep at that moment
+    /// fires the timer on wake, which is when the dot becomes visible again
+    /// anyway.
+    private func scheduleNextTransition(after now: Date, events: [EKEvent]) {
+        timer?.invalidate()
+        timer = nil
+        guard let nextEnd = events.map(\.endDate).filter({ $0 > now }).min() else { return }
+        let wakeup = Timer(fire: nextEnd.addingTimeInterval(1), interval: 0, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refresh() }
+        }
+        // A dot that clears half a minute late is invisible to the user, and
+        // the tolerance lets the system coalesce the wake-up with others.
+        wakeup.tolerance = 30
+        RunLoop.main.add(wakeup, forMode: .common)
+        timer = wakeup
     }
 
     /// Refreshes the incomplete-reminders-due-today cache. The fetch is
