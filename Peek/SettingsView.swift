@@ -20,14 +20,6 @@ struct SettingsView: View {
 
 /// The General settings tab.
 struct GeneralSettingsView: View {
-    @AppStorage(Preferences.showNextMeetingKey)
-    private var showNextMeeting = Preferences.showNextMeetingDefault
-    @AppStorage(Preferences.showMeetingTitleKey)
-    private var showMeetingTitle = Preferences.showMeetingTitleDefault
-    @AppStorage(Preferences.leadWindowMinutesKey)
-    private var leadWindowMinutes = Preferences.leadWindowMinutesDefault
-    @AppStorage(Preferences.joinHotKeyEnabledKey)
-    private var joinHotKeyEnabled = Preferences.joinHotKeyEnabledDefault
     @AppStorage(Preferences.showRemindersKey)
     private var showReminders = Preferences.showRemindersDefault
     @AppStorage(Preferences.showCalendarKey)
@@ -80,30 +72,6 @@ struct GeneralSettingsView: View {
             } footer: {
                 permissionsFooter
             }
-
-            Section {
-                Toggle(String(localized: "Show next meeting in menu bar"), isOn: $showNextMeeting)
-                Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
-                    .disabled(!showNextMeeting)
-                Picker(String(localized: "Show when starting within"), selection: $leadWindowMinutes) {
-                    Text(String(localized: "10 minutes")).tag(10)
-                    Text(String(localized: "30 minutes")).tag(30)
-                    Text(String(localized: "1 hour")).tag(60)
-                    Text(String(localized: "4 hours")).tag(240)
-                    Text(String(localized: "Any time today")).tag(0)
-                }
-                .disabled(!showNextMeeting)
-                Toggle(String(localized: "Join next meeting with ⌥⌘J"), isOn: $joinHotKeyEnabled)
-            } header: {
-                Text(String(localized: "Next Meeting"))
-            } footer: {
-                Text(String(localized: "Peek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-            // The next-meeting feature reads from the calendar, so it has
-            // nothing to show until Show Calendar is on.
-            .disabled(!showCalendar)
         }
         .formStyle(.grouped)
         .frame(width: 400)

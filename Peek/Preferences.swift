@@ -4,42 +4,17 @@ import Foundation
 /// UserDefaults keys and defaults for the settings window, kept in one place so
 /// `SettingsView`'s `@AppStorage` sites and the models read the same values.
 enum Preferences {
-    static let showNextMeetingKey = "showNextMeetingInMenuBar"
-    static let showMeetingTitleKey = "showMeetingTitleInMenuBar"
-    static let leadWindowMinutesKey = "nextMeetingLeadWindowMinutes"
-    static let joinHotKeyEnabledKey = "joinHotKeyEnabled"
     static let showRemindersKey = "showReminders"
     static let showCalendarKey = "showCalendar"
     static let todayMarkerColorKey = "todayMarkerColor"
     static let calendarEventsColorKey = "calendarEventsColor"
     static let remindersColorKey = "remindersColor"
 
-    static let showNextMeetingDefault = true
-    static let showMeetingTitleDefault = true
-    /// 0 means "any time today" (no lead-window limit).
-    static let leadWindowMinutesDefault = 60
-    static let joinHotKeyEnabledDefault = false
     static let showRemindersDefault = false
     /// Installs that granted calendar access before this toggle existed keep
     /// showing events; fresh installs start off until the user opts in.
     static var showCalendarDefault: Bool {
         EKEventStore.authorizationStatus(for: .event) == .fullAccess
-    }
-
-    static var showNextMeeting: Bool {
-        bool(forKey: showNextMeetingKey, default: showNextMeetingDefault)
-    }
-
-    static var showMeetingTitle: Bool {
-        bool(forKey: showMeetingTitleKey, default: showMeetingTitleDefault)
-    }
-
-    static var leadWindowMinutes: Int {
-        UserDefaults.standard.object(forKey: leadWindowMinutesKey) as? Int ?? leadWindowMinutesDefault
-    }
-
-    static var joinHotKeyEnabled: Bool {
-        bool(forKey: joinHotKeyEnabledKey, default: joinHotKeyEnabledDefault)
     }
 
     static var showReminders: Bool {

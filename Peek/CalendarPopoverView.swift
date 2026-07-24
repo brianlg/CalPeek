@@ -6,10 +6,6 @@ import SwiftUI
 /// light/dark automatically, and keeps a stable height by always laying out
 /// six week rows of fixed height.
 struct CalendarPopoverView: View {
-    /// App-lifetime next-meeting source owned by `AppDelegate`; nil in
-    /// previews, which simply hides the banner.
-    var nextMeetingModel: NextMeetingModel?
-
     // MARK: - Constants
     
     private enum Layout {
@@ -93,11 +89,6 @@ struct CalendarPopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
-            if let model = nextMeetingModel, let meeting = model.nextMeeting {
-                NextMeetingBanner(meeting: meeting, accent: accent) {
-                    model.joinNextMeeting()
-                }
-            }
             header
             weekdayRow
             grid
@@ -1405,45 +1396,6 @@ private func formFooter(
             .font(.system(size: 12))
             .keyboardShortcut(.defaultAction)
             .disabled(!createEnabled)
-    }
-}
-
-/// Banner pinned above the month header showing the next joinable meeting,
-/// with a one-click Join button. The countdown re-renders each minute.
-private struct NextMeetingBanner: View {
-    let meeting: NextMeeting
-    let accent: Color
-    let join: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "video.fill")
-                .font(.system(size: 13))
-                .foregroundStyle(accent)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(meeting.title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .lineLimit(1)
-                TimelineView(.everyMinute) { context in
-                    Text("\(meeting.countdownText(at: context.date)) · \(meeting.startDate.formatted(date: .omitted, time: .shortened))")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer(minLength: 8)
-
-            Button(String(localized: "Join"), action: join)
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .tint(accent)
-        }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.quaternary.opacity(0.5))
-        )
     }
 }
 
