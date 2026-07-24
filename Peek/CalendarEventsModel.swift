@@ -66,9 +66,15 @@ final class CalendarEventsModel {
     private let store = EKEventStore.shared
     /// The window last loaded, so we can reload it when the store changes.
     private var lastWindow: (days: [Date], calendar: Calendar)?
+    /// Every dated reminder in the store, fetched once and re-filtered
+    /// locally as the user navigates months — the fetch has to be
+    /// database-wide anyway (see `ReminderFetcher.allSnapshots`), so paying
+    /// it per navigation would gain nothing. Nil after a store change until
+    /// the next load refetches.
+    private var allReminderSnapshots: [ReminderSnapshot]?
     /// Reminder snapshots covering the currently loaded window.
     private var reminderSnapshots: [ReminderSnapshot] = []
-    /// Drops stale async reminder results after rapid month navigation.
+    /// Drops stale async reminder results after overlapping refetches.
     private var reminderFetchGeneration = 0
     /// Token for the store-change observer. Not observation state, and
     /// `nonisolated(unsafe)` so the nonisolated `deinit` can remove it — safe
@@ -142,6 +148,9 @@ final class CalendarEventsModel {
             if let calendar = lastWindow?.calendar {
                 daysWithReminders = markedReminderDays(calendar: calendar)
             }
+        }
+        if let index = allReminderSnapshots?.firstIndex(where: { $0.id == reminderID }) {
+            allReminderSnapshots?[index] = allReminderSnapshots![index].completing(completed)
         }
     }
 
@@ -435,15 +444,25 @@ final class CalendarEventsModel {
             reminderDotColor = color
         }
         let start = calendar.startOfDay(for: first)
+        if let cached = allReminderSnapshots {
+            applyReminderWindow(from: cached, start: start, end: end, calendar: calendar)
+            return
+        }
         reminderFetchGeneration += 1
         let generation = reminderFetchGeneration
         let sendableStore = SendableEventStore(store: store)
         Task { [weak self] in
             let all = await ReminderFetcher.allSnapshots(from: sendableStore, calendar: calendar)
             guard let self, self.reminderFetchGeneration == generation else { return }
-            self.reminderSnapshots = all.filter { $0.dueDate >= start && $0.dueDate < end }
-            self.daysWithReminders = self.markedReminderDays(calendar: calendar)
+            self.allReminderSnapshots = all
+            self.applyReminderWindow(from: all, start: start, end: end, calendar: calendar)
         }
+    }
+
+    /// Projects the database-wide snapshot set onto one displayed window.
+    private func applyReminderWindow(from all: [ReminderSnapshot], start: Date, end: Date, calendar: Calendar) {
+        reminderSnapshots = all.filter { $0.dueDate >= start && $0.dueDate < end }
+        daysWithReminders = markedReminderDays(calendar: calendar)
     }
 
     /// The dot-marker days for the current snapshots: every day with a due
@@ -458,6 +477,9 @@ final class CalendarEventsModel {
     }
 
     private func storeChanged() {
+        // The cached snapshots may no longer match the store; drop them so
+        // the reload refetches.
+        allReminderSnapshots = nil
         // `load` re-applies the toggle and access gating, so a revoked grant
         // clears the dots instead of serving the stale set.
         guard let window = lastWindow else { return }
