@@ -23,6 +23,9 @@ struct ReminderSnapshot: Sendable, Identifiable {
     let dueDate: Date
     /// The reminder list's color.
     let color: Color
+    /// Whether the reminder's list accepts changes, so the day popover knows
+    /// to offer editing.
+    let isEditable: Bool
 
     init?(_ reminder: EKReminder, calendar: Calendar) {
         guard let components = reminder.dueDateComponents,
@@ -33,20 +36,22 @@ struct ReminderSnapshot: Sendable, Identifiable {
         hasDueTime = components.hour != nil
         dueDate = due
         color = Color(cgColor: reminder.calendar.cgColor)
+        isEditable = reminder.calendar.allowsContentModifications
     }
 
-    private init(id: String, title: String, isCompleted: Bool, hasDueTime: Bool, dueDate: Date, color: Color) {
+    private init(id: String, title: String, isCompleted: Bool, hasDueTime: Bool, dueDate: Date, color: Color, isEditable: Bool) {
         self.id = id
         self.title = title
         self.isCompleted = isCompleted
         self.hasDueTime = hasDueTime
         self.dueDate = dueDate
         self.color = color
+        self.isEditable = isEditable
     }
 
     func completing(_ done: Bool) -> ReminderSnapshot {
         ReminderSnapshot(id: id, title: title, isCompleted: done,
-                         hasDueTime: hasDueTime, dueDate: dueDate, color: color)
+                         hasDueTime: hasDueTime, dueDate: dueDate, color: color, isEditable: isEditable)
     }
 }
 

@@ -5,7 +5,7 @@ import SwiftUI
 
 /// A single event or reminder flattened into just what the day popover needs
 /// to draw a row.
-struct DayItem: Identifiable, Sendable {
+struct DayItem: Identifiable, Sendable, Equatable {
     enum Kind: Sendable, Equatable {
         case event
         case reminder(isCompleted: Bool, reminderID: String)
@@ -18,16 +18,16 @@ struct DayItem: Identifiable, Sendable {
     /// Video-conference link detected in the event, if any. Always nil for reminders.
     let joinURL: URL?
     /// Deep link that shows this reminder in the Reminders app. Always nil
-    /// for events — Calendar has no working deep-link scheme, so event rows
-    /// go through `CalendarEventsModel.showInCalendarApp` instead.
+    /// for events — Calendar has no working deep-link scheme, so their
+    /// open-in-app button just activates Calendar.
     let openURL: URL?
-    /// The event's raw (possibly absent) title and its calendar's title,
-    /// which together let AppleScript select the event in the Calendar app.
-    /// Matching is by summary + start date because neither of EventKit's
-    /// identifiers reliably equals AppleScript's `uid` — iCloud rewrites
-    /// iCalendar UIDs. Nil for reminders.
-    let eventTitle: String?
-    let calendarTitle: String?
+    /// `eventIdentifier`, used with `sortDate` to re-fetch the exact
+    /// occurrence when the user opens the row's editor (recurring
+    /// occurrences share one identifier). Nil for reminders.
+    let eventIdentifier: String?
+    /// False when the item's calendar/list is read-only (subscribed or
+    /// delegate calendars, Birthdays), so the row doesn't offer editing.
+    let isEditable: Bool
     let kind: Kind
     /// All-day events and no-time reminders sort ahead of timed items.
     let sortsAsAllDay: Bool
@@ -304,8 +304,8 @@ final class CalendarEventsModel {
                 color: Color(cgColor: event.calendar.cgColor),
                 joinURL: MeetingLinkParser.link(in: event)?.url,
                 openURL: nil,
-                eventTitle: event.title,
-                calendarTitle: event.calendar.title,
+                eventIdentifier: event.eventIdentifier,
+                isEditable: event.calendar.allowsContentModifications,
                 kind: .event,
                 sortsAsAllDay: event.isAllDay,
                 sortDate: event.startDate
@@ -331,8 +331,8 @@ final class CalendarEventsModel {
                     // `ItemRow` falls back to launching Reminders if a macOS
                     // update ever drops the scheme.
                     openURL: URL(string: "x-apple-reminderkit://REMCDReminder/\(snapshot.id)"),
-                    eventTitle: nil,
-                    calendarTitle: nil,
+                    eventIdentifier: nil,
+                    isEditable: snapshot.isEditable,
                     kind: .reminder(isCompleted: snapshot.isCompleted, reminderID: snapshot.id),
                     sortsAsAllDay: !snapshot.hasDueTime,
                     sortDate: snapshot.dueDate
@@ -340,59 +340,47 @@ final class CalendarEventsModel {
             }
     }
 
-    /// Opens the Calendar app in Day view on the event's start date and
-    /// selects the event there. AppleScript is the only working route — the
-    /// `ical://ekevent` deep-link scheme no longer focuses events. The date
-    /// is assembled property by property because AppleScript date literals
-    /// parse locale-dependently; navigating to it first means the right day
-    /// still shows if the event lookup fails (say, the event was just
-    /// deleted, or it's a recurring occurrence — AppleScript only sees the
-    /// series master). The event is matched by summary + start date scoped
-    /// to its own calendar: neither of EventKit's identifiers reliably
-    /// equals AppleScript's `uid`, since iCloud rewrites iCalendar UIDs.
-    /// The lookup is capped at 5s so a huge store can't hang the script.
-    /// First use triggers the system's automation-consent prompt.
-    func showInCalendarApp(on date: Date, calendar: Calendar, eventTitle: String?, calendarTitle: String?) {
-        let parts = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
-        guard let year = parts.year, let month = parts.month, let day = parts.day else { return }
-        let secondsIntoDay = (parts.hour ?? 0) * 3600 + (parts.minute ?? 0) * 60 + (parts.second ?? 0)
-        var showLine = ""
-        if let eventTitle, let calendarTitle {
-            showLine = """
-                set eventStart to target + \(secondsIntoDay)
-                try
-                    with timeout of 5 seconds
-                        show (first event of calendar \(Self.quoted(calendarTitle)) whose start date is eventStart and summary is \(Self.quoted(eventTitle)))
-                    end timeout
-                end try
-            """
-        }
-        let source = """
-        set target to current date
-        set time of target to 0
-        set day of target to 1
-        set year of target to \(year)
-        set month of target to \(month)
-        set day of target to \(day)
-        tell application "Calendar"
-            activate
-            switch view to day view
-            view calendar at target
-        \(showLine)
-        end tell
-        """
-        var error: NSDictionary?
-        NSAppleScript(source: source)?.executeAndReturnError(&error)
-        if let error {
-            Logger.peek.error("Calendar day-view script failed: \(error)")
+    /// Re-fetches the concrete `EKEvent` occurrence behind a day row for
+    /// editing. Recurring occurrences share one `eventIdentifier`, and
+    /// `event(withIdentifier:)` always returns the first occurrence, so the
+    /// lookup instead scans the start date's day and matches identifier +
+    /// exact start.
+    func event(withIdentifier identifier: String, startingAt start: Date, calendar: Calendar) -> EKEvent? {
+        let dayStart = calendar.startOfDay(for: start)
+        guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
+        let predicate = store.predicateForEvents(withStart: dayStart, end: dayEnd, calendars: nil)
+        return store.events(matching: predicate).first {
+            $0.eventIdentifier == identifier && $0.startDate == start
         }
     }
 
-    /// A string literal safe to splice into AppleScript source.
-    private static func quoted(_ string: String) -> String {
-        "\"" + string
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"") + "\""
+    /// Re-fetches the `EKReminder` behind a day row for editing.
+    func reminder(withIdentifier identifier: String) -> EKReminder? {
+        store.calendarItem(withIdentifier: identifier) as? EKReminder
+    }
+
+    /// Saves edits to an existing event. `span` picks between this occurrence
+    /// and all future occurrences for recurring events.
+    func update(event: EKEvent, span: EKSpan) throws {
+        try store.save(event, span: span, commit: true)
+    }
+
+    /// Deletes an existing event, with the same span semantics as `update`.
+    func remove(event: EKEvent, span: EKSpan) throws {
+        try store.remove(event, span: span, commit: true)
+    }
+
+    /// Saves edits to an existing reminder.
+    func update(reminder: EKReminder) throws {
+        try store.save(reminder, commit: true)
+        // Same reason as `createReminder`: refetch the snapshot cache now.
+        storeChanged()
+    }
+
+    /// Deletes an existing reminder.
+    func remove(reminder: EKReminder) throws {
+        try store.remove(reminder, commit: true)
+        storeChanged()
     }
 
     private func fetch(days: [Date], calendar: Calendar) {
