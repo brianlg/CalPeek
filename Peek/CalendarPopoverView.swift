@@ -915,7 +915,7 @@ private struct SegmentedDateField: NSViewRepresentable {
 /// item whose rule doesn't map to a preset keeps its rule untouched and shows
 /// a read-only "Custom" in the editor.
 enum RepeatOption: String, CaseIterable, Identifiable {
-    case never, daily, weekly, monthly, yearly
+    case never, daily, weekly, monthly, yearly, custom
 
     var id: String { rawValue }
 
@@ -926,13 +926,16 @@ enum RepeatOption: String, CaseIterable, Identifiable {
         case .weekly: String(localized: "Every Week")
         case .monthly: String(localized: "Every Month")
         case .yearly: String(localized: "Every Year")
+        case .custom: String(localized: "Custom…")
         }
     }
 
+    /// The preset's rule. Nil for Never and for Custom, whose rule lives in
+    /// the form's `CustomRepeat` value instead.
     var rule: EKRecurrenceRule? {
         let frequency: EKRecurrenceFrequency
         switch self {
-        case .never: return nil
+        case .never, .custom: return nil
         case .daily: frequency = .daily
         case .weekly: frequency = .weekly
         case .monthly: frequency = .monthly
@@ -964,6 +967,62 @@ enum RepeatOption: String, CaseIterable, Identifiable {
         case .yearly: return .yearly
         @unknown default: return nil
         }
+    }
+}
+
+/// A recurrence the form's Custom dialog can express — the core of
+/// Calendar.app's Custom repeat dialog: frequency, "every N" interval, and
+/// specific weekdays when weekly. Rules carrying anything more (an end,
+/// monthly/yearly day patterns, positional weekdays) stay read-only.
+struct CustomRepeat: Equatable {
+    var frequency: EKRecurrenceFrequency = .weekly
+    var interval: Int = 1
+    /// `EKWeekday` raw values (1 = Sunday); only meaningful for `.weekly`.
+    /// Empty falls back to the item's start weekday, as EventKit itself
+    /// does for a weekly rule with no explicit days.
+    var weekdays: Set<Int> = []
+
+    /// The dialog-expressible equivalent of an item's rules, or nil when
+    /// they must be preserved read-only. Checked after `RepeatOption
+    /// .matching`, so simple presets never reach here.
+    static func matching(_ rules: [EKRecurrenceRule]?) -> CustomRepeat? {
+        guard let rules, rules.count == 1 else { return nil }
+        let rule = rules[0]
+        guard rule.recurrenceEnd == nil, rule.interval >= 1,
+              rule.daysOfTheMonth == nil, rule.monthsOfTheYear == nil,
+              rule.weeksOfTheYear == nil, rule.daysOfTheYear == nil,
+              rule.setPositions == nil
+        else { return nil }
+        var weekdays: Set<Int> = []
+        if let days = rule.daysOfTheWeek {
+            // Positional entries ("first Monday") only make sense for
+            // monthly/yearly patterns the dialog doesn't cover.
+            guard rule.frequency == .weekly, days.allSatisfy({ $0.weekNumber == 0 }) else { return nil }
+            weekdays = Set(days.map { $0.dayOfTheWeek.rawValue })
+        }
+        switch rule.frequency {
+        case .daily, .weekly, .monthly, .yearly:
+            return CustomRepeat(frequency: rule.frequency, interval: rule.interval, weekdays: weekdays)
+        @unknown default:
+            return nil
+        }
+    }
+
+    var rule: EKRecurrenceRule {
+        let days: [EKRecurrenceDayOfWeek]? = frequency == .weekly && !weekdays.isEmpty
+            ? weekdays.sorted().compactMap { EKWeekday(rawValue: $0).map { EKRecurrenceDayOfWeek($0) } }
+            : nil
+        return EKRecurrenceRule(
+            recurrenceWith: frequency,
+            interval: max(1, interval),
+            daysOfTheWeek: days,
+            daysOfTheMonth: nil,
+            monthsOfTheYear: nil,
+            weeksOfTheYear: nil,
+            daysOfTheYear: nil,
+            setPositions: nil,
+            end: nil
+        )
     }
 }
 
@@ -1064,10 +1123,14 @@ private struct NewItemForm: View {
     @State private var reminderTime: Date
     @State private var notes = ""
     @State private var repeatOption: RepeatOption = .never
+    /// The Custom dialog's committed value; the active rule when
+    /// `repeatOption == .custom`.
+    @State private var customRepeat: CustomRepeat?
+    @State private var showingCustomRepeat = false
     @State private var alertOption: AlertOption = .none
-    /// True when the edited item's recurrence rules don't map to a preset;
-    /// the Repeat row shows a read-only "Custom" and saving leaves the rules
-    /// untouched.
+    /// True when the edited item's recurrence rules can't be expressed by a
+    /// preset or the Custom dialog; the Repeat row shows a read-only
+    /// "Custom" and saving leaves the rules untouched.
     @State private var customRecurrence = false
     /// Same as `customRecurrence`, for the item's alarms.
     @State private var customAlerts = false
@@ -1133,9 +1196,10 @@ private struct NewItemForm: View {
             _selectedEventCalendarID = State(initialValue: event.calendar.calendarIdentifier)
             _selectedReminderListID = State(initialValue: reminderLists.first?.calendarIdentifier ?? "")
             _notes = State(initialValue: event.notes ?? "")
-            let repeatPreset = RepeatOption.matching(event.recurrenceRules)
-            _repeatOption = State(initialValue: repeatPreset ?? .never)
-            _customRecurrence = State(initialValue: repeatPreset == nil)
+            let repeatState = Self.repeatState(for: event.recurrenceRules)
+            _repeatOption = State(initialValue: repeatState.option)
+            _customRepeat = State(initialValue: repeatState.custom)
+            _customRecurrence = State(initialValue: repeatState.readOnly)
             // The all-day form hides the alert row entirely, so any alarms an
             // all-day event carries must survive a save untouched.
             let alertPreset = event.isAllDay && !(event.alarms ?? []).isEmpty
@@ -1160,15 +1224,30 @@ private struct NewItemForm: View {
             _selectedEventCalendarID = State(initialValue: eventCalendars.first?.calendarIdentifier ?? "")
             _selectedReminderListID = State(initialValue: reminder.calendar.calendarIdentifier)
             _notes = State(initialValue: reminder.notes ?? "")
-            let repeatPreset = RepeatOption.matching(reminder.recurrenceRules)
-            _repeatOption = State(initialValue: repeatPreset ?? .never)
-            _customRecurrence = State(initialValue: repeatPreset == nil)
+            let repeatState = Self.repeatState(for: reminder.recurrenceRules)
+            _repeatOption = State(initialValue: repeatState.option)
+            _customRepeat = State(initialValue: repeatState.custom)
+            _customRecurrence = State(initialValue: repeatState.readOnly)
             let alertPreset: AlertOption? = hasTime
                 ? AlertOption.matching(reminderAlarms: reminder.alarms, due: due)
                 : ((reminder.alarms ?? []).isEmpty ? AlertOption.none : nil)
             _alertOption = State(initialValue: alertPreset ?? .none)
             _customAlerts = State(initialValue: alertPreset == nil)
         }
+    }
+
+    /// How an item's stored rules land in the Repeat row: a preset, the
+    /// Custom dialog's value, or read-only preservation.
+    private static func repeatState(
+        for rules: [EKRecurrenceRule]?
+    ) -> (option: RepeatOption, custom: CustomRepeat?, readOnly: Bool) {
+        if let preset = RepeatOption.matching(rules) {
+            return (preset, nil, false)
+        }
+        if let custom = CustomRepeat.matching(rules) {
+            return (.custom, custom, false)
+        }
+        return (.never, nil, true)
     }
 
     /// Today opens at the next half-hour boundary (capped at 23:00); other
@@ -1204,6 +1283,11 @@ private struct NewItemForm: View {
     private var eventAlarm: EKAlarm? {
         guard !isAllDay, let offset = alertOption.offset else { return nil }
         return EKAlarm(relativeOffset: -offset)
+    }
+
+    /// The rule the current Repeat selection produces; nil for Never.
+    private var selectedRecurrenceRule: EKRecurrenceRule? {
+        repeatOption == .custom ? customRepeat?.rule : repeatOption.rule
     }
 
     private var canCreate: Bool {
@@ -1505,7 +1589,7 @@ private struct NewItemForm: View {
         if customRecurrence {
             customValueLabel
         } else {
-            Picker(String(localized: "Repeat"), selection: $repeatOption) {
+            Picker(String(localized: "Repeat"), selection: repeatSelection) {
                 ForEach(RepeatOption.allCases) { option in
                     Text(option.displayName).tag(option)
                 }
@@ -1513,7 +1597,40 @@ private struct NewItemForm: View {
             .labelsHidden()
             .font(.system(size: 12))
             .fixedSize()
+            .popover(isPresented: $showingCustomRepeat, arrowEdge: .bottom) {
+                CustomRepeatEditor(
+                    initial: customRepeat ?? seedCustomRepeat,
+                    calendar: calendar
+                ) { committed in
+                    customRepeat = committed
+                    repeatOption = .custom
+                }
+            }
         }
+    }
+
+    /// Selecting "Custom…" opens the dialog instead of committing; the
+    /// selection only becomes Custom when the dialog is confirmed, so
+    /// Cancel keeps the previous choice — as in Calendar.app. Re-choosing
+    /// "Custom…" while already custom reopens the dialog with its values.
+    private var repeatSelection: Binding<RepeatOption> {
+        Binding(
+            get: { repeatOption },
+            set: { newValue in
+                if newValue == .custom {
+                    showingCustomRepeat = true
+                } else {
+                    repeatOption = newValue
+                }
+            }
+        )
+    }
+
+    /// Starting point for a fresh Custom dialog: weekly on the item's day,
+    /// matching Calendar.app's default.
+    private var seedCustomRepeat: CustomRepeat {
+        let weekday = calendar.component(.weekday, from: kind == .event ? startTime : reminderDate)
+        return CustomRepeat(frequency: .weekly, interval: 1, weekdays: [weekday])
     }
 
     @ViewBuilder
@@ -1664,7 +1781,7 @@ private struct NewItemForm: View {
                 event.notes = trimmedNotes
                 if !customRecurrence {
                     (event.recurrenceRules ?? []).forEach(event.removeRecurrenceRule)
-                    if let rule = repeatOption.rule { event.addRecurrenceRule(rule) }
+                    if let rule = selectedRecurrenceRule { event.addRecurrenceRule(rule) }
                 }
                 if !customAlerts {
                     (event.alarms ?? []).forEach(event.removeAlarm)
@@ -1689,7 +1806,7 @@ private struct NewItemForm: View {
                 reminder.notes = trimmedNotes
                 if !customRecurrence {
                     (reminder.recurrenceRules ?? []).forEach(reminder.removeRecurrenceRule)
-                    if let rule = repeatOption.rule { reminder.addRecurrenceRule(rule) }
+                    if let rule = selectedRecurrenceRule { reminder.addRecurrenceRule(rule) }
                 }
                 if !customAlerts {
                     (reminder.alarms ?? []).forEach(reminder.removeAlarm)
@@ -1739,7 +1856,7 @@ private struct NewItemForm: View {
                     end: endTime,
                     isAllDay: isAllDay,
                     notes: trimmedNotes,
-                    recurrence: repeatOption.rule,
+                    recurrence: selectedRecurrenceRule,
                     alarm: eventAlarm,
                     eventCalendar: target,
                     in: calendar
@@ -1754,7 +1871,7 @@ private struct NewItemForm: View {
                     dueDate: reminderDate,
                     time: reminderHasTime ? reminderTime : nil,
                     notes: trimmedNotes,
-                    recurrence: repeatOption.rule,
+                    recurrence: selectedRecurrenceRule,
                     earlyAlertOffset: reminderHasTime ? alertOption.offset : nil,
                     reminderCalendar: target,
                     in: calendar
@@ -1765,6 +1882,118 @@ private struct NewItemForm: View {
             Logger.peek.error("Failed to save item: \(error.localizedDescription)")
             saveFailed = true
         }
+    }
+}
+
+/// Calendar.app-style Custom repeat dialog: frequency popup, "Every N
+/// <unit>" interval field, and a weekday strip when weekly. Edits a local
+/// draft; only OK commits back to the form.
+private struct CustomRepeatEditor: View {
+    let calendar: Calendar
+    let commit: (CustomRepeat) -> Void
+
+    @State private var draft: CustomRepeat
+    @Environment(\.dismiss) private var dismiss
+
+    init(initial: CustomRepeat, calendar: Calendar, commit: @escaping (CustomRepeat) -> Void) {
+        self.calendar = calendar
+        self.commit = commit
+        _draft = State(initialValue: initial)
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Text(String(localized: "Frequency:"))
+                    .font(.system(size: 12))
+                Picker(String(localized: "Frequency"), selection: $draft.frequency) {
+                    Text(String(localized: "Daily")).tag(EKRecurrenceFrequency.daily)
+                    Text(String(localized: "Weekly")).tag(EKRecurrenceFrequency.weekly)
+                    Text(String(localized: "Monthly")).tag(EKRecurrenceFrequency.monthly)
+                    Text(String(localized: "Yearly")).tag(EKRecurrenceFrequency.yearly)
+                }
+                .labelsHidden()
+                .font(.system(size: 12))
+                .fixedSize()
+            }
+
+            HStack(spacing: 6) {
+                Text(String(localized: "Every"))
+                    .font(.system(size: 12))
+                TextField(String(localized: "Interval"), value: $draft.interval, format: .number)
+                    .labelsHidden()
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 12))
+                    .frame(width: 36)
+                Text(unitLabel)
+                    .font(.system(size: 12))
+            }
+
+            if draft.frequency == .weekly {
+                weekdayStrip
+            }
+
+            HStack {
+                Button(String(localized: "Cancel")) { dismiss() }
+                    .font(.system(size: 12))
+                Button(String(localized: "OK")) {
+                    var value = draft
+                    value.interval = min(999, max(1, value.interval))
+                    commit(value)
+                    dismiss()
+                }
+                .font(.system(size: 12))
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(14)
+        .onExitCommand(perform: dismiss.callAsFunction)
+    }
+
+    /// Pluralized interval unit, e.g. "Week" / "Weeks".
+    private var unitLabel: String {
+        let plural = draft.interval != 1
+        switch draft.frequency {
+        case .daily: return plural ? String(localized: "Days") : String(localized: "Day")
+        case .weekly: return plural ? String(localized: "Weeks") : String(localized: "Week")
+        case .monthly: return plural ? String(localized: "Months") : String(localized: "Month")
+        case .yearly: return plural ? String(localized: "Years") : String(localized: "Year")
+        @unknown default: return ""
+        }
+    }
+
+    /// Seven joined weekday cells like Calendar.app's, ordered by the
+    /// locale's first weekday. At least one day stays selected — clicking
+    /// the last selected day is a no-op, as in Calendar.app.
+    private var weekdayStrip: some View {
+        HStack(spacing: 1) {
+            ForEach(orderedWeekdays, id: \.self) { weekday in
+                let selected = draft.weekdays.contains(weekday)
+                Button {
+                    if selected {
+                        if draft.weekdays.count > 1 { draft.weekdays.remove(weekday) }
+                    } else {
+                        draft.weekdays.insert(weekday)
+                    }
+                } label: {
+                    Text(calendar.veryShortStandaloneWeekdaySymbols[weekday - 1])
+                        .font(.system(size: 11, weight: .medium))
+                        .frame(width: 26, height: 22)
+                        .background(Color.primary.opacity(selected ? 0.25 : 0.06))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(calendar.standaloneWeekdaySymbols[weekday - 1])
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+    }
+
+    /// Weekday numbers (1 = Sunday) starting from the locale's first weekday.
+    private var orderedWeekdays: [Int] {
+        (0..<7).map { (calendar.firstWeekday - 1 + $0) % 7 + 1 }
     }
 }
 

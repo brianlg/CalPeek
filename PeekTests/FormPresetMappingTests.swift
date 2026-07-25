@@ -61,6 +61,73 @@ struct RepeatOptionMappingTests {
     }
 }
 
+/// Mapping between stored recurrence rules and the Custom dialog's value.
+/// Nil means the rule stays read-only.
+struct CustomRepeatMappingTests {
+    @Test func intervalRuleMapsToCustom() {
+        let rule = EKRecurrenceRule(recurrenceWith: .weekly, interval: 6, end: nil)
+        let custom = CustomRepeat.matching([rule])
+        #expect(custom == CustomRepeat(frequency: .weekly, interval: 6, weekdays: []))
+    }
+
+    @Test func multiWeekdayRuleMapsToCustom() {
+        let rule = EKRecurrenceRule(
+            recurrenceWith: .weekly, interval: 1,
+            daysOfTheWeek: [EKRecurrenceDayOfWeek(.monday), EKRecurrenceDayOfWeek(.thursday)],
+            daysOfTheMonth: nil, monthsOfTheYear: nil, weeksOfTheYear: nil,
+            daysOfTheYear: nil, setPositions: nil, end: nil)
+        let custom = CustomRepeat.matching([rule])
+        #expect(custom?.frequency == .weekly)
+        #expect(custom?.weekdays == [EKWeekday.monday.rawValue, EKWeekday.thursday.rawValue])
+    }
+
+    @Test func ruleWithEndStaysReadOnly() {
+        let rule = EKRecurrenceRule(
+            recurrenceWith: .daily, interval: 2, end: EKRecurrenceEnd(occurrenceCount: 5))
+        #expect(CustomRepeat.matching([rule]) == nil)
+    }
+
+    @Test func positionalWeekdayStaysReadOnly() {
+        // "First Monday of the month" — the dialog can't express it.
+        let rule = EKRecurrenceRule(
+            recurrenceWith: .monthly, interval: 1,
+            daysOfTheWeek: [EKRecurrenceDayOfWeek(.monday, weekNumber: 1)],
+            daysOfTheMonth: nil, monthsOfTheYear: nil, weeksOfTheYear: nil,
+            daysOfTheYear: nil, setPositions: nil, end: nil)
+        #expect(CustomRepeat.matching([rule]) == nil)
+    }
+
+    @Test func dayOfMonthPatternStaysReadOnly() {
+        let rule = EKRecurrenceRule(
+            recurrenceWith: .monthly, interval: 1,
+            daysOfTheWeek: nil, daysOfTheMonth: [15],
+            monthsOfTheYear: nil, weeksOfTheYear: nil,
+            daysOfTheYear: nil, setPositions: nil, end: nil)
+        #expect(CustomRepeat.matching([rule]) == nil)
+    }
+
+    @Test func ruleRoundTripsThroughDialogValue() {
+        let value = CustomRepeat(
+            frequency: .weekly, interval: 6,
+            weekdays: [EKWeekday.wednesday.rawValue])
+        let rule = value.rule
+        #expect(rule.frequency == .weekly)
+        #expect(rule.interval == 6)
+        #expect(rule.daysOfTheWeek?.map(\.dayOfTheWeek) == [.wednesday])
+        #expect(CustomRepeat.matching([rule]) == value)
+    }
+
+    @Test func emptyWeekdaysOmitsExplicitDays() {
+        let rule = CustomRepeat(frequency: .weekly, interval: 2, weekdays: []).rule
+        #expect(rule.daysOfTheWeek == nil)
+    }
+
+    @Test func intervalClampedToAtLeastOne() {
+        let rule = CustomRepeat(frequency: .daily, interval: 0, weekdays: []).rule
+        #expect(rule.interval == 1)
+    }
+}
+
 /// Mapping from an item's stored alarms to the editor's Alert presets.
 /// Nil means "Custom": the alarms are preserved untouched on save.
 struct AlertOptionMappingTests {

@@ -1,0 +1,187 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.99023,0.99951,1.00000,1.00000",
+      "display-p3:0.91211,0.89697,0.88623,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
+  "groups" : [
+    {
+      "blend-mode" : "normal",
+      "blur-material" : 0.5,
+      "hidden" : false,
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "solid" : "display-p3:0.74226,0.96783,0.89409,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "Rule-Accent.png",
+          "name" : "Rule-Accent",
+          "opacity-specializations" : [
+            {
+              "appearance" : "tinted",
+              "value" : 1
+            }
+          ],
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              -277,
+              -308.9296875
+            ]
+          }
+        },
+        {
+          "glass" : false,
+          "image-name" : "Rule-Track.png",
+          "name" : "Rule-Track",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 0.15
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0.33
+            }
+          ],
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              81,
+              -308.9296875
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    },
+    {
+      "blur-material" : null,
+      "layers" : [
+
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    },
+    {
+      "blur-material" : null,
+      "hidden" : false,
+      "layers" : [
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "display-p3:0.92139,0.30591,0.23926,1.00000"
+              }
+            },
+            {
+              "appearance" : "tinted",
+              "value" : {
+                "solid" : "display-p3:0.74512,0.96875,0.89014,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "Today-Dot.png",
+          "name" : "Today-Dot",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              92.453125,
+              62
+            ]
+          }
+        },
+        {
+          "blend-mode-specializations" : [
+            {
+              "value" : "normal"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "normal"
+            }
+          ],
+          "fill-specializations" : [
+            {
+              "value" : "automatic"
+            },
+            {
+              "appearance" : "dark",
+              "value" : "automatic"
+            }
+          ],
+          "glass" : false,
+          "image-name" : "Day-Grid.png",
+          "name" : "Day-Grid",
+          "opacity-specializations" : [
+            {
+              "appearance" : "dark",
+              "value" : 0.15
+            },
+            {
+              "appearance" : "tinted",
+              "value" : 0.33
+            }
+          ],
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0.5,
+              62.3515625
+            ]
+          }
+        }
+      ],
+      "lighting" : "combined",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.2
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
+}
