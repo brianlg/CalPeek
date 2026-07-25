@@ -645,18 +645,14 @@ private struct DayEventsPopover: View {
                 .foregroundStyle(.secondary)
         } else {
             ScrollView {
-                // One shared card for the whole agenda, rows separated by
-                // dividers inset past the glyph column — matching the
-                // creation form's section styling.
-                VStack(alignment: .leading, spacing: 0) {
+                // Menu-like agenda: bare rows on the popover material, each
+                // highlighting under the pointer (see ItemRow), as in
+                // Control Center and the system status menus.
+                VStack(alignment: .leading, spacing: 2) {
                     ForEach(items) { item in
                         ItemRow(item: item, tint: tint(for: item), accent: accent, model: model)
-                        if item.id != items.last?.id {
-                            Divider().padding(.leading, 30)
-                        }
                     }
                 }
-                .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
                 .onGeometryChange(for: CGFloat.self) { proxy in
                     proxy.size.height
                 } action: { height in
@@ -801,6 +797,8 @@ private struct ItemRow: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
+        // Rounded hover highlight, like menu items in Control Center.
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(isHovered ? 0.08 : 0)))
         // The row's hover region is only its hit-testable content by default,
         // which excludes the spacer gap and the faded-out button — hovering
         // there would drop `isHovered` before the button could be clicked.
