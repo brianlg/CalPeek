@@ -952,10 +952,6 @@ private struct NewItemForm: View {
     @State private var reminderDate: Date
     @State private var reminderHasTime = false
     @State private var reminderTime: Date
-    /// Reveals the notes/repeat/alert rows. Collapsing keeps whatever was
-    /// entered — the hidden values still apply on Create, matching how
-    /// Calendar.app preserves collapsed detail fields.
-    @State private var showsDetails = false
     @State private var notes = ""
     @State private var repeatOption: RepeatOption = .never
     @State private var alertOption: AlertOption = .none
@@ -1036,16 +1032,7 @@ private struct NewItemForm: View {
         VStack(alignment: .leading, spacing: 10) {
             header
 
-            TextField(
-                kind == .event
-                    ? String(localized: "Event title")
-                    : String(localized: "Reminder title"),
-                text: $title
-            )
-            .textFieldStyle(.roundedBorder)
-            .font(.system(size: 12))
-            .focused($titleFocused)
-            .onSubmit { if canCreate { create() } }
+            titleSection
 
             if kind == .event {
                 eventFields
@@ -1053,7 +1040,7 @@ private struct NewItemForm: View {
                 reminderFields
             }
 
-            detailsDisclosure
+            notesSection
 
             if saveFailed {
                 Text(String(localized: "Couldn't save."))
@@ -1138,48 +1125,81 @@ private struct NewItemForm: View {
         .accessibilityAddTraits(kind == value ? .isSelected : [])
     }
 
-    private var eventFields: some View {
-        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
-            if eventCalendars.count > 1 {
-                GridRow {
-                    fieldLabel(String(localized: "Calendar:"))
-                    calendarPicker(
-                        String(localized: "Calendar"),
-                        options: eventCalendars,
-                        selection: $selectedEventCalendarID
-                    )
-                }
+    // MARK: Sections
+
+    /// Rounded card grouping related rows, styled after the inset sections
+    /// in Calendar.app's event popover.
+    private func sectionCard<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 0, content: content)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
+    }
+
+    /// One labeled row inside a section card: label leading, control trailing.
+    private func formRow(_ label: String, @ViewBuilder control: () -> some View) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(.system(size: 12))
+            Spacer(minLength: 8)
+            control()
+        }
+        .padding(.horizontal, 10)
+        .frame(minHeight: 28)
+    }
+
+    /// Separator between rows in a card, inset from the leading edge like
+    /// grouped-form dividers.
+    private var rowDivider: some View {
+        Divider().padding(.leading, 10)
+    }
+
+    /// Prominent borderless title field with the calendar/list swatch picker
+    /// on its trailing edge, matching Calendar.app's title section.
+    private var titleSection: some View {
+        sectionCard {
+            HStack(spacing: 8) {
+                TextField(
+                    kind == .event
+                        ? String(localized: "Event title")
+                        : String(localized: "Reminder title"),
+                    text: $title
+                )
+                .textFieldStyle(.plain)
+                .font(.system(size: 15, weight: .semibold))
+                .focused($titleFocused)
+                .onSubmit { if canCreate { create() } }
+
+                calendarSwatch
             }
-            GridRow {
-                fieldLabel(String(localized: "All Day:"))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+        }
+    }
+
+    private var eventFields: some View {
+        sectionCard {
+            formRow(String(localized: "All Day")) {
                 Toggle(String(localized: "All Day"), isOn: $isAllDay)
                     .labelsHidden()
                     .toggleStyle(.checkbox)
             }
-            GridRow {
-                fieldLabel(String(localized: "Starts:"))
+            rowDivider
+            formRow(String(localized: "Starts")) {
                 dateTimeField($startTime)
             }
-            GridRow {
-                fieldLabel(String(localized: "Ends:"))
+            rowDivider
+            formRow(String(localized: "Ends")) {
                 dateTimeField($endTime)
             }
-            if showsDetails {
-                GridRow {
-                    fieldLabel(String(localized: "Repeat:"))
-                    repeatPicker
-                }
-                // All-day events use day-based alert semantics that don't fit
-                // these time offsets; that nuance stays with Calendar.app.
-                if !isAllDay {
-                    GridRow {
-                        fieldLabel(String(localized: "Alert:"))
-                        alertPicker(includeAtTime: true)
-                    }
-                }
-                GridRow(alignment: .top) {
-                    fieldLabel(String(localized: "Notes:"))
-                    notesField
+            rowDivider
+            formRow(String(localized: "Repeat")) {
+                repeatPicker
+            }
+            // All-day events use day-based alert semantics that don't fit
+            // these time offsets; that nuance stays with Calendar.app.
+            if !isAllDay {
+                rowDivider
+                formRow(String(localized: "Alert")) {
+                    alertPicker(includeAtTime: true)
                 }
             }
         }
@@ -1190,52 +1210,44 @@ private struct NewItemForm: View {
     }
 
     private var reminderFields: some View {
-        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 8) {
-            if reminderLists.count > 1 {
-                GridRow {
-                    fieldLabel(String(localized: "List:"))
-                    calendarPicker(
-                        String(localized: "List"),
-                        options: reminderLists,
-                        selection: $selectedReminderListID
-                    )
-                }
-            }
-            GridRow {
-                fieldLabel(String(localized: "Date:"))
+        sectionCard {
+            formRow(String(localized: "Date")) {
                 SegmentedDateField(date: $reminderDate, elements: [.yearMonthDay])
                     .fixedSize()
             }
-            GridRow {
-                fieldLabel(String(localized: "Time:"))
-                HStack(spacing: 8) {
-                    Toggle(String(localized: "Time"), isOn: $reminderHasTime)
-                        .labelsHidden()
-                        .toggleStyle(.checkbox)
-                    if reminderHasTime {
-                        SegmentedDateField(date: $reminderTime, elements: [.hourMinute], showsStepper: true)
-                            .fixedSize()
-                    }
-                }
-            }
-            if showsDetails {
-                GridRow {
-                    fieldLabel(String(localized: "Repeat:"))
-                    repeatPicker
-                }
-                // A timed reminder already alerts at its due time; the picker
-                // offers only extra early alerts, and needs a time to offset.
+            rowDivider
+            formRow(String(localized: "Time")) {
                 if reminderHasTime {
-                    GridRow {
-                        fieldLabel(String(localized: "Alert:"))
-                        alertPicker(includeAtTime: false)
-                    }
+                    SegmentedDateField(date: $reminderTime, elements: [.hourMinute], showsStepper: true)
+                        .fixedSize()
                 }
-                GridRow(alignment: .top) {
-                    fieldLabel(String(localized: "Notes:"))
-                    notesField
+                Toggle(String(localized: "Time"), isOn: $reminderHasTime)
+                    .labelsHidden()
+                    .toggleStyle(.checkbox)
+            }
+            rowDivider
+            formRow(String(localized: "Repeat")) {
+                repeatPicker
+            }
+            // A timed reminder already alerts at its due time; the picker
+            // offers only extra early alerts, and needs a time to offset.
+            if reminderHasTime {
+                rowDivider
+                formRow(String(localized: "Alert")) {
+                    alertPicker(includeAtTime: false)
                 }
             }
+        }
+    }
+
+    private var notesSection: some View {
+        sectionCard {
+            TextField(String(localized: "Notes"), text: $notes, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+                .lineLimit(2...4)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
         }
     }
 
@@ -1263,59 +1275,58 @@ private struct NewItemForm: View {
         .fixedSize()
     }
 
-    private var notesField: some View {
-        TextField(String(localized: "Optional"), text: $notes, axis: .vertical)
-            .lineLimit(1...3)
-            .textFieldStyle(.roundedBorder)
-            .font(.system(size: 12))
-    }
-
-    /// Calendar/list menu picker for a grid row; the visible label is the
-    /// row's `fieldLabel`, so the picker's own is hidden but kept for
-    /// accessibility.
-    private func calendarPicker(
-        _ label: String,
-        options: [EKCalendar],
-        selection: Binding<String>
-    ) -> some View {
-        Picker(label, selection: selection) {
-            ForEach(options, id: \.calendarIdentifier) { cal in
-                calendarOptionLabel(cal).tag(cal.calendarIdentifier)
+    /// Compact calendar/list chooser in the title row: the selected
+    /// calendar's color dot with a pop-up chevron, like Calendar.app's
+    /// swatch picker. A single writable calendar shows just its static dot.
+    @ViewBuilder
+    private var calendarSwatch: some View {
+        let options = kind == .event ? eventCalendars : reminderLists
+        let selection = kind == .event ? $selectedEventCalendarID : $selectedReminderListID
+        let selected = options.first { $0.calendarIdentifier == selection.wrappedValue } ?? options.first
+        if let selected {
+            if options.count > 1 {
+                Menu {
+                    Picker(
+                        kind == .event
+                            ? String(localized: "Calendar")
+                            : String(localized: "List"),
+                        selection: selection
+                    ) {
+                        ForEach(options, id: \.calendarIdentifier) { cal in
+                            calendarOptionLabel(cal).tag(cal.calendarIdentifier)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                } label: {
+                    HStack(spacing: 4) {
+                        swatchDot(selected)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 5)
+                    .frame(height: 20)
+                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.07)))
+                    .contentShape(RoundedRectangle(cornerRadius: 5))
+                }
+                .menuStyle(.button)
+                .buttonStyle(.plain)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .help(kind == .event
+                    ? String(localized: "Calendar")
+                    : String(localized: "List"))
+            } else {
+                swatchDot(selected)
             }
         }
-        .labelsHidden()
-        .font(.system(size: 12))
-        .fixedSize()
     }
 
-    /// Disclosure toggle for the extra detail rows, styled like the system
-    /// disclosure triangle (chevron points right collapsed, down expanded).
-    /// A real `DisclosureGroup` can't be used here: the detail fields must
-    /// live inside the same `Grid` as the basic rows to share the aligned
-    /// label column.
-    private var detailsDisclosure: some View {
-        Button {
-            showsDetails.toggle()
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 9, weight: .semibold))
-                    .rotationEffect(.degrees(showsDetails ? 90 : 0))
-                Text(showsDetails
-                    ? String(localized: "Hide Details")
-                    : String(localized: "Add Details…"))
-                    .font(.system(size: 12))
-            }
-            .foregroundStyle(.secondary)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 12))
-            .gridColumnAlignment(.trailing)
+    private func swatchDot(_ cal: EKCalendar) -> some View {
+        Circle()
+            .fill(Color(cgColor: cal.cgColor))
+            .frame(width: 11, height: 11)
     }
 
     /// Date field with a separate time field beside it when not all-day.
@@ -1372,13 +1383,23 @@ private struct NewItemForm: View {
     }
 }
 
-/// A calendar/list picker row: colored dot plus title.
+/// A calendar/list picker item: colored dot plus title. The dot is
+/// rasterized into an `NSImage` because menu items render `Label` icons
+/// but drop arbitrary shape views.
 private func calendarOptionLabel(_ cal: EKCalendar) -> some View {
-    HStack(spacing: 6) {
-        Circle()
-            .fill(Color(cgColor: cal.cgColor))
-            .frame(width: 8, height: 8)
+    Label {
         Text(cal.title)
+    } icon: {
+        Image(nsImage: calendarDotImage(cal))
+    }
+}
+
+private func calendarDotImage(_ cal: EKCalendar) -> NSImage {
+    let color: CGColor = cal.cgColor
+    return NSImage(size: NSSize(width: 10, height: 10), flipped: false) { rect in
+        (NSColor(cgColor: color) ?? .systemBlue).setFill()
+        NSBezierPath(ovalIn: rect).fill()
+        return true
     }
 }
 
