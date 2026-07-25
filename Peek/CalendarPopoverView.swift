@@ -645,7 +645,7 @@ private struct DayEventsPopover: View {
                 .foregroundStyle(.secondary)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 6) {
                     ForEach(items) { item in
                         ItemRow(item: item, tint: tint(for: item), accent: accent, model: model)
                     }
@@ -792,6 +792,9 @@ private struct ItemRow: View {
                 ? String(localized: "Open in Calendar")
                 : String(localized: "Open in Reminders"))
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
         // The row's hover region is only its hit-testable content by default,
         // which excludes the spacer gap and the faded-out button — hovering
         // there would drop `isHovered` before the button could be clicked.
