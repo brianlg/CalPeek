@@ -24,7 +24,7 @@ struct CalendarPopoverView: View {
         /// around each dot.
         static let eventDotCutoutWidth: CGFloat = 0
         static let eventDotSpacing: CGFloat = 2
-        static let eventDotNudge: CGFloat = -2.5
+        static let eventDotNudge: CGFloat = -1.5
         static let headerSpacing: CGFloat = 5
         /// Height of the header nav chips (chevron circles and Today capsule),
         /// with the shared grey fill that adapts to light/dark mode.
