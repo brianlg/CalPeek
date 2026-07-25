@@ -585,10 +585,13 @@ private struct DayEventsPopover: View {
     let accent: Color
 
     private enum Mode {
-        case list, create
+        case list, create, edit
     }
 
     @State private var mode: Mode = .list
+    /// The re-fetched item behind edit mode; set by `beginEditing` just
+    /// before the mode switch and cleared on dismiss.
+    @State private var editTarget: NewItemForm.EditTarget?
     /// Measured height of the list's row stack, so the ScrollView can report
     /// a real ideal height to the popover (see `listContent`).
     @State private var listHeight: CGFloat = 0
@@ -629,6 +632,13 @@ private struct DayEventsPopover: View {
                 listContent
             case .create:
                 NewItemForm(date: date, model: model, calendar: calendar, accent: accent) { mode = .list }
+            case .edit:
+                if let editTarget {
+                    NewItemForm(editing: editTarget, model: model, calendar: calendar, accent: accent) {
+                        mode = .list
+                        self.editTarget = nil
+                    }
+                }
             }
         }
         .padding(14)
@@ -650,7 +660,13 @@ private struct DayEventsPopover: View {
                 // Control Center and the system status menus.
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(items) { item in
-                        ItemRow(item: item, tint: tint(for: item), accent: accent, model: model)
+                        ItemRow(
+                            item: item,
+                            tint: tint(for: item),
+                            accent: accent,
+                            model: model,
+                            onEdit: item.isEditable ? { beginEditing(item) } : nil
+                        )
                     }
                 }
                 .onGeometryChange(for: CGFloat.self) { proxy in
@@ -695,15 +711,35 @@ private struct DayEventsPopover: View {
             .foregroundStyle(.primary)
     }
 
+    /// Re-fetches the clicked row's backing EK object and switches to the
+    /// editor. Silently stays in the list if the item vanished from the
+    /// store between render and click.
+    private func beginEditing(_ item: DayItem) {
+        switch item.kind {
+        case .event:
+            guard let identifier = item.eventIdentifier,
+                  let event = model.event(withIdentifier: identifier, startingAt: item.sortDate, calendar: calendar)
+            else { return }
+            editTarget = .event(event)
+        case .reminder(_, let reminderID):
+            guard let reminder = model.reminder(withIdentifier: reminderID) else { return }
+            editTarget = .reminder(reminder)
+        }
+        mode = .edit
+    }
 }
 
 /// One agenda row. A separate view so each row owns its hover state, which
-/// reveals the open-in-app button on its trailing edge.
+/// reveals the open-in-app button on its trailing edge. Clicking the row
+/// itself opens the in-popover editor when the item is editable.
 private struct ItemRow: View {
     let item: DayItem
     let tint: Color
     let accent: Color
     let model: CalendarEventsModel
+    /// Opens the editor for this row; nil when the item's calendar is
+    /// read-only, which leaves the row inert.
+    let onEdit: (() -> Void)?
 
     /// Dismisses the day popover when the user jumps to Calendar/Reminders.
     @Environment(\.dismiss) private var dismiss
@@ -763,12 +799,15 @@ private struct ItemRow: View {
             Button {
                 switch item.kind {
                 case .event:
-                    model.showInCalendarApp(
-                        on: item.sortDate,
-                        calendar: Calendar.current,
-                        eventTitle: item.eventTitle,
-                        calendarTitle: item.calendarTitle
-                    )
+                    // Sandbox-safe plain activation: Calendar has no deep
+                    // link to a date or event, and AppleScript navigation
+                    // would need an Apple-events entitlement the App Store
+                    // doesn't allow. In-popover editing covers the rest.
+                    if let app = NSWorkspace.shared.urlForApplication(
+                        withBundleIdentifier: "com.apple.iCal"
+                    ) {
+                        NSWorkspace.shared.openApplication(at: app, configuration: .init())
+                    }
                 case .reminder:
                     // The deep link is a private scheme; if the OS stops
                     // handling it, still get the user into Reminders.
@@ -792,7 +831,7 @@ private struct ItemRow: View {
             // the row.
             .opacity(isHovered ? 1 : 0)
             .help(item.kind == .event
-                ? String(localized: "Open in Calendar")
+                ? String(localized: "Open Calendar")
                 : String(localized: "Open in Reminders"))
         }
         .padding(.horizontal, 10)
@@ -803,6 +842,10 @@ private struct ItemRow: View {
         // which excludes the spacer gap and the faded-out button — hovering
         // there would drop `isHovered` before the button could be clicked.
         .contentShape(Rectangle())
+        // The nested buttons (checkbox, join, open-in-app) win their own
+        // clicks; the gesture only sees the rest of the row.
+        .onTapGesture { onEdit?() }
+        .accessibilityAddTraits(onEdit == nil ? [] : .isButton)
         .onHover { isHovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isHovered)
     }
@@ -868,74 +911,193 @@ private struct SegmentedDateField: NSViewRepresentable {
 /// events and reminders, switched by a capsule segmented control in place of
 /// the date heading; keeping it a single view preserves the title and each
 /// kind's fields while the user flips between the two.
+/// Repeat presets matching Calendar.app's quick-create options. An existing
+/// item whose rule doesn't map to a preset keeps its rule untouched and shows
+/// a read-only "Custom" in the editor.
+enum RepeatOption: String, CaseIterable, Identifiable {
+    case never, daily, weekly, monthly, yearly, custom
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .never: String(localized: "Never")
+        case .daily: String(localized: "Every Day")
+        case .weekly: String(localized: "Every Week")
+        case .monthly: String(localized: "Every Month")
+        case .yearly: String(localized: "Every Year")
+        case .custom: String(localized: "Custom…")
+        }
+    }
+
+    /// The preset's rule. Nil for Never and for Custom, whose rule lives in
+    /// the form's `CustomRepeat` value instead.
+    var rule: EKRecurrenceRule? {
+        let frequency: EKRecurrenceFrequency
+        switch self {
+        case .never, .custom: return nil
+        case .daily: frequency = .daily
+        case .weekly: frequency = .weekly
+        case .monthly: frequency = .monthly
+        case .yearly: frequency = .yearly
+        }
+        return EKRecurrenceRule(recurrenceWith: frequency, interval: 1, end: nil)
+    }
+
+    /// The preset equivalent to an item's recurrence rules, or nil when the
+    /// rules carry anything a preset can't express (interval, end, specific
+    /// days) and must be preserved as-is. A weekly rule pinned to a single
+    /// weekday still counts as "Every Week" — that's how Calendar.app stores
+    /// its own quick-create weekly rule.
+    static func matching(_ rules: [EKRecurrenceRule]?) -> RepeatOption? {
+        guard let rules, !rules.isEmpty else { return .never }
+        guard rules.count == 1 else { return nil }
+        let rule = rules[0]
+        guard rule.interval == 1, rule.recurrenceEnd == nil,
+              rule.daysOfTheMonth == nil, rule.monthsOfTheYear == nil,
+              rule.weeksOfTheYear == nil, rule.daysOfTheYear == nil,
+              rule.setPositions == nil,
+              rule.daysOfTheWeek == nil
+                  || (rule.frequency == .weekly && rule.daysOfTheWeek?.count == 1)
+        else { return nil }
+        switch rule.frequency {
+        case .daily: return .daily
+        case .weekly: return .weekly
+        case .monthly: return .monthly
+        case .yearly: return .yearly
+        @unknown default: return nil
+        }
+    }
+}
+
+/// A recurrence the form's Custom dialog can express — the core of
+/// Calendar.app's Custom repeat dialog: frequency, "every N" interval, and
+/// specific weekdays when weekly. Rules carrying anything more (an end,
+/// monthly/yearly day patterns, positional weekdays) stay read-only.
+struct CustomRepeat: Equatable {
+    var frequency: EKRecurrenceFrequency = .weekly
+    var interval: Int = 1
+    /// `EKWeekday` raw values (1 = Sunday); only meaningful for `.weekly`.
+    /// Empty falls back to the item's start weekday, as EventKit itself
+    /// does for a weekly rule with no explicit days.
+    var weekdays: Set<Int> = []
+
+    /// The dialog-expressible equivalent of an item's rules, or nil when
+    /// they must be preserved read-only. Checked after `RepeatOption
+    /// .matching`, so simple presets never reach here.
+    static func matching(_ rules: [EKRecurrenceRule]?) -> CustomRepeat? {
+        guard let rules, rules.count == 1 else { return nil }
+        let rule = rules[0]
+        guard rule.recurrenceEnd == nil, rule.interval >= 1,
+              rule.daysOfTheMonth == nil, rule.monthsOfTheYear == nil,
+              rule.weeksOfTheYear == nil, rule.daysOfTheYear == nil,
+              rule.setPositions == nil
+        else { return nil }
+        var weekdays: Set<Int> = []
+        if let days = rule.daysOfTheWeek {
+            // Positional entries ("first Monday") only make sense for
+            // monthly/yearly patterns the dialog doesn't cover.
+            guard rule.frequency == .weekly, days.allSatisfy({ $0.weekNumber == 0 }) else { return nil }
+            weekdays = Set(days.map { $0.dayOfTheWeek.rawValue })
+        }
+        switch rule.frequency {
+        case .daily, .weekly, .monthly, .yearly:
+            return CustomRepeat(frequency: rule.frequency, interval: rule.interval, weekdays: weekdays)
+        @unknown default:
+            return nil
+        }
+    }
+
+    var rule: EKRecurrenceRule {
+        let days: [EKRecurrenceDayOfWeek]? = frequency == .weekly && !weekdays.isEmpty
+            ? weekdays.sorted().compactMap { EKWeekday(rawValue: $0).map { EKRecurrenceDayOfWeek($0) } }
+            : nil
+        return EKRecurrenceRule(
+            recurrenceWith: frequency,
+            interval: max(1, interval),
+            daysOfTheWeek: days,
+            daysOfTheMonth: nil,
+            monthsOfTheYear: nil,
+            weeksOfTheYear: nil,
+            daysOfTheYear: nil,
+            setPositions: nil,
+            end: nil
+        )
+    }
+}
+
+/// Alert presets matching Calendar.app's quick-create options. `.atTime`
+/// applies to events only — timed reminders already alert at their due
+/// time, so their picker offers just the early offsets. As with repeats,
+/// alarms no preset can express are preserved untouched and shown as
+/// "Custom" in the editor.
+enum AlertOption: String, CaseIterable, Identifiable {
+    case none, atTime, minutes5, minutes10, minutes30, hour1, day1
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .none: String(localized: "None")
+        case .atTime: String(localized: "At time of event")
+        case .minutes5: String(localized: "5 minutes before")
+        case .minutes10: String(localized: "10 minutes before")
+        case .minutes30: String(localized: "30 minutes before")
+        case .hour1: String(localized: "1 hour before")
+        case .day1: String(localized: "1 day before")
+        }
+    }
+
+    /// Seconds before the start/due time, or nil for no alert.
+    var offset: TimeInterval? {
+        switch self {
+        case .none: nil
+        case .atTime: 0
+        case .minutes5: 5 * 60
+        case .minutes10: 10 * 60
+        case .minutes30: 30 * 60
+        case .hour1: 60 * 60
+        case .day1: 24 * 60 * 60
+        }
+    }
+
+    /// The preset equivalent to an event's alarms, or nil when they can't be
+    /// expressed as one (multiple alarms, absolute-date alarms, off-preset
+    /// offsets) and must be preserved as-is.
+    static func matching(eventAlarms alarms: [EKAlarm]?) -> AlertOption? {
+        guard let alarms, !alarms.isEmpty else { return AlertOption.none }
+        guard alarms.count == 1, alarms[0].absoluteDate == nil else { return nil }
+        let offset = -alarms[0].relativeOffset
+        return allCases.first { $0 != .none && $0.offset == offset }
+    }
+
+    /// The preset equivalent to a timed reminder's alarms, or nil when they
+    /// must be preserved as-is. The form's created shape is an at-due-time
+    /// alarm plus an optional early one, so exactly [due] maps to `.none`
+    /// and [due, due − preset] maps to that preset.
+    static func matching(reminderAlarms alarms: [EKAlarm]?, due: Date) -> AlertOption? {
+        guard let alarms, !alarms.isEmpty else { return nil }
+        let dates = alarms.compactMap(\.absoluteDate)
+        guard dates.count == alarms.count, dates.contains(due) else { return nil }
+        let extras = dates.filter { $0 != due }
+        if extras.isEmpty { return AlertOption.none }
+        guard extras.count == 1 else { return nil }
+        let offset = due.timeIntervalSince(extras[0])
+        guard offset > 0 else { return nil }
+        return allCases.first { $0 != .none && $0 != .atTime && $0.offset == offset }
+    }
+}
+
 private struct NewItemForm: View {
     enum Kind {
         case event, reminder
     }
 
-    /// Repeat presets matching Calendar.app's quick-create options. Custom
-    /// rules stay in the full apps — that's what the open-in-app buttons
-    /// are for.
-    private enum RepeatOption: String, CaseIterable, Identifiable {
-        case never, daily, weekly, monthly, yearly
-
-        var id: String { rawValue }
-
-        var displayName: String {
-            switch self {
-            case .never: String(localized: "Never")
-            case .daily: String(localized: "Every Day")
-            case .weekly: String(localized: "Every Week")
-            case .monthly: String(localized: "Every Month")
-            case .yearly: String(localized: "Every Year")
-            }
-        }
-
-        var rule: EKRecurrenceRule? {
-            let frequency: EKRecurrenceFrequency
-            switch self {
-            case .never: return nil
-            case .daily: frequency = .daily
-            case .weekly: frequency = .weekly
-            case .monthly: frequency = .monthly
-            case .yearly: frequency = .yearly
-            }
-            return EKRecurrenceRule(recurrenceWith: frequency, interval: 1, end: nil)
-        }
-    }
-
-    /// Alert presets matching Calendar.app's quick-create options. `.atTime`
-    /// applies to events only — timed reminders already alert at their due
-    /// time, so their picker offers just the early offsets.
-    private enum AlertOption: String, CaseIterable, Identifiable {
-        case none, atTime, minutes5, minutes10, minutes30, hour1, day1
-
-        var id: String { rawValue }
-
-        var displayName: String {
-            switch self {
-            case .none: String(localized: "None")
-            case .atTime: String(localized: "At time of event")
-            case .minutes5: String(localized: "5 minutes before")
-            case .minutes10: String(localized: "10 minutes before")
-            case .minutes30: String(localized: "30 minutes before")
-            case .hour1: String(localized: "1 hour before")
-            case .day1: String(localized: "1 day before")
-            }
-        }
-
-        /// Seconds before the start/due time, or nil for no alert.
-        var offset: TimeInterval? {
-            switch self {
-            case .none: nil
-            case .atTime: 0
-            case .minutes5: 5 * 60
-            case .minutes10: 10 * 60
-            case .minutes30: 30 * 60
-            case .hour1: 60 * 60
-            case .day1: 24 * 60 * 60
-            }
-        }
+    /// An existing item re-fetched for editing; the form prefills from it
+    /// and saves back to it instead of creating.
+    enum EditTarget {
+        case event(EKEvent)
+        case reminder(EKReminder)
     }
 
     let date: Date
@@ -961,7 +1123,20 @@ private struct NewItemForm: View {
     @State private var reminderTime: Date
     @State private var notes = ""
     @State private var repeatOption: RepeatOption = .never
+    /// The Custom dialog's committed value; the active rule when
+    /// `repeatOption == .custom`.
+    @State private var customRepeat: CustomRepeat?
+    @State private var showingCustomRepeat = false
     @State private var alertOption: AlertOption = .none
+    /// True when the edited item's recurrence rules can't be expressed by a
+    /// preset or the Custom dialog; the Repeat row shows a read-only
+    /// "Custom" and saving leaves the rules untouched.
+    @State private var customRecurrence = false
+    /// Same as `customRecurrence`, for the item's alarms.
+    @State private var customAlerts = false
+    /// Which confirmation dialog is up: the recurring-item span choice on
+    /// save/delete, or the plain delete confirmation.
+    @State private var pendingConfirmation: PendingConfirmation?
     @State private var saveFailed = false
     @FocusState private var titleFocused: Bool
     /// Honors the system Reduce Motion setting: the segmented thumb snaps
@@ -970,6 +1145,12 @@ private struct NewItemForm: View {
 
     private let eventCalendars: [EKCalendar]
     private let reminderLists: [EKCalendar]
+    /// Nil when creating; the item being edited otherwise.
+    private let editTarget: EditTarget?
+
+    private enum PendingConfirmation {
+        case saveSpan, deleteSpan, delete
+    }
 
     init(date: Date, model: CalendarEventsModel, calendar: Calendar, accent: Color, dismiss: @escaping () -> Void) {
         self.date = date
@@ -977,6 +1158,7 @@ private struct NewItemForm: View {
         self.calendar = calendar
         self.accent = accent
         self.dismiss = dismiss
+        editTarget = nil
         eventCalendars = model.writableEventCalendars()
         reminderLists = model.writableReminderCalendars()
         let initialKind: Kind = eventCalendars.isEmpty ? .reminder : .event
@@ -989,6 +1171,83 @@ private struct NewItemForm: View {
         _reminderTime = State(initialValue: start)
         _selectedEventCalendarID = State(initialValue: eventCalendars.first?.calendarIdentifier ?? "")
         _selectedReminderListID = State(initialValue: reminderLists.first?.calendarIdentifier ?? "")
+    }
+
+    init(editing target: EditTarget, model: CalendarEventsModel, calendar: Calendar, accent: Color, dismiss: @escaping () -> Void) {
+        self.model = model
+        self.calendar = calendar
+        self.accent = accent
+        self.dismiss = dismiss
+        editTarget = target
+        eventCalendars = model.writableEventCalendars()
+        reminderLists = model.writableReminderCalendars()
+
+        switch target {
+        case .event(let event):
+            date = event.startDate
+            _kind = State(initialValue: .event)
+            _thumbKind = State(initialValue: .event)
+            _title = State(initialValue: event.title ?? "")
+            _isAllDay = State(initialValue: event.isAllDay)
+            _startTime = State(initialValue: event.startDate)
+            _endTime = State(initialValue: event.endDate)
+            _reminderDate = State(initialValue: event.startDate)
+            _reminderTime = State(initialValue: event.startDate)
+            _selectedEventCalendarID = State(initialValue: event.calendar.calendarIdentifier)
+            _selectedReminderListID = State(initialValue: reminderLists.first?.calendarIdentifier ?? "")
+            _notes = State(initialValue: event.notes ?? "")
+            let repeatState = Self.repeatState(for: event.recurrenceRules)
+            _repeatOption = State(initialValue: repeatState.option)
+            _customRepeat = State(initialValue: repeatState.custom)
+            _customRecurrence = State(initialValue: repeatState.readOnly)
+            // The all-day form hides the alert row entirely, so any alarms an
+            // all-day event carries must survive a save untouched.
+            let alertPreset = event.isAllDay && !(event.alarms ?? []).isEmpty
+                ? nil
+                : AlertOption.matching(eventAlarms: event.alarms)
+            _alertOption = State(initialValue: alertPreset ?? .none)
+            _customAlerts = State(initialValue: alertPreset == nil)
+        case .reminder(let reminder):
+            let components = reminder.dueDateComponents
+            let due = components.flatMap { ($0.calendar ?? calendar).date(from: $0) } ?? Date()
+            date = due
+            _kind = State(initialValue: .reminder)
+            _thumbKind = State(initialValue: .reminder)
+            _title = State(initialValue: reminder.title ?? "")
+            _isAllDay = State(initialValue: false)
+            _startTime = State(initialValue: due)
+            _endTime = State(initialValue: due.addingTimeInterval(3600))
+            _reminderDate = State(initialValue: due)
+            let hasTime = components?.hour != nil
+            _reminderHasTime = State(initialValue: hasTime)
+            _reminderTime = State(initialValue: due)
+            _selectedEventCalendarID = State(initialValue: eventCalendars.first?.calendarIdentifier ?? "")
+            _selectedReminderListID = State(initialValue: reminder.calendar.calendarIdentifier)
+            _notes = State(initialValue: reminder.notes ?? "")
+            let repeatState = Self.repeatState(for: reminder.recurrenceRules)
+            _repeatOption = State(initialValue: repeatState.option)
+            _customRepeat = State(initialValue: repeatState.custom)
+            _customRecurrence = State(initialValue: repeatState.readOnly)
+            let alertPreset: AlertOption? = hasTime
+                ? AlertOption.matching(reminderAlarms: reminder.alarms, due: due)
+                : ((reminder.alarms ?? []).isEmpty ? AlertOption.none : nil)
+            _alertOption = State(initialValue: alertPreset ?? .none)
+            _customAlerts = State(initialValue: alertPreset == nil)
+        }
+    }
+
+    /// How an item's stored rules land in the Repeat row: a preset, the
+    /// Custom dialog's value, or read-only preservation.
+    private static func repeatState(
+        for rules: [EKRecurrenceRule]?
+    ) -> (option: RepeatOption, custom: CustomRepeat?, readOnly: Bool) {
+        if let preset = RepeatOption.matching(rules) {
+            return (preset, nil, false)
+        }
+        if let custom = CustomRepeat.matching(rules) {
+            return (.custom, custom, false)
+        }
+        return (.never, nil, true)
     }
 
     /// Today opens at the next half-hour boundary (capped at 23:00); other
@@ -1026,6 +1285,11 @@ private struct NewItemForm: View {
         return EKAlarm(relativeOffset: -offset)
     }
 
+    /// The rule the current Repeat selection produces; nil for Never.
+    private var selectedRecurrenceRule: EKRecurrenceRule? {
+        repeatOption == .custom ? customRepeat?.rule : repeatOption.rule
+    }
+
     private var canCreate: Bool {
         switch kind {
         case .event:
@@ -1036,6 +1300,28 @@ private struct NewItemForm: View {
     }
 
     var body: some View {
+        formWithDialogs
+            .onExitCommand(perform: dismiss)
+            .onChange(of: kind) {
+                saveFailed = false
+                // "At time of event" isn't offered for reminders; drop it rather
+                // than leave the picker pointing at a hidden option.
+                if kind == .reminder, alertOption == .atTime {
+                    alertOption = .none
+                }
+            }
+            .onAppear {
+                // The delayed request is load-bearing, not a hack: the popover
+                // panel drops focus requests made while it swaps in the form.
+                // Verified alternatives that do NOT work here: `defaultFocus`
+                // (the focus scope activated when the popover opened, not when
+                // the form appears), a synchronous set in `onAppear`, and
+                // `.task` (still too early).
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { titleFocused = true }
+            }
+    }
+
+    private var formContent: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
 
@@ -1055,33 +1341,71 @@ private struct NewItemForm: View {
                     .foregroundStyle(.red)
             }
 
-            formFooter(createEnabled: canCreate, create: create, dismiss: dismiss)
-        }
-        .onExitCommand(perform: dismiss)
-        .onChange(of: kind) {
-            saveFailed = false
-            // "At time of event" isn't offered for reminders; drop it rather
-            // than leave the picker pointing at a hidden option.
-            if kind == .reminder, alertOption == .atTime {
-                alertOption = .none
-            }
-        }
-        .onAppear {
-            // The delayed request is load-bearing, not a hack: the popover
-            // panel drops focus requests made while it swaps in the form.
-            // Verified alternatives that do NOT work here: `defaultFocus`
-            // (the focus scope activated when the popover opened, not when
-            // the form appears), a synchronous set in `onAppear`, and
-            // `.task` (still too early).
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { titleFocused = true }
+            formFooter(
+                primaryTitle: primaryTitle,
+                primaryEnabled: canCreate,
+                primary: primaryAction,
+                delete: deleteAction,
+                dismiss: dismiss
+            )
         }
     }
 
-    /// Event/Reminder capsule switcher when both kinds are writable,
-    /// otherwise a plain heading for the only available kind.
+    private var primaryTitle: String {
+        editTarget == nil ? String(localized: "Create") : String(localized: "Save")
+    }
+
+    /// Nil when creating, which hides the footer's Delete button.
+    private var deleteAction: (() -> Void)? {
+        if editTarget == nil { return nil }
+        return { deleteTapped() }
+    }
+
+    /// `formContent` with the editor's three dialogs attached — a separate
+    /// computed view so each piece of `body` type-checks on its own.
+    private var formWithDialogs: some View {
+        formContent
+            .confirmationDialog(
+                String(localized: "This is a repeating event."),
+                isPresented: confirmationBinding(.saveSpan),
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "Save for This Event")) { applyEdits(span: .thisEvent) }
+                Button(String(localized: "Save for All Future Events")) { applyEdits(span: .futureEvents) }
+                Button(String(localized: "Cancel"), role: .cancel) {}
+            }
+            .confirmationDialog(
+                String(localized: "This is a repeating event."),
+                isPresented: confirmationBinding(.deleteSpan),
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "Delete This Event"), role: .destructive) { deleteItem(span: .thisEvent) }
+                Button(String(localized: "Delete All Future Events"), role: .destructive) { deleteItem(span: .futureEvents) }
+                Button(String(localized: "Cancel"), role: .cancel) {}
+            }
+            .confirmationDialog(
+                kind == .event
+                    ? String(localized: "Delete this event?")
+                    : String(localized: "Delete this reminder?"),
+                isPresented: confirmationBinding(.delete),
+                titleVisibility: .visible
+            ) {
+                Button(String(localized: "Delete"), role: .destructive) { deleteItem(span: .thisEvent) }
+                Button(String(localized: "Cancel"), role: .cancel) {}
+            }
+    }
+
+    /// Event/Reminder capsule switcher when creating and both kinds are
+    /// writable, otherwise a plain heading — an existing item can't change
+    /// kind, so the editor always gets the heading.
     @ViewBuilder
     private var header: some View {
-        if !eventCalendars.isEmpty && !reminderLists.isEmpty {
+        if editTarget != nil {
+            Text(kind == .event
+                ? String(localized: "Edit Event")
+                : String(localized: "Edit Reminder"))
+                .font(.system(size: 13, weight: .semibold))
+        } else if !eventCalendars.isEmpty && !reminderLists.isEmpty {
             segmentedControl
         } else {
             Text(kind == .event
@@ -1173,7 +1497,7 @@ private struct NewItemForm: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 15, weight: .semibold))
                 .focused($titleFocused)
-                .onSubmit { if canCreate { create() } }
+                .onSubmit { if canCreate { primaryAction() } }
 
                 calendarSwatch
             }
@@ -1260,26 +1584,78 @@ private struct NewItemForm: View {
 
     // MARK: Detail rows
 
+    @ViewBuilder
     private var repeatPicker: some View {
-        Picker(String(localized: "Repeat"), selection: $repeatOption) {
-            ForEach(RepeatOption.allCases) { option in
-                Text(option.displayName).tag(option)
+        if customRecurrence {
+            customValueLabel
+        } else {
+            Picker(String(localized: "Repeat"), selection: repeatSelection) {
+                ForEach(RepeatOption.allCases) { option in
+                    Text(option.displayName).tag(option)
+                }
+            }
+            .labelsHidden()
+            .font(.system(size: 12))
+            .fixedSize()
+            .popover(isPresented: $showingCustomRepeat, arrowEdge: .bottom) {
+                CustomRepeatEditor(
+                    initial: customRepeat ?? seedCustomRepeat,
+                    calendar: calendar
+                ) { committed in
+                    customRepeat = committed
+                    repeatOption = .custom
+                }
             }
         }
-        .labelsHidden()
-        .font(.system(size: 12))
-        .fixedSize()
     }
 
-    private func alertPicker(includeAtTime: Bool) -> some View {
-        Picker(String(localized: "Alert"), selection: $alertOption) {
-            ForEach(AlertOption.allCases.filter { includeAtTime || $0 != .atTime }) { option in
-                Text(option.displayName).tag(option)
+    /// Selecting "Custom…" opens the dialog instead of committing; the
+    /// selection only becomes Custom when the dialog is confirmed, so
+    /// Cancel keeps the previous choice — as in Calendar.app. Re-choosing
+    /// "Custom…" while already custom reopens the dialog with its values.
+    private var repeatSelection: Binding<RepeatOption> {
+        Binding(
+            get: { repeatOption },
+            set: { newValue in
+                if newValue == .custom {
+                    showingCustomRepeat = true
+                } else {
+                    repeatOption = newValue
+                }
             }
+        )
+    }
+
+    /// Starting point for a fresh Custom dialog: weekly on the item's day,
+    /// matching Calendar.app's default.
+    private var seedCustomRepeat: CustomRepeat {
+        let weekday = calendar.component(.weekday, from: kind == .event ? startTime : reminderDate)
+        return CustomRepeat(frequency: .weekly, interval: 1, weekdays: [weekday])
+    }
+
+    @ViewBuilder
+    private func alertPicker(includeAtTime: Bool) -> some View {
+        if customAlerts {
+            customValueLabel
+        } else {
+            Picker(String(localized: "Alert"), selection: $alertOption) {
+                ForEach(AlertOption.allCases.filter { includeAtTime || $0 != .atTime }) { option in
+                    Text(option.displayName).tag(option)
+                }
+            }
+            .labelsHidden()
+            .font(.system(size: 12))
+            .fixedSize()
         }
-        .labelsHidden()
-        .font(.system(size: 12))
-        .fixedSize()
+    }
+
+    /// Read-only stand-in for a picker whose stored value no preset can
+    /// express; saving preserves the value untouched.
+    private var customValueLabel: some View {
+        Text(String(localized: "Custom"))
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .help(String(localized: "Set in Calendar or Reminders; kept as is."))
     }
 
     /// Compact calendar/list chooser in the title row: the selected
@@ -1347,6 +1723,125 @@ private struct NewItemForm: View {
         .fixedSize()
     }
 
+    /// Routes the footer's primary button (and title-field return) to create
+    /// or save. Editing a recurring event first asks which span to apply to.
+    private func primaryAction() {
+        guard editTarget != nil else { return create() }
+        if isRecurringEventEdit {
+            pendingConfirmation = .saveSpan
+        } else {
+            applyEdits(span: .thisEvent)
+        }
+    }
+
+    private func deleteTapped() {
+        pendingConfirmation = isRecurringEventEdit ? .deleteSpan : .delete
+    }
+
+    /// Whether the edited item is a recurring event, which makes save and
+    /// delete span-sensitive. Reminders have no span semantics — deleting a
+    /// recurring reminder removes the series, as in Reminders.app.
+    private var isRecurringEventEdit: Bool {
+        if case .event(let event) = editTarget { return event.hasRecurrenceRules }
+        return false
+    }
+
+    private func confirmationBinding(_ value: PendingConfirmation) -> Binding<Bool> {
+        Binding(
+            get: { pendingConfirmation == value },
+            set: { if !$0 { pendingConfirmation = nil } }
+        )
+    }
+
+    /// Writes the form's fields back onto the edited item and saves. Custom
+    /// recurrence/alarm sets are left exactly as fetched (see the Custom
+    /// labels); preset ones are rebuilt from the pickers, mirroring
+    /// `createEvent`/`createReminder`.
+    private func applyEdits(span: EKSpan) {
+        guard let editTarget else { return }
+        do {
+            switch editTarget {
+            case .event(let event):
+                guard let target = eventCalendars.first(where: { $0.calendarIdentifier == selectedEventCalendarID }) else {
+                    saveFailed = true
+                    return
+                }
+                event.title = trimmedTitle
+                if event.calendar.calendarIdentifier != target.calendarIdentifier {
+                    event.calendar = target
+                }
+                event.isAllDay = isAllDay
+                if isAllDay {
+                    event.startDate = calendar.startOfDay(for: startTime)
+                    event.endDate = calendar.startOfDay(for: max(startTime, endTime))
+                } else {
+                    event.startDate = startTime
+                    event.endDate = endTime
+                }
+                event.notes = trimmedNotes
+                if !customRecurrence {
+                    (event.recurrenceRules ?? []).forEach(event.removeRecurrenceRule)
+                    if let rule = selectedRecurrenceRule { event.addRecurrenceRule(rule) }
+                }
+                if !customAlerts {
+                    (event.alarms ?? []).forEach(event.removeAlarm)
+                    if let alarm = eventAlarm { event.addAlarm(alarm) }
+                }
+                try model.update(event: event, span: span)
+            case .reminder(let reminder):
+                guard let target = reminderLists.first(where: { $0.calendarIdentifier == selectedReminderListID }) else {
+                    saveFailed = true
+                    return
+                }
+                reminder.title = trimmedTitle
+                if reminder.calendar.calendarIdentifier != target.calendarIdentifier {
+                    reminder.calendar = target
+                }
+                var components = calendar.dateComponents([.year, .month, .day], from: reminderDate)
+                if reminderHasTime {
+                    components.hour = calendar.component(.hour, from: reminderTime)
+                    components.minute = calendar.component(.minute, from: reminderTime)
+                }
+                reminder.dueDateComponents = components
+                reminder.notes = trimmedNotes
+                if !customRecurrence {
+                    (reminder.recurrenceRules ?? []).forEach(reminder.removeRecurrenceRule)
+                    if let rule = selectedRecurrenceRule { reminder.addRecurrenceRule(rule) }
+                }
+                if !customAlerts {
+                    (reminder.alarms ?? []).forEach(reminder.removeAlarm)
+                    if reminderHasTime, let fireDate = calendar.date(from: components) {
+                        reminder.addAlarm(EKAlarm(absoluteDate: fireDate))
+                        if let offset = alertOption.offset, offset > 0 {
+                            reminder.addAlarm(EKAlarm(absoluteDate: fireDate.addingTimeInterval(-offset)))
+                        }
+                    }
+                }
+                try model.update(reminder: reminder)
+            }
+            dismiss()
+        } catch {
+            Logger.peek.error("Failed to save edits: \(error.localizedDescription)")
+            saveFailed = true
+        }
+    }
+
+    private func deleteItem(span: EKSpan) {
+        guard let editTarget else { return }
+        do {
+            switch editTarget {
+            case .event(let event):
+                try model.remove(event: event, span: span)
+            case .reminder(let reminder):
+                try model.remove(reminder: reminder)
+            }
+            dismiss()
+        } catch {
+            Logger.peek.error("Failed to delete item: \(error.localizedDescription)")
+            saveFailed = true
+        }
+    }
+
     private func create() {
         do {
             switch kind {
@@ -1361,7 +1856,7 @@ private struct NewItemForm: View {
                     end: endTime,
                     isAllDay: isAllDay,
                     notes: trimmedNotes,
-                    recurrence: repeatOption.rule,
+                    recurrence: selectedRecurrenceRule,
                     alarm: eventAlarm,
                     eventCalendar: target,
                     in: calendar
@@ -1376,7 +1871,7 @@ private struct NewItemForm: View {
                     dueDate: reminderDate,
                     time: reminderHasTime ? reminderTime : nil,
                     notes: trimmedNotes,
-                    recurrence: repeatOption.rule,
+                    recurrence: selectedRecurrenceRule,
                     earlyAlertOffset: reminderHasTime ? alertOption.offset : nil,
                     reminderCalendar: target,
                     in: calendar
@@ -1387,6 +1882,118 @@ private struct NewItemForm: View {
             Logger.peek.error("Failed to save item: \(error.localizedDescription)")
             saveFailed = true
         }
+    }
+}
+
+/// Calendar.app-style Custom repeat dialog: frequency popup, "Every N
+/// <unit>" interval field, and a weekday strip when weekly. Edits a local
+/// draft; only OK commits back to the form.
+private struct CustomRepeatEditor: View {
+    let calendar: Calendar
+    let commit: (CustomRepeat) -> Void
+
+    @State private var draft: CustomRepeat
+    @Environment(\.dismiss) private var dismiss
+
+    init(initial: CustomRepeat, calendar: Calendar, commit: @escaping (CustomRepeat) -> Void) {
+        self.calendar = calendar
+        self.commit = commit
+        _draft = State(initialValue: initial)
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Text(String(localized: "Frequency:"))
+                    .font(.system(size: 12))
+                Picker(String(localized: "Frequency"), selection: $draft.frequency) {
+                    Text(String(localized: "Daily")).tag(EKRecurrenceFrequency.daily)
+                    Text(String(localized: "Weekly")).tag(EKRecurrenceFrequency.weekly)
+                    Text(String(localized: "Monthly")).tag(EKRecurrenceFrequency.monthly)
+                    Text(String(localized: "Yearly")).tag(EKRecurrenceFrequency.yearly)
+                }
+                .labelsHidden()
+                .font(.system(size: 12))
+                .fixedSize()
+            }
+
+            HStack(spacing: 6) {
+                Text(String(localized: "Every"))
+                    .font(.system(size: 12))
+                TextField(String(localized: "Interval"), value: $draft.interval, format: .number)
+                    .labelsHidden()
+                    .textFieldStyle(.roundedBorder)
+                    .multilineTextAlignment(.center)
+                    .font(.system(size: 12))
+                    .frame(width: 36)
+                Text(unitLabel)
+                    .font(.system(size: 12))
+            }
+
+            if draft.frequency == .weekly {
+                weekdayStrip
+            }
+
+            HStack {
+                Button(String(localized: "Cancel")) { dismiss() }
+                    .font(.system(size: 12))
+                Button(String(localized: "OK")) {
+                    var value = draft
+                    value.interval = min(999, max(1, value.interval))
+                    commit(value)
+                    dismiss()
+                }
+                .font(.system(size: 12))
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(14)
+        .onExitCommand(perform: dismiss.callAsFunction)
+    }
+
+    /// Pluralized interval unit, e.g. "Week" / "Weeks".
+    private var unitLabel: String {
+        let plural = draft.interval != 1
+        switch draft.frequency {
+        case .daily: return plural ? String(localized: "Days") : String(localized: "Day")
+        case .weekly: return plural ? String(localized: "Weeks") : String(localized: "Week")
+        case .monthly: return plural ? String(localized: "Months") : String(localized: "Month")
+        case .yearly: return plural ? String(localized: "Years") : String(localized: "Year")
+        @unknown default: return ""
+        }
+    }
+
+    /// Seven joined weekday cells like Calendar.app's, ordered by the
+    /// locale's first weekday. At least one day stays selected — clicking
+    /// the last selected day is a no-op, as in Calendar.app.
+    private var weekdayStrip: some View {
+        HStack(spacing: 1) {
+            ForEach(orderedWeekdays, id: \.self) { weekday in
+                let selected = draft.weekdays.contains(weekday)
+                Button {
+                    if selected {
+                        if draft.weekdays.count > 1 { draft.weekdays.remove(weekday) }
+                    } else {
+                        draft.weekdays.insert(weekday)
+                    }
+                } label: {
+                    Text(calendar.veryShortStandaloneWeekdaySymbols[weekday - 1])
+                        .font(.system(size: 11, weight: .medium))
+                        .frame(width: 26, height: 22)
+                        .background(Color.primary.opacity(selected ? 0.25 : 0.06))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(calendar.standaloneWeekdaySymbols[weekday - 1])
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+    }
+
+    /// Weekday numbers (1 = Sunday) starting from the locale's first weekday.
+    private var orderedWeekdays: [Int] {
+        (0..<7).map { (calendar.firstWeekday - 1 + $0) % 7 + 1 }
     }
 }
 
@@ -1410,20 +2017,27 @@ private func calendarDotImage(_ cal: EKCalendar) -> NSImage {
     }
 }
 
-/// Shared Cancel/Create footer for the creation forms.
+/// Shared footer for the create and edit forms: optional destructive Delete
+/// on the leading edge, Cancel and the primary action trailing.
 private func formFooter(
-    createEnabled: Bool,
-    create: @escaping () -> Void,
+    primaryTitle: String,
+    primaryEnabled: Bool,
+    primary: @escaping () -> Void,
+    delete: (() -> Void)? = nil,
     dismiss: @escaping () -> Void
 ) -> some View {
     HStack {
+        if let delete {
+            Button(String(localized: "Delete"), role: .destructive, action: delete)
+                .font(.system(size: 12))
+        }
         Spacer(minLength: 0)
         Button(String(localized: "Cancel"), action: dismiss)
             .font(.system(size: 12))
-        Button(String(localized: "Create"), action: create)
+        Button(primaryTitle, action: primary)
             .font(.system(size: 12))
             .keyboardShortcut(.defaultAction)
-            .disabled(!createEnabled)
+            .disabled(!primaryEnabled)
     }
 }
 

@@ -22,6 +22,7 @@
 		98656F029D859DEC0C897A0C /* DateFormatPaddingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321AE0AA69DAF38300BF8E08 /* DateFormatPaddingTests.swift */; };
 		AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121195A122D71217E9761085 /* AppDelegate.swift */; };
 		AF58FAAB72AE0FDA4B603895 /* PaddedDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */; };
+		D95942E28F454A1BA42388CF /* FormPresetMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0FA03320A7AEC2597D899B7 /* FormPresetMappingTests.swift */; };
 		F5924861CD6E97849DA2F415 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A975481247ACCE26852C9E0C /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
@@ -53,6 +54,7 @@
 		AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayBadgeModel.swift; sourceTree = "<group>"; };
 		C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaddedDatePicker.swift; sourceTree = "<group>"; };
 		C7FBF3A5FCDF732EEECAFA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E0FA03320A7AEC2597D899B7 /* FormPresetMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormPresetMappingTests.swift; sourceTree = "<group>"; };
 		E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventsModel.swift; sourceTree = "<group>"; };
 		FFF7FD7CD7AB70EB98892DBF /* Peek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Peek.entitlements; sourceTree = "<group>"; };
@@ -81,6 +83,7 @@
 			isa = PBXGroup;
 			children = (
 				321AE0AA69DAF38300BF8E08 /* DateFormatPaddingTests.swift */,
+				E0FA03320A7AEC2597D899B7 /* FormPresetMappingTests.swift */,
 			);
 			path = PeekTests;
 			sourceTree = "<group>";
@@ -225,6 +228,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				98656F029D859DEC0C897A0C /* DateFormatPaddingTests.swift in Sources */,
+				D95942E28F454A1BA42388CF /* FormPresetMappingTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
