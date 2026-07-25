@@ -1901,8 +1901,15 @@ private struct CustomRepeatEditor: View {
         _draft = State(initialValue: initial)
     }
 
+    /// The weekday strip's exact width (7 × 26pt cells + 6 × 1pt gaps) —
+    /// the dialog's widest content, so every frequency lays out in the
+    /// same footprint.
+    private static let contentWidth: CGFloat = 188
+
     var body: some View {
-        VStack(spacing: 12) {
+        // Leading-aligned fixed-width rows: as the frequency or unit text
+        // changes, controls stay put instead of re-centering.
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Text(String(localized: "Frequency:"))
                     .font(.system(size: 12))
@@ -1930,11 +1937,16 @@ private struct CustomRepeatEditor: View {
                     .font(.system(size: 12))
             }
 
-            if draft.frequency == .weekly {
-                weekdayStrip
-            }
+            // Always in the layout so the dialog keeps one size; hidden
+            // rather than removed outside weekly, which would resize the
+            // popover on every frequency change.
+            weekdayStrip
+                .opacity(draft.frequency == .weekly ? 1 : 0)
+                .disabled(draft.frequency != .weekly)
+                .accessibilityHidden(draft.frequency != .weekly)
 
             HStack {
+                Spacer(minLength: 0)
                 Button(String(localized: "Cancel")) { dismiss() }
                     .font(.system(size: 12))
                 Button(String(localized: "OK")) {
@@ -1947,6 +1959,7 @@ private struct CustomRepeatEditor: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
+        .frame(width: Self.contentWidth)
         .padding(14)
         .onExitCommand(perform: dismiss.callAsFunction)
     }
