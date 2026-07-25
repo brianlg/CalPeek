@@ -149,8 +149,13 @@ final class CalendarEventsModel {
                 daysWithReminders = markedReminderDays(calendar: calendar)
             }
         }
-        if let index = allReminderSnapshots?.firstIndex(where: { $0.id == reminderID }) {
-            allReminderSnapshots?[index] = allReminderSnapshots![index].completing(completed)
+        // Copy out, mutate, write back: an optional-chained subscript
+        // assignment whose right side re-reads the same property overlaps
+        // accesses under @Observable and aborts with an exclusivity trap.
+        if var all = allReminderSnapshots,
+           let index = all.firstIndex(where: { $0.id == reminderID }) {
+            all[index] = all[index].completing(completed)
+            allReminderSnapshots = all
         }
     }
 
