@@ -241,6 +241,7 @@ struct AppearanceSettingsView: View {
             Section(String(localized: "Menubar Icon")) {
                 ThemeColorPicker(
                     title: String(localized: "Weekday Color"),
+                    help: String(localized: "Colors the weekday name in the menu bar. Automatic stays a subtle gray that suits every wallpaper."),
                     automaticSwatch: Color(nsColor: .secondaryLabelColor),
                     selection: $weekdayColorRaw
                 )
@@ -249,16 +250,19 @@ struct AppearanceSettingsView: View {
             Section(String(localized: "Theme")) {
                 ThemeColorPicker(
                     title: String(localized: "Today Marker"),
+                    help: String(localized: "Colors the circle around today. Automatic uses the same red as the Calendar app."),
                     automaticSwatch: Color(nsColor: .systemRed),
                     selection: $todayMarkerRaw
                 )
                 ThemeColorPicker(
                     title: String(localized: "Calendar Events"),
+                    help: String(localized: "Colors the dots beneath days with calendar events. Automatic borrows the color of your default calendar."),
                     automaticSwatch: store.defaultEventColor ?? Color(nsColor: .systemRed),
                     selection: $calendarEventsRaw
                 )
                 ThemeColorPicker(
                     title: String(localized: "Reminders"),
+                    help: String(localized: "Colors the dots and checkboxes for Reminders that fall on a specific day. Automatic matches your default Reminders list."),
                     automaticSwatch: store.defaultReminderColor ?? Color(nsColor: .systemOrange),
                     selection: $remindersRaw
                 )
@@ -276,17 +280,27 @@ struct AppearanceSettingsView: View {
 /// shapes are dropped from macOS menu items.
 private struct ThemeColorPicker: View {
     let title: String
+    let help: String
     let automaticSwatch: Color
     @Binding var selection: String
 
     var body: some View {
-        Picker(title, selection: $selection) {
+        Picker(selection: $selection) {
             swatchLabel(automaticSwatch, WeekdayColor.auto.displayName)
                 .tag(WeekdayColor.auto.rawValue)
             Divider()
             ForEach(WeekdayColor.allCases.filter { $0 != .auto }) { option in
                 swatchLabel(option.color, option.displayName)
                     .tag(option.rawValue)
+            }
+        } label: {
+            // Same title-and-caption row style as the General tab's toggles.
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(help)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
