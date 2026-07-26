@@ -164,8 +164,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 forName: name,
                 object: nil,
                 queue: .main
-            ) { [weak self] _ in
-                MainActor.assumeIsolated { self?.refreshIcon() }
+            ) { [weak self] notification in
+                // Only the (Sendable) name may cross into the isolated closure.
+                let name = notification.name
+                MainActor.assumeIsolated {
+                    self?.refreshIcon()
+                    // The models observe day changes themselves, but clock and
+                    // time zone jumps reach only this observer — and their
+                    // one-shot timers were scheduled against the old clock.
+                    if name != .NSCalendarDayChanged {
+                        self?.nextMeeting.refresh()
+                        self?.todayBadge.refresh()
+                    }
+                }
             }
         }
     }

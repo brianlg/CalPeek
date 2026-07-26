@@ -52,6 +52,9 @@ final class CalendarEventsModel {
     /// True when the user has denied (or can't grant) calendar access, so the
     /// view can point them at System Settings instead of silently showing no dots.
     private(set) var accessDenied = false
+    /// True when the denial is specifically the "Add Events Only" grant,
+    /// which allows writing but not the reading Peek needs.
+    private(set) var accessWriteOnly = false
 
     /// Tint for event dots: the color of the user's default calendar (the
     /// Calendar app's "Default Calendar" setting, via
@@ -217,8 +220,14 @@ final class CalendarEventsModel {
         event.calendar = eventCalendar
         event.isAllDay = isAllDay
         if isAllDay {
+            // All-day events end at 23:59:59 of the last day — the convention
+            // EventKit itself returns for fetched events. A midnight end would
+            // make a one-day event zero-length (breaking the `endDate > now`
+            // badge and next-meeting filters), and a next-midnight end puts the
+            // end's day component on the following day.
             event.startDate = cal.startOfDay(for: start)
-            event.endDate = cal.startOfDay(for: max(start, end))
+            let lastDay = cal.startOfDay(for: max(start, end))
+            event.endDate = cal.date(byAdding: DateComponents(day: 1, second: -1), to: lastDay) ?? lastDay
         } else {
             event.startDate = start
             event.endDate = end
@@ -283,7 +292,11 @@ final class CalendarEventsModel {
             accessDenied = false
             fetch(days: days, calendar: calendar)
         } else {
-            accessDenied = EKEventStore.authorizationStatus(for: .event) != .notDetermined
+            let status = EKEventStore.authorizationStatus(for: .event)
+            accessDenied = status != .notDetermined
+            // "Add Events Only" is a distinct grant that still can't be read
+            // from; the footer wording must not claim access is off entirely.
+            accessWriteOnly = status == .writeOnly
             daysWithEvents = []
         }
 

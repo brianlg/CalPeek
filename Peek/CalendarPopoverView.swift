@@ -133,6 +133,15 @@ struct CalendarPopoverView: View {
             hoveredDate = nil
             events.load(days: monthDays, calendar: calendar)
         }
+        // A popover left open across midnight (or restored on wake) would keep
+        // yesterday's "today" ring; reloading re-renders the grid against the
+        // new day. Delivered off the main queue, hence the hop.
+        .onReceive(
+            NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                .receive(on: RunLoop.main)
+        ) { _ in
+            events.load(days: monthDays, calendar: calendar)
+        }
     }
 
     // MARK: - Header
@@ -229,7 +238,9 @@ struct CalendarPopoverView: View {
     /// appear, with a shortcut to the relevant System Settings pane.
     private var accessDeniedFooter: some View {
         HStack(spacing: 4) {
-            Text(String(localized: "Calendar access is off."))
+            Text(events.accessWriteOnly
+                ? String(localized: "Peek needs full calendar access to show events.")
+                : String(localized: "Calendar access is off."))
                 .foregroundStyle(.secondary)
             Button(String(localized: "Open Settings")) {
                 let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"
@@ -999,8 +1010,11 @@ enum RepeatOption: String, CaseIterable, Identifiable {
     /// rules carry anything a preset can't express (interval, end, specific
     /// days) and must be preserved as-is. A weekly rule pinned to a single
     /// weekday still counts as "Every Week" — that's how Calendar.app stores
-    /// its own quick-create weekly rule.
-    static func matching(_ rules: [EKRecurrenceRule]?) -> RepeatOption? {
+    /// its own quick-create weekly rule — but only when the pinned day is
+    /// `startWeekday`: the preset saves back as a generic weekly rule, which
+    /// EventKit anchors to the start date, so a rule pinned elsewhere (e.g.
+    /// from an imported ICS) would silently change days.
+    static func matching(_ rules: [EKRecurrenceRule]?, startWeekday: Int) -> RepeatOption? {
         guard let rules, !rules.isEmpty else { return .never }
         guard rules.count == 1 else { return nil }
         let rule = rules[0]
@@ -1009,7 +1023,10 @@ enum RepeatOption: String, CaseIterable, Identifiable {
               rule.weeksOfTheYear == nil, rule.daysOfTheYear == nil,
               rule.setPositions == nil,
               rule.daysOfTheWeek == nil
-                  || (rule.frequency == .weekly && rule.daysOfTheWeek?.count == 1)
+                  || (rule.frequency == .weekly
+                      && rule.daysOfTheWeek?.count == 1
+                      && rule.daysOfTheWeek?.first?.weekNumber == 0
+                      && rule.daysOfTheWeek?.first?.dayOfTheWeek.rawValue == startWeekday)
         else { return nil }
         switch rule.frequency {
         case .daily: return .daily
@@ -1247,7 +1264,10 @@ private struct NewItemForm: View {
             _selectedEventCalendarID = State(initialValue: event.calendar.calendarIdentifier)
             _selectedReminderListID = State(initialValue: reminderLists.first?.calendarIdentifier ?? "")
             _notes = State(initialValue: event.notes ?? "")
-            let repeatState = Self.repeatState(for: event.recurrenceRules)
+            let repeatState = Self.repeatState(
+                for: event.recurrenceRules,
+                startWeekday: calendar.component(.weekday, from: event.startDate)
+            )
             _repeatOption = State(initialValue: repeatState.option)
             _customRepeat = State(initialValue: repeatState.custom)
             _customRecurrence = State(initialValue: repeatState.readOnly)
@@ -1275,7 +1295,10 @@ private struct NewItemForm: View {
             _selectedEventCalendarID = State(initialValue: eventCalendars.first?.calendarIdentifier ?? "")
             _selectedReminderListID = State(initialValue: reminder.calendar.calendarIdentifier)
             _notes = State(initialValue: reminder.notes ?? "")
-            let repeatState = Self.repeatState(for: reminder.recurrenceRules)
+            let repeatState = Self.repeatState(
+                for: reminder.recurrenceRules,
+                startWeekday: calendar.component(.weekday, from: due)
+            )
             _repeatOption = State(initialValue: repeatState.option)
             _customRepeat = State(initialValue: repeatState.custom)
             _customRecurrence = State(initialValue: repeatState.readOnly)
@@ -1290,9 +1313,9 @@ private struct NewItemForm: View {
     /// How an item's stored rules land in the Repeat row: a preset, the
     /// Custom dialog's value, or read-only preservation.
     private static func repeatState(
-        for rules: [EKRecurrenceRule]?
+        for rules: [EKRecurrenceRule]?, startWeekday: Int
     ) -> (option: RepeatOption, custom: CustomRepeat?, readOnly: Bool) {
-        if let preset = RepeatOption.matching(rules) {
+        if let preset = RepeatOption.matching(rules, startWeekday: startWeekday) {
             return (preset, nil, false)
         }
         if let custom = CustomRepeat.matching(rules) {
@@ -1823,8 +1846,12 @@ private struct NewItemForm: View {
                 }
                 event.isAllDay = isAllDay
                 if isAllDay {
+                    // Mirrors `createEvent`: all-day events end at 23:59:59 of
+                    // the last day, matching what EventKit returns on fetch so
+                    // an edit round-trip neither shrinks nor grows the span.
                     event.startDate = calendar.startOfDay(for: startTime)
-                    event.endDate = calendar.startOfDay(for: max(startTime, endTime))
+                    let lastDay = calendar.startOfDay(for: max(startTime, endTime))
+                    event.endDate = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: lastDay) ?? lastDay
                 } else {
                     event.startDate = startTime
                     event.endDate = endTime

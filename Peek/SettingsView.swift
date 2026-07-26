@@ -51,6 +51,9 @@ struct GeneralSettingsView: View {
     @State private var remindersDenied = false
     /// True after the user denied calendar access, mirroring `remindersDenied`.
     @State private var calendarDenied = false
+    /// True when the grant is specifically "Add Events Only", which can't be
+    /// read from — the footer wording must not claim access is off entirely.
+    @State private var calendarWriteOnly = false
 
     var body: some View {
         Form {
@@ -168,12 +171,15 @@ struct GeneralSettingsView: View {
                 } else {
                     showCalendar = false
                     calendarDenied = true
+                    calendarWriteOnly = false
                 }
             }
         default:
             // Denied, restricted, or write-only — none of which allow reading.
             showCalendar = false
             calendarDenied = true
+            calendarWriteOnly =
+                EKEventStore.authorizationStatus(for: .event) == .writeOnly
         }
     }
 
@@ -203,7 +209,9 @@ struct GeneralSettingsView: View {
         VStack(alignment: .leading, spacing: 2) {
             if calendarDenied {
                 accessDeniedRow(
-                    String(localized: "Calendar access is off."),
+                    calendarWriteOnly
+                        ? String(localized: "Peek needs full calendar access to show events.")
+                        : String(localized: "Calendar access is off."),
                     pane: "Privacy_Calendars"
                 )
             }

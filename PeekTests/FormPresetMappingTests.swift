@@ -7,8 +7,8 @@ import Testing
 /// presets. Nil means "Custom": the rules are preserved untouched on save.
 struct RepeatOptionMappingTests {
     @Test func noRulesIsNever() {
-        #expect(RepeatOption.matching(nil) == .never)
-        #expect(RepeatOption.matching([]) == .never)
+        #expect(RepeatOption.matching(nil, startWeekday: 2) == .never)
+        #expect(RepeatOption.matching([], startWeekday: 2) == .never)
     }
 
     @Test func simpleFrequenciesMapToPresets() {
@@ -17,19 +17,19 @@ struct RepeatOptionMappingTests {
         ]
         for (frequency, expected) in cases {
             let rule = EKRecurrenceRule(recurrenceWith: frequency, interval: 1, end: nil)
-            #expect(RepeatOption.matching([rule]) == expected)
+            #expect(RepeatOption.matching([rule], startWeekday: 2) == expected)
         }
     }
 
     @Test func intervalAboveOneIsCustom() {
         let rule = EKRecurrenceRule(recurrenceWith: .daily, interval: 2, end: nil)
-        #expect(RepeatOption.matching([rule]) == nil)
+        #expect(RepeatOption.matching([rule], startWeekday: 2) == nil)
     }
 
     @Test func ruleWithEndIsCustom() {
         let rule = EKRecurrenceRule(
             recurrenceWith: .daily, interval: 1, end: EKRecurrenceEnd(occurrenceCount: 5))
-        #expect(RepeatOption.matching([rule]) == nil)
+        #expect(RepeatOption.matching([rule], startWeekday: 2) == nil)
     }
 
     @Test func weeklyPinnedToOneWeekdayIsStillWeekly() {
@@ -40,7 +40,20 @@ struct RepeatOptionMappingTests {
             daysOfTheWeek: [EKRecurrenceDayOfWeek(.monday)],
             daysOfTheMonth: nil, monthsOfTheYear: nil, weeksOfTheYear: nil,
             daysOfTheYear: nil, setPositions: nil, end: nil)
-        #expect(RepeatOption.matching([rule]) == .weekly)
+        #expect(RepeatOption.matching([rule], startWeekday: 2) == .weekly)
+    }
+
+    @Test func weeklyPinnedToOtherWeekdayIsCustom() {
+        // A rule pinned to a day other than the start weekday (possible via
+        // imported ICS or other clients) must stay Custom: the Weekly preset
+        // saves back as a generic rule anchored to the start date, which
+        // would silently move the recurrence to a different day.
+        let rule = EKRecurrenceRule(
+            recurrenceWith: .weekly, interval: 1,
+            daysOfTheWeek: [EKRecurrenceDayOfWeek(.monday)],
+            daysOfTheMonth: nil, monthsOfTheYear: nil, weeksOfTheYear: nil,
+            daysOfTheYear: nil, setPositions: nil, end: nil)
+        #expect(RepeatOption.matching([rule], startWeekday: EKWeekday.tuesday.rawValue) == nil)
     }
 
     @Test func weeklyOnSeveralWeekdaysIsCustom() {
@@ -49,7 +62,7 @@ struct RepeatOptionMappingTests {
             daysOfTheWeek: [EKRecurrenceDayOfWeek(.monday), EKRecurrenceDayOfWeek(.thursday)],
             daysOfTheMonth: nil, monthsOfTheYear: nil, weeksOfTheYear: nil,
             daysOfTheYear: nil, setPositions: nil, end: nil)
-        #expect(RepeatOption.matching([rule]) == nil)
+        #expect(RepeatOption.matching([rule], startWeekday: 2) == nil)
     }
 
     @Test func multipleRulesAreCustom() {
@@ -57,7 +70,7 @@ struct RepeatOptionMappingTests {
             EKRecurrenceRule(recurrenceWith: .daily, interval: 1, end: nil),
             EKRecurrenceRule(recurrenceWith: .weekly, interval: 1, end: nil),
         ]
-        #expect(RepeatOption.matching(rules) == nil)
+        #expect(RepeatOption.matching(rules, startWeekday: 2) == nil)
     }
 }
 
