@@ -586,7 +586,12 @@ private struct DayEventsPopover: View {
 
     private enum Mode {
         case list, create, edit
+        /// Shown instead of `create`/`edit` when the trial has ended and
+        /// Peek Pro isn't purchased; offers a route to the unlock screen.
+        case locked
     }
+
+    private let store = Store.shared
 
     @State private var mode: Mode = .list
     /// The re-fetched item behind edit mode; set by `beginEditing` just
@@ -639,10 +644,12 @@ private struct DayEventsPopover: View {
                         self.editTarget = nil
                     }
                 }
+            case .locked:
+                lockedContent
             }
         }
         .padding(14)
-        .frame(width: mode == .list ? Layout.width : Layout.formWidth)
+        .frame(width: mode == .create || mode == .edit ? Layout.formWidth : Layout.width)
         .animation(.easeOut(duration: 0.12), value: mode)
     }
 
@@ -665,7 +672,8 @@ private struct DayEventsPopover: View {
                             tint: tint(for: item),
                             accent: accent,
                             model: model,
-                            onEdit: item.isEditable ? { beginEditing(item) } : nil
+                            onEdit: item.isEditable ? { beginEditing(item) } : nil,
+                            onLocked: { mode = .locked }
                         )
                     }
                 }
@@ -690,7 +698,7 @@ private struct DayEventsPopover: View {
     private var plusControl: some View {
         if model.canCreateEvents || model.canCreateReminders {
             Button {
-                mode = .create
+                mode = store.hasFullAccess ? .create : .locked
             } label: {
                 plusGlyph
                     .frame(width: 24, height: 24)
@@ -701,6 +709,29 @@ private struct DayEventsPopover: View {
             .help(model.canCreateEvents
                 ? String(localized: "New Event")
                 : String(localized: "New Reminder"))
+        }
+    }
+
+    /// Upsell shown when a write affordance is used without full access:
+    /// a short pitch and a route to the unlock screen. Deliberately quiet —
+    /// the popover is something the user sees many times a day.
+    private var lockedContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(String(localized: "Peek Pro"), systemImage: "sparkles")
+                .font(.system(size: 13, weight: .semibold))
+            Text(String(localized: "Creating and editing events and reminders needs Peek Pro. Viewing your calendar stays free."))
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Button(String(localized: "Not Now")) { mode = .list }
+                Spacer(minLength: 0)
+                Button(String(localized: "Unlock…")) {
+                    mode = .list
+                    NotificationCenter.default.post(name: .openProSettings, object: nil)
+                }
+                .keyboardShortcut(.defaultAction)
+            }
         }
     }
 
@@ -715,6 +746,10 @@ private struct DayEventsPopover: View {
     /// editor. Silently stays in the list if the item vanished from the
     /// store between render and click.
     private func beginEditing(_ item: DayItem) {
+        guard store.hasFullAccess else {
+            mode = .locked
+            return
+        }
         switch item.kind {
         case .event:
             guard let identifier = item.eventIdentifier,
@@ -740,6 +775,9 @@ private struct ItemRow: View {
     /// Opens the editor for this row; nil when the item's calendar is
     /// read-only, which leaves the row inert.
     let onEdit: (() -> Void)?
+    /// Invoked when a write affordance (the reminder checkbox) is used
+    /// without full access, so the parent can show the unlock prompt.
+    let onLocked: () -> Void
 
     /// Dismisses the day popover when the user jumps to Calendar/Reminders.
     @Environment(\.dismiss) private var dismiss
@@ -759,7 +797,11 @@ private struct ItemRow: View {
                         .foregroundStyle(tint)
                 case .reminder(let isCompleted, let reminderID):
                     Button {
-                        model.setReminderCompleted(reminderID, !isCompleted)
+                        if Store.shared.hasFullAccess {
+                            model.setReminderCompleted(reminderID, !isCompleted)
+                        } else {
+                            onLocked()
+                        }
                     } label: {
                         Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
                             .font(.system(size: 12))

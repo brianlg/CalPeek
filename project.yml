@@ -33,6 +33,9 @@ targets:
     scheme:
       testTargets:
         - PeekTests
+      # Local StoreKit testing: lets Debug builds buy/refund Peek Pro without
+      # App Store Connect or a sandbox account.
+      storeKitConfiguration: Peek.storekit
   PeekTests:
     type: bundle.unit-test
     platform: macOS

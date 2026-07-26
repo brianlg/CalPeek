@@ -35,6 +35,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeAppearancePreferenceChanges()
 
         todayBadge.onChange = { [weak self] in self?.refreshIcon() }
+
+        NotificationCenter.default.addObserver(
+            forName: .openProSettings, object: nil, queue: .main
+        ) { [weak self] _ in
+            // Hop through MainActor explicitly: the observer closure isn't
+            // isolated even though it runs on the main queue.
+            MainActor.assumeIsolated { self?.showSettings(selecting: .pro) }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -319,7 +327,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appearance.label = String(localized: "Appearance")
             appearance.image = NSImage(systemSymbolName: "paintpalette", accessibilityDescription: nil)
 
-            tabs.tabViewItems = [general, appearance]
+            let proVC = NSHostingController(rootView: ProSettingsView())
+            proVC.preferredContentSize = proVC.view.fittingSize
+            proVC.title = String(localized: "Settings")
+            let pro = NSTabViewItem(viewController: proVC)
+            pro.label = String(localized: "Peek Pro")
+            pro.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil)
+
+            tabs.tabViewItems = [general, appearance, pro]
 
             let window = NSWindow(contentViewController: tabs)
             window.title = String(localized: "Settings")
@@ -333,6 +348,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindow?.makeKeyAndOrderFront(nil)
     }
 
+    /// Opens Settings on a specific tab, closing the calendar popover first.
+    /// Reached via `.openProSettings` from the popover's Peek Pro unlock
+    /// prompt — under the SwiftUI lifecycle `NSApp.delegate` is SwiftUI's
+    /// own proxy object, so views can't get at this delegate directly.
+    private func showSettings(selecting tab: SettingsTab) {
+        popover.performClose(nil)
+        openSettings()
+        (settingsWindow?.contentViewController as? NSTabViewController)?
+            .selectedTabViewItemIndex = tab.rawValue
+    }
+
     @objc private func quit() {
         NSApp.terminate(nil)
     }
@@ -343,6 +369,9 @@ extension Notification.Name {
     /// `CalendarPopoverView` (whose state outlives each presentation) can
     /// reset navigation to the current month.
     static let popoverWillShow = Notification.Name("PeekPopoverWillShow")
+    /// Posted by the popover's unlock prompt to open Settings on the
+    /// Peek Pro tab (see `AppDelegate.showSettings(selecting:)`).
+    static let openProSettings = Notification.Name("PeekOpenProSettings")
 }
 
 /// Keeps the settings window's title pinned to "Settings" — the base class
