@@ -718,7 +718,7 @@ private struct DayEventsPopover: View {
     /// the popover is something the user sees many times a day.
     private var lockedContent: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(String(localized: "Peek Pro"), systemImage: "sparkles")
+            Label(String(localized: "Peek Pro"), systemImage: "checkmark.seal.fill")
                 .font(.system(size: 13, weight: .semibold))
             Text(String(localized: "Creating and editing events and reminders needs Peek Pro. Viewing your calendar stays free."))
                 .font(.system(size: 12))
