@@ -1,0 +1,33 @@
+{
+  "identifier" : "8F4A2C10-6B3E-4D9A-9C1F-2E7B5A8D4F60",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "8.99",
+      "familyShareable" : true,
+      "internalID" : "6E1D9B24-3A7F-4C58-8D2E-9F0A1B6C7D83",
+      "localizations" : [
+        {
+          "description" : "Create, edit, and check off events and reminders.",
+          "displayName" : "Peek Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.peek.Peek.pro",
+      "referenceName" : "Peek Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

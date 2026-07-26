@@ -10,6 +10,7 @@
 		1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D07979DD49EE8B5576C2CC8 /* Preferences.swift */; };
 		243FA653E2522548D09D8C02 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7A02D5B6D098F423410E4C /* SettingsView.swift */; };
 		252D43A41047A4EFAA2BE5C1 /* CalendarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3815A784200C57D267B397 /* CalendarPopoverView.swift */; };
+		2556627C1E697F54F41D6348 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FABCE5BD9E282FE2CB14CA9 /* Store.swift */; };
 		267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */; };
 		30CC9AAD1567BCE03AA6D91C /* CalendarEventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */; };
 		3796E7A36A8F8287F15E57F1 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62509D0EDCAAD924CE85A349 /* Logging.swift */; };
@@ -22,6 +23,7 @@
 		98656F029D859DEC0C897A0C /* DateFormatPaddingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 321AE0AA69DAF38300BF8E08 /* DateFormatPaddingTests.swift */; };
 		AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121195A122D71217E9761085 /* AppDelegate.swift */; };
 		AF58FAAB72AE0FDA4B603895 /* PaddedDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */; };
+		D45CF77980EE39F633FA981B /* ProSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA810293F4EB656FB298572B /* ProSettingsView.swift */; };
 		D95942E28F454A1BA42388CF /* FormPresetMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0FA03320A7AEC2597D899B7 /* FormPresetMappingTests.swift */; };
 		F5924861CD6E97849DA2F415 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A975481247ACCE26852C9E0C /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
@@ -47,10 +49,12 @@
 		49AA0AAA9BC02340D9B544C0 /* Peek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Peek.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D07979DD49EE8B5576C2CC8 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		58353733F62FEB8DB83E7501 /* PeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5FABCE5BD9E282FE2CB14CA9 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		62509D0EDCAAD924CE85A349 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		8A7A02D5B6D098F423410E4C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A438FD825076DC8EA1B8470E /* WeekdayColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayColor.swift; sourceTree = "<group>"; };
 		A975481247ACCE26852C9E0C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AA810293F4EB656FB298572B /* ProSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProSettingsView.swift; sourceTree = "<group>"; };
 		AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayBadgeModel.swift; sourceTree = "<group>"; };
 		C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaddedDatePicker.swift; sourceTree = "<group>"; };
 		C7FBF3A5FCDF732EEECAFA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -104,8 +108,10 @@
 				FFF7FD7CD7AB70EB98892DBF /* Peek.entitlements */,
 				077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */,
 				4D07979DD49EE8B5576C2CC8 /* Preferences.swift */,
+				AA810293F4EB656FB298572B /* ProSettingsView.swift */,
 				3CFDC58094073D8728CB4DBB /* RemindersSupport.swift */,
 				8A7A02D5B6D098F423410E4C /* SettingsView.swift */,
+				5FABCE5BD9E282FE2CB14CA9 /* Store.swift */,
 				AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */,
 				A438FD825076DC8EA1B8470E /* WeekdayColor.swift */,
 			);
@@ -216,8 +222,10 @@
 				AF58FAAB72AE0FDA4B603895 /* PaddedDatePicker.swift in Sources */,
 				267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */,
 				1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */,
+				D45CF77980EE39F633FA981B /* ProSettingsView.swift in Sources */,
 				92C5C996201EE4B217C15531 /* RemindersSupport.swift in Sources */,
 				243FA653E2522548D09D8C02 /* SettingsView.swift in Sources */,
+				2556627C1E697F54F41D6348 /* Store.swift in Sources */,
 				909515D149A2EF1B70125E83 /* TodayBadgeModel.swift in Sources */,
 				60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */,
 			);
@@ -248,6 +256,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Peek/Peek.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
@@ -288,6 +297,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Peek/Peek.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;

@@ -14,8 +14,17 @@ struct SettingsView: View {
                 .tabItem { Label(String(localized: "General"), systemImage: "gearshape") }
             AppearanceSettingsView()
                 .tabItem { Label(String(localized: "Appearance"), systemImage: "paintpalette") }
+            ProSettingsView()
+                .tabItem { Label(String(localized: "Peek Pro"), systemImage: "sparkles") }
         }
     }
+}
+
+/// Tab order shared by the SwiftUI `Settings` scene above and the AppKit
+/// tab controller in `AppDelegate.openSettings`, so callers can select a
+/// tab by name rather than a magic index.
+enum SettingsTab: Int {
+    case general, appearance, pro
 }
 
 /// The General settings tab.
