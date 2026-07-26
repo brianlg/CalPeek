@@ -29,12 +29,23 @@ enum SettingsTab: Int {
 
 /// The General settings tab.
 struct GeneralSettingsView: View {
+    @AppStorage(Preferences.showNextMeetingKey)
+    private var showNextMeeting = Preferences.showNextMeetingDefault
+    @AppStorage(Preferences.showMeetingTitleKey)
+    private var showMeetingTitle = Preferences.showMeetingTitleDefault
+    @AppStorage(Preferences.leadWindowMinutesKey)
+    private var leadWindowMinutes = Preferences.leadWindowMinutesDefault
+    @AppStorage(Preferences.joinHotKeyEnabledKey)
+    private var joinHotKeyEnabled = Preferences.joinHotKeyEnabledDefault
     @AppStorage(Preferences.showRemindersKey)
     private var showReminders = Preferences.showRemindersDefault
     @AppStorage(Preferences.showCalendarKey)
     private var showCalendar = Preferences.showCalendarDefault
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    /// Gates the Next Meeting section; reading it in `body` keeps the
+    /// section in sync with purchases via `@Observable` tracking.
+    private let store = Store.shared
     /// True after the user denied Reminders access, so the footer can point
     /// them at System Settings.
     @State private var remindersDenied = false
@@ -80,6 +91,54 @@ struct GeneralSettingsView: View {
                 Text(String(localized: "Permissions"))
             } footer: {
                 permissionsFooter
+            }
+
+            Section {
+                // Disabled per-control rather than on the Section so the
+                // footer's Learn More button stays clickable when locked.
+                Group {
+                    Toggle(String(localized: "Show next meeting in menu bar"), isOn: $showNextMeeting)
+                    Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
+                        .disabled(!showNextMeeting)
+                    Picker(String(localized: "Show when starting within"), selection: $leadWindowMinutes) {
+                        Text(String(localized: "10 minutes")).tag(10)
+                        Text(String(localized: "30 minutes")).tag(30)
+                        Text(String(localized: "1 hour")).tag(60)
+                        Text(String(localized: "4 hours")).tag(240)
+                        Text(String(localized: "Any time today")).tag(0)
+                    }
+                    .disabled(!showNextMeeting)
+                    Toggle(String(localized: "Join next meeting with ⌥⌘J"), isOn: $joinHotKeyEnabled)
+                }
+                // The next-meeting feature reads from the calendar, so it has
+                // nothing to show until Show Calendar is on; without Peek Pro
+                // the toggles would drive a feature that never renders.
+                .disabled(!showCalendar || !store.hasFullAccess)
+            } header: {
+                HStack(spacing: 6) {
+                    Text(String(localized: "Next Meeting"))
+                    if !store.hasFullAccess {
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(.tint)
+                    }
+                }
+            } footer: {
+                if store.hasFullAccess {
+                    Text(String(localized: "Peek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                } else {
+                    HStack(spacing: 4) {
+                        Text(String(localized: "Requires Peek Pro."))
+                            .foregroundStyle(.secondary)
+                        Button(String(localized: "Learn More")) {
+                            NotificationCenter.default.post(name: .openProSettings, object: nil)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.tint)
+                    }
+                    .font(.system(size: 11))
+                }
             }
         }
         .formStyle(.grouped)

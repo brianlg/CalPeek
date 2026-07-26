@@ -12,7 +12,14 @@ final class Store {
     /// Non-consumable unlock. Must match App Store Connect and Peek.storekit.
     static let proProductID = "com.peek.Peek.pro"
 
-    private(set) var isPro = false
+    private(set) var isPro = false {
+        didSet {
+            guard isPro != oldValue else { return }
+            // AppKit-side consumers (NextMeetingModel, the status item) don't
+            // sit in a SwiftUI body, so observation tracking can't reach them.
+            NotificationCenter.default.post(name: .proStatusDidChange, object: nil)
+        }
+    }
 
     /// Held for the app's lifetime so refunds, family-sharing revocations,
     /// and purchases finished outside the app all land while it's running.
@@ -69,4 +76,10 @@ final class Store {
         }
         return Calendar.current.date(byAdding: .day, value: Self.trialDays, to: start) ?? start
     }
+}
+
+extension Notification.Name {
+    /// Posted when `Store.isPro` flips (purchase, restore, refund) so
+    /// non-SwiftUI consumers can re-evaluate gated features.
+    static let proStatusDidChange = Notification.Name("PeekProStatusDidChange")
 }

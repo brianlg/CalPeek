@@ -6,9 +6,14 @@ import SwiftUI
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
+    /// App-lifetime source of the next joinable meeting, feeding the menu bar
+    /// countdown, the context menu's join item, and the popover banner.
+    /// Peek Pro: the model resolves to nil without full access.
+    private let nextMeeting = NextMeetingModel()
     /// Drives the agenda dots on the menu bar icon, tinted with the user's
     /// default calendar and default reminders list colors.
     private let todayBadge = TodayBadgeModel()
+    private var joinHotKey: GlobalHotKey?
     /// Created on first open and reused; strong reference plus
     /// `isReleasedWhenClosed = false` keeps AppKit from deallocating it when
     /// the user closes it.
@@ -26,6 +31,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Preferences.calendarEventsColorKey,
         Preferences.remindersColorKey,
     ]
+    /// Next Meeting preference keys, observed the same way: they change the
+    /// status-item title and the hotkey registration, not the icon.
+    private nonisolated static let nextMeetingDefaultsKeys = [
+        Preferences.showNextMeetingKey,
+        Preferences.showMeetingTitleKey,
+        Preferences.leadWindowMinutesKey,
+        Preferences.joinHotKeyEnabledKey,
+    ]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configurePopover()
@@ -33,6 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeDateChanges()
         observeAppearanceChanges()
         observeAppearancePreferenceChanges()
+
+        nextMeeting.onChange = { [weak self] in self?.refreshNextMeetingUI() }
+        refreshNextMeetingUI()
 
         todayBadge.onChange = { [weak self] in self?.refreshIcon() }
 
@@ -53,6 +69,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Self.iconDefaultsKeys.forEach {
             UserDefaults.standard.removeObserver(self, forKeyPath: $0)
         }
+        Self.nextMeetingDefaultsKeys.forEach {
+            UserDefaults.standard.removeObserver(self, forKeyPath: $0)
+        }
+        joinHotKey = nil
     }
 
     // MARK: - Status item
@@ -73,6 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // while left-click continues to toggle the popover.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.toolTip = String(localized: "Peek")
+        // The glyph image sits left of the (usually empty) countdown title.
+        button.imagePosition = .imageLeft
+        button.font = NSFont.menuBarFont(ofSize: 0)
 
         refreshIcon()
     }
@@ -155,6 +178,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         for key in Self.iconDefaultsKeys {
             UserDefaults.standard.addObserver(self, forKeyPath: key, options: [], context: nil)
         }
+        for key in Self.nextMeetingDefaultsKeys {
+            UserDefaults.standard.addObserver(self, forKeyPath: key, options: [], context: nil)
+        }
     }
 
     // KVO fires on whichever thread wrote the default, so hop to the main
@@ -165,11 +191,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         change: [NSKeyValueChangeKey: Any]?,
         context: UnsafeMutableRawPointer?
     ) {
-        guard let keyPath, Self.iconDefaultsKeys.contains(keyPath) else {
+        if let keyPath, Self.iconDefaultsKeys.contains(keyPath) {
+            Task { @MainActor in self.refreshIcon() }
+        } else if let keyPath, Self.nextMeetingDefaultsKeys.contains(keyPath) {
+            // Refresh rather than just re-render: the lead window moves the
+            // model's transition timer as well as the visible text.
+            Task { @MainActor in self.nextMeeting.refresh() }
+        } else {
             super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
-            return
         }
-        Task { @MainActor in self.refreshIcon() }
     }
 
     private func observeAppearanceChanges() {
@@ -191,7 +221,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Let SwiftUI drive the popover size so the view's layout is the single
         // source of truth.
         let hosting = NSHostingController(
-            rootView: CalendarPopoverView()
+            rootView: CalendarPopoverView(nextMeetingModel: nextMeeting)
         )
         hosting.sizingOptions = .preferredContentSize
         popover.contentViewController = hosting
@@ -213,8 +243,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 assertionFailure("Cannot show popover - status item button is nil")
                 return
             }
-            // Freshen the badge so it reflects any just-added events (or
-            // newly granted calendar access).
+            // Freshen the banner and badge so they reflect any just-added
+            // events (or newly granted calendar access).
+            nextMeeting.refresh()
             todayBadge.refresh()
             // The popover's SwiftUI view lives for the app's lifetime, so
             // `onAppear` fires only once; this tells it to reset to the
@@ -239,6 +270,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeContextMenu() -> NSMenu {
         let menu = NSMenu()
+
+        if let meeting = nextMeeting.nextMeeting {
+            let joinItem = NSMenuItem(
+                title: String(localized: "Join “\(meeting.title)”"),
+                action: #selector(joinNextMeetingFromMenu),
+                keyEquivalent: ""
+            )
+            joinItem.target = self
+            menu.addItem(joinItem)
+            menu.addItem(.separator())
+        }
 
         let colorItem = NSMenuItem(title: String(localized: "Weekday Color"), action: nil, keyEquivalent: "")
         colorItem.submenu = makeWeekdayColorMenu()
@@ -291,6 +333,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let raw = sender.representedObject as? String else { return }
         // The key's KVO observation re-renders the icon.
         UserDefaults.standard.set(raw, forKey: WeekdayColor.defaultsKey)
+    }
+
+    // MARK: - Next meeting
+
+    /// Updates the countdown text next to the glyph and (de)registers the
+    /// global join hotkey to match current preferences and Pro status.
+    private func refreshNextMeetingUI() {
+        if let button = statusItem?.button {
+            if let text = nextMeeting.menuBarText {
+                button.title = text
+                button.toolTip = nextMeeting.nextMeeting?.title ?? String(localized: "Peek")
+            } else {
+                button.title = ""
+                button.toolTip = String(localized: "Peek")
+            }
+        }
+        updateJoinHotKey()
+    }
+
+    private func updateJoinHotKey() {
+        // Part of Peek Pro alongside the countdown — a hotkey joining
+        // meetings the UI no longer shows would be surprising.
+        if Preferences.joinHotKeyEnabled, Store.shared.hasFullAccess {
+            guard joinHotKey == nil else { return }
+            joinHotKey = GlobalHotKey.joinMeeting { [weak self] in
+                self?.nextMeeting.joinNextMeeting()
+            }
+        } else {
+            joinHotKey = nil
+        }
+    }
+
+    @objc private func joinNextMeetingFromMenu() {
+        nextMeeting.joinNextMeeting()
     }
 
     @objc private func openSettings() {
