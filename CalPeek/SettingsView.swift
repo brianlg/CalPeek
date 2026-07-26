@@ -299,7 +299,7 @@ struct AppearanceSettingsView: View {
             Section(String(localized: "Menubar Icon")) {
                 ThemeColorPicker(
                     title: String(localized: "Weekday Color"),
-                    help: String(localized: "Colors the weekday name in the menu bar. Automatic stays a subtle gray that suits every wallpaper."),
+                    help: String(localized: "Colors the weekday name in the menu bar."),
                     automaticSwatch: Color(nsColor: .secondaryLabelColor),
                     selection: $weekdayColorRaw
                 )
@@ -308,19 +308,19 @@ struct AppearanceSettingsView: View {
             Section(String(localized: "Theme")) {
                 ThemeColorPicker(
                     title: String(localized: "Today Marker"),
-                    help: String(localized: "Colors the circle around today. Automatic uses the same red as the Calendar app."),
+                    help: String(localized: "Colors the circle around today."),
                     automaticSwatch: Color(nsColor: .systemRed),
                     selection: $todayMarkerRaw
                 )
                 ThemeColorPicker(
                     title: String(localized: "Calendar Events"),
-                    help: String(localized: "Colors the dots beneath days with calendar events. Automatic borrows the color of your default calendar."),
+                    help: String(localized: "Colors the dots beneath days with calendar events."),
                     automaticSwatch: store.defaultEventColor ?? Color(nsColor: .systemRed),
                     selection: $calendarEventsRaw
                 )
                 ThemeColorPicker(
                     title: String(localized: "Reminders"),
-                    help: String(localized: "Colors the dots and checkboxes for Reminders that fall on a specific day. Automatic matches your default Reminders list."),
+                    help: String(localized: "Colors the dots and checkboxes for Reminders that fall on a specific day."),
                     automaticSwatch: store.defaultReminderColor ?? Color(nsColor: .systemOrange),
                     selection: $remindersRaw
                 )
