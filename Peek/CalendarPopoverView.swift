@@ -1150,7 +1150,6 @@ private struct NewItemForm: View {
         case reminder(EKReminder)
     }
 
-    let date: Date
     let model: CalendarEventsModel
     let calendar: Calendar
     let accent: Color
@@ -1203,7 +1202,6 @@ private struct NewItemForm: View {
     }
 
     init(date: Date, model: CalendarEventsModel, calendar: Calendar, accent: Color, dismiss: @escaping () -> Void) {
-        self.date = date
         self.model = model
         self.calendar = calendar
         self.accent = accent
@@ -1234,7 +1232,6 @@ private struct NewItemForm: View {
 
         switch target {
         case .event(let event):
-            date = event.startDate
             _kind = State(initialValue: .event)
             _thumbKind = State(initialValue: .event)
             _title = State(initialValue: event.title ?? "")
@@ -1263,7 +1260,6 @@ private struct NewItemForm: View {
         case .reminder(let reminder):
             let components = reminder.dueDateComponents
             let due = components.flatMap { ($0.calendar ?? calendar).date(from: $0) } ?? Date()
-            date = due
             _kind = State(initialValue: .reminder)
             _thumbKind = State(initialValue: .reminder)
             _title = State(initialValue: reminder.title ?? "")
