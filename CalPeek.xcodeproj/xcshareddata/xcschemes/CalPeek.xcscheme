@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "157CA9ED69888E284CFAB7C3"
-               BuildableName = "Peek.app"
-               BlueprintName = "Peek"
-               ReferencedContainer = "container:Peek.xcodeproj">
+               BlueprintIdentifier = "3800893FB8687C593276876C"
+               BuildableName = "CalPeek.app"
+               BlueprintName = "CalPeek"
+               ReferencedContainer = "container:CalPeek.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "157CA9ED69888E284CFAB7C3"
-            BuildableName = "Peek.app"
-            BlueprintName = "Peek"
-            ReferencedContainer = "container:Peek.xcodeproj">
+            BlueprintIdentifier = "3800893FB8687C593276876C"
+            BuildableName = "CalPeek.app"
+            BlueprintName = "CalPeek"
+            ReferencedContainer = "container:CalPeek.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -44,10 +44,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "16BD94296850993CDEFF120C"
-               BuildableName = "PeekTests.xctest"
-               BlueprintName = "PeekTests"
-               ReferencedContainer = "container:Peek.xcodeproj">
+               BlueprintIdentifier = "9C7BBEBB191CB9656008F28B"
+               BuildableName = "CalPeekTests.xctest"
+               BlueprintName = "CalPeekTests"
+               ReferencedContainer = "container:CalPeek.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -68,16 +68,16 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "157CA9ED69888E284CFAB7C3"
-            BuildableName = "Peek.app"
-            BlueprintName = "Peek"
-            ReferencedContainer = "container:Peek.xcodeproj">
+            BlueprintIdentifier = "3800893FB8687C593276876C"
+            BuildableName = "CalPeek.app"
+            BlueprintName = "CalPeek"
+            ReferencedContainer = "container:CalPeek.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
       </CommandLineArguments>
       <StoreKitConfigurationFileReference
-         identifier = "../../Peek.storekit">
+         identifier = "../../CalPeek.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
@@ -90,10 +90,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "157CA9ED69888E284CFAB7C3"
-            BuildableName = "Peek.app"
-            BlueprintName = "Peek"
-            ReferencedContainer = "container:Peek.xcodeproj">
+            BlueprintIdentifier = "3800893FB8687C593276876C"
+            BuildableName = "CalPeek.app"
+            BlueprintName = "CalPeek"
+            ReferencedContainer = "container:CalPeek.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

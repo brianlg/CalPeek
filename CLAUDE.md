@@ -1,4 +1,4 @@
-# Peek
+# CalPeek
 
 A minimal, native macOS **menu-bar-only** calendar app (SwiftUI + AppKit). No main window — everything lives in the menu bar status item and an `NSPopover`. `LSUIElement` is set.
 
@@ -31,7 +31,7 @@ For every code change:
 
 1. **Build must pass.** Compile before reporting done.
    ```sh
-   xcodebuild -scheme Peek -configuration Debug build
+   xcodebuild -scheme CalPeek -configuration Debug build
    ```
 2. **For any UI change, visually verify at runtime.** Use the `verify` skill — build, launch, and drive the app, then screenshot to confirm it actually looks and behaves right. Don't claim a UI change works without seeing it.
 3. **Auto-commit the completed task** with a descriptive message. **Never push** unless explicitly asked.
@@ -47,7 +47,7 @@ For every code change:
 This project uses **XcodeGen** — the Xcode project is generated from `project.yml`, not edited by hand.
 
 - **After adding, renaming, or deleting any file**, run `xcodegen generate` before building. This is the #1 recurring mistake — a stale project means your new file isn't in the build. Editing existing files does not require regeneration.
-- Never edit `Peek.xcodeproj` directly; change `project.yml` and regenerate.
+- Never edit `CalPeek.xcodeproj` directly; change `project.yml` and regenerate.
 - Build/verify commands live in the `verify` skill (`.claude/skills/verify/SKILL.md`) — read it before driving the UI. It documents the non-obvious mechanics (CGEvent clicking, region screenshots, the fact that System Events can't see the popover, and how to type into a non-frontmost app).
 
 ## Code style & conventions
@@ -55,7 +55,7 @@ This project uses **XcodeGen** — the Xcode project is generated from `project.
 - **Swift 6**, strict concurrency. UI/AppKit-touching types are `@MainActor`.
 - Match the existing house style: `final class`, `///` doc comments explaining *why* (not what), `// MARK:` section dividers, small focused files (one view/model per file).
 - Keep it minimal. Don't add abstractions, layers, or files beyond what the change needs.
-- Source layout: `PeekApp.swift` (entry, `LSUIElement`), `AppDelegate.swift` (status item, popover, menu, glyph rendering), `MenuBarIconView.swift` (glyph), `CalendarPopoverView.swift` (month view), `SettingsView.swift`, plus models (`*Model.swift`), `WeekdayColor.swift`, `MeetingLinkParser.swift`, `RemindersSupport.swift`, `Preferences.swift`, `GlobalHotKey.swift`.
+- Source layout: `CalPeekApp.swift` (entry, `LSUIElement`), `AppDelegate.swift` (status item, popover, menu, glyph rendering), `MenuBarIconView.swift` (glyph), `CalendarPopoverView.swift` (month view), `SettingsView.swift`, plus models (`*Model.swift`), `WeekdayColor.swift`, `MeetingLinkParser.swift`, `RemindersSupport.swift`, `Preferences.swift`, `GlobalHotKey.swift`.
 - User-facing strings go through `Localizable.xcstrings`.
 
 ## Dependencies
@@ -68,7 +68,7 @@ Add lightweight unit tests for **pure/parseable logic** going forward — date m
 
 ## Don't regress these
 
-Peek's core behaviors that changes must not break:
+CalPeek's core behaviors that changes must not break:
 
 - The menu bar glyph updates live (weekday + day number) and re-renders on date change, light/dark mode, and wallpaper-tinted menu bar changes.
 - The popover month view: arrow-key month/year navigation, "Today", event dots (including multi-day spans), day-click event list.

@@ -1,7 +1,7 @@
 import StoreKit
 import SwiftUI
 
-/// The Peek Pro settings tab: the one-time unlock purchase, trial status,
+/// The CalPeek Pro settings tab: the one-time unlock purchase, trial status,
 /// and Restore Purchases. Uses StoreKit's `ProductView` so pricing, locale,
 /// and the purchase sheet are all the system's.
 struct ProSettingsView: View {
@@ -23,8 +23,8 @@ struct ProSettingsView: View {
                 Section {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(String(localized: "Peek Pro is unlocked"))
-                            Text(String(localized: "Thanks for supporting Peek. All features are yours, forever."))
+                            Text(String(localized: "CalPeek Pro is unlocked"))
+                            Text(String(localized: "Thanks for supporting CalPeek. All features are yours, forever."))
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }

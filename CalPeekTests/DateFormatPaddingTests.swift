@@ -1,5 +1,5 @@
 import Testing
-@testable import Peek
+@testable import CalPeek
 
 struct DateFormatPaddingTests {
     @Test func padsUSStylePattern() {

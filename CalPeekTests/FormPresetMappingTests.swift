@@ -1,7 +1,7 @@
 import EventKit
 import Foundation
 import Testing
-@testable import Peek
+@testable import CalPeek
 
 /// Mapping from an item's stored recurrence rules to the editor's Repeat
 /// presets. Nil means "Custom": the rules are preserved untouched on save.

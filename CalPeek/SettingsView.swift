@@ -45,7 +45,7 @@ struct GeneralSettingsView: View {
                         setLaunchAtLogin(newValue)
                     }
                     // The user can flip the login item in System Settings while
-                    // this window is open; re-sync when they come back to Peek.
+                    // this window is open; re-sync when they come back to CalPeek.
                     .onReceive(NotificationCenter.default.publisher(
                         for: NSApplication.didBecomeActiveNotification
                     )) { _ in
@@ -96,7 +96,7 @@ struct GeneralSettingsView: View {
                     Toggle(String(localized: "Join next meeting with ⌥⌘J"), isOn: $joinHotKeyEnabled)
                 }
                 // The next-meeting feature reads from the calendar, so it has
-                // nothing to show until Show Calendar is on; without Peek Pro
+                // nothing to show until Show Calendar is on; without CalPeek Pro
                 // the toggles would drive a feature that never renders.
                 .disabled(!showCalendar || !store.hasFullAccess)
             } header: {
@@ -109,12 +109,12 @@ struct GeneralSettingsView: View {
                 }
             } footer: {
                 if store.hasFullAccess {
-                    Text(String(localized: "Peek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
+                    Text(String(localized: "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 } else {
                     HStack(spacing: 4) {
-                        Text(String(localized: "Requires Peek Pro."))
+                        Text(String(localized: "Requires CalPeek Pro."))
                             .foregroundStyle(.secondary)
                         Button(String(localized: "Learn More")) {
                             NotificationCenter.default.post(name: .openProSettings, object: nil)
@@ -192,7 +192,7 @@ struct GeneralSettingsView: View {
             if calendarDenied {
                 accessDeniedRow(
                     calendarWriteOnly
-                        ? String(localized: "Peek needs full calendar access to show events.")
+                        ? String(localized: "CalPeek needs full calendar access to show events.")
                         : String(localized: "Calendar access is off."),
                     pane: "Privacy_Calendars"
                 )
@@ -271,7 +271,7 @@ struct GeneralSettingsView: View {
         } catch {
             // Registration can fail for builds outside /Applications; reflect
             // the real state rather than lying in the toggle.
-            Logger.peek.error("Failed to toggle Launch at Login: \(error.localizedDescription)")
+            Logger.calPeek.error("Failed to toggle Launch at Login: \(error.localizedDescription)")
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }
