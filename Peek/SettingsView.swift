@@ -3,26 +3,8 @@ import os
 import ServiceManagement
 import SwiftUI
 
-/// Root of the settings UI for the SwiftUI `Settings` scene. The AppKit
-/// window opened from the status item menu builds the same tabs with
-/// `NSTabViewController` (see `AppDelegate.openSettings`), which is what
-/// renders the native icon-over-label toolbar style outside that scene.
-struct SettingsView: View {
-    var body: some View {
-        TabView {
-            GeneralSettingsView()
-                .tabItem { Label(String(localized: "General"), systemImage: "gearshape") }
-            AppearanceSettingsView()
-                .tabItem { Label(String(localized: "Appearance"), systemImage: "paintpalette") }
-            ProSettingsView()
-                .tabItem { Label(String(localized: "Peek Pro"), systemImage: "sparkles") }
-        }
-    }
-}
-
-/// Tab order shared by the SwiftUI `Settings` scene above and the AppKit
-/// tab controller in `AppDelegate.openSettings`, so callers can select a
-/// tab by name rather than a magic index.
+/// Tab order of the settings window built in `AppDelegate.openSettings`,
+/// so callers can select a tab by name rather than a magic index.
 enum SettingsTab: Int {
     case general, appearance, pro
 }
@@ -398,6 +380,10 @@ private struct ThemeColorPicker: View {
     }
 }
 
-#Preview {
-    SettingsView()
+#Preview("General") {
+    GeneralSettingsView()
+}
+
+#Preview("Appearance") {
+    AppearanceSettingsView()
 }

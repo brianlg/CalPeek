@@ -10,10 +10,9 @@ struct PeekApp: App {
     var body: some Scene {
         // An App must declare at least one scene, but this one is never
         // opened: macOS 14 removed AppKit-side access to the Settings scene,
-        // so `AppDelegate.openSettings()` hosts `SettingsView` in its own
-        // window instead.
+        // so `AppDelegate.openSettings()` builds the settings window itself.
         Settings {
-            SettingsView()
+            EmptyView()
         }
     }
 }
