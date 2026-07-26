@@ -10,6 +10,13 @@ struct ProSettingsView: View {
     /// Outcome of the last Restore Purchases attempt, shown under the button.
     @State private var restoreMessage: String?
 
+    /// True once the product query has failed or timed out — `ProductView`
+    /// has no failure callback and would sit on its redacted placeholder
+    /// forever, so the load is verified independently.
+    @State private var productLoadFailed = false
+    /// Re-runs the product-load check when the user retries.
+    @State private var loadAttempt = 0
+
     var body: some View {
         Form {
             if store.isPro {
@@ -28,8 +35,20 @@ struct ProSettingsView: View {
                 }
             } else {
                 Section {
-                    ProductView(id: Store.proProductID)
-                        .productViewStyle(.large)
+                    if productLoadFailed {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(String(localized: "Couldn't load the App Store. Check your connection."))
+                                .font(.system(size: 12))
+                                .foregroundStyle(.secondary)
+                            Button(String(localized: "Try Again")) {
+                                productLoadFailed = false
+                                loadAttempt += 1
+                            }
+                        }
+                    } else {
+                        ProductView(id: Store.proProductID)
+                            .productViewStyle(.large)
+                    }
                 } footer: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "One-time purchase. No subscription, free updates."))
@@ -56,6 +75,31 @@ struct ProSettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .fixedSize()
+        .task(id: loadAttempt) {
+            guard !store.isPro else { return }
+            productLoadFailed = !(await Self.productIsLoadable())
+        }
+    }
+
+    /// Runs the same query `ProductView` depends on, racing a timeout, so a
+    /// dead App Store connection surfaces as a real error instead of an
+    /// endless placeholder shimmer.
+    private static func productIsLoadable() async -> Bool {
+        do {
+            let products = try await withThrowingTaskGroup(of: [Product].self) { group in
+                group.addTask { try await Product.products(for: [Store.proProductID]) }
+                group.addTask {
+                    try await Task.sleep(for: .seconds(10))
+                    throw CancellationError()
+                }
+                let first = try await group.next() ?? []
+                group.cancelAll()
+                return first
+            }
+            return !products.isEmpty
+        } catch {
+            return false
+        }
     }
 
     @ViewBuilder
