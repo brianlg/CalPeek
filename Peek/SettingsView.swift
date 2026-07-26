@@ -103,7 +103,7 @@ struct GeneralSettingsView: View {
                 HStack(spacing: 6) {
                     Text(String(localized: "Next Meeting"))
                     if !store.hasFullAccess {
-                        Image(systemName: "sparkles")
+                        Image(systemName: "checkmark.seal.fill")
                             .foregroundStyle(.tint)
                     }
                 }
