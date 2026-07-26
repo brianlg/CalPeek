@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D07979DD49EE8B5576C2CC8 /* Preferences.swift */; };
+		23DC17F2A4B0B49FC57CC67E /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5B6AB9E4A0732CE399A5E9D8 /* PrivacyInfo.xcprivacy */; };
 		243FA653E2522548D09D8C02 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A7A02D5B6D098F423410E4C /* SettingsView.swift */; };
 		252D43A41047A4EFAA2BE5C1 /* CalendarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E3815A784200C57D267B397 /* CalendarPopoverView.swift */; };
 		2556627C1E697F54F41D6348 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FABCE5BD9E282FE2CB14CA9 /* Store.swift */; };
@@ -52,6 +53,7 @@
 		49AA0AAA9BC02340D9B544C0 /* Peek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Peek.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4D07979DD49EE8B5576C2CC8 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
 		58353733F62FEB8DB83E7501 /* PeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B6AB9E4A0732CE399A5E9D8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5FABCE5BD9E282FE2CB14CA9 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		62509D0EDCAAD924CE85A349 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		67E4D0407A860C96BB59394A /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
@@ -117,6 +119,7 @@
 				FFF7FD7CD7AB70EB98892DBF /* Peek.entitlements */,
 				077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */,
 				4D07979DD49EE8B5576C2CC8 /* Preferences.swift */,
+				5B6AB9E4A0732CE399A5E9D8 /* PrivacyInfo.xcprivacy */,
 				AA810293F4EB656FB298572B /* ProSettingsView.swift */,
 				3CFDC58094073D8728CB4DBB /* RemindersSupport.swift */,
 				8A7A02D5B6D098F423410E4C /* SettingsView.swift */,
@@ -213,6 +216,7 @@
 				60FA322929274325F95A67E6 /* AppIcon.icon in Resources */,
 				4F9B833225D1A1502EBBDDD4 /* Assets.xcassets in Resources */,
 				F5924861CD6E97849DA2F415 /* Localizable.xcstrings in Resources */,
+				23DC17F2A4B0B49FC57CC67E /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
