@@ -396,10 +396,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             tabs.tabStyle = .toolbar
 
             // NSTabViewController ignores the hosted SwiftUI views' ideal
-            // sizes unless each child advertises one; with it set, the window
-            // opens fitted to the form and animates to size on tab switch.
+            // sizes unless each child advertises one; `.preferredContentSize`
+            // keeps it continuously in sync with the SwiftUI content, so the
+            // window opens fitted to the form, animates to size on tab
+            // switch, and re-fits when a tab's content changes in place
+            // (e.g. the Pro tab collapsing to the unlocked card).
             let generalVC = NSHostingController(rootView: GeneralSettingsView())
-            generalVC.preferredContentSize = generalVC.view.fittingSize
+            generalVC.sizingOptions = .preferredContentSize
             // The tab controller propagates the selected child's title onto
             // the window (asynchronously, after the switch animation), so
             // each child carries the fixed window title. Tab labels are the
@@ -410,14 +413,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             general.image = NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)
 
             let appearanceVC = NSHostingController(rootView: AppearanceSettingsView())
-            appearanceVC.preferredContentSize = appearanceVC.view.fittingSize
+            appearanceVC.sizingOptions = .preferredContentSize
             appearanceVC.title = String(localized: "Settings")
             let appearance = NSTabViewItem(viewController: appearanceVC)
             appearance.label = String(localized: "Appearance")
             appearance.image = NSImage(systemSymbolName: "paintpalette", accessibilityDescription: nil)
 
             let proVC = NSHostingController(rootView: ProSettingsView())
-            proVC.preferredContentSize = proVC.view.fittingSize
+            proVC.sizingOptions = .preferredContentSize
             proVC.title = String(localized: "Settings")
             let pro = NSTabViewItem(viewController: proVC)
             pro.label = String(localized: "Peek Pro")

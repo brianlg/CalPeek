@@ -36,7 +36,7 @@ struct ProSettingsView: View {
             } else {
                 Section {
                     if productLoadFailed {
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(spacing: 8) {
                             Text(String(localized: "Couldn't load the App Store. Check your connection."))
                                 .font(.system(size: 12))
                                 .foregroundStyle(.secondary)
@@ -45,9 +45,10 @@ struct ProSettingsView: View {
                                 loadAttempt += 1
                             }
                         }
+                        .frame(maxWidth: .infinity)
                     } else {
                         ProductView(id: Store.proProductID)
-                            .productViewStyle(.large)
+                            .productViewStyle(CenteredProductViewStyle())
                             // StoreKit's views run the purchase themselves, and
                             // the resulting transaction does not arrive on
                             // `Transaction.updates` — that sequence carries
@@ -84,6 +85,7 @@ struct ProSettingsView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
@@ -145,6 +147,41 @@ struct ProSettingsView: View {
             } catch {
                 restoreMessage = String(localized: "Couldn't restore purchases.")
             }
+        }
+    }
+}
+
+/// Centers the product card's contents — StoreKit's built-in `.large` style
+/// lays the name, description, and price button out leading-aligned and
+/// offers no alignment knob, so the loaded state is composed here instead.
+/// The purchase still runs through StoreKit via `configuration.purchase()`,
+/// so `onInAppPurchaseCompletion` fires exactly as before. Every other state
+/// (loading placeholder, failure) falls back to the standard rendering.
+private struct CenteredProductViewStyle: ProductViewStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        switch configuration.state {
+        case .success(let product):
+            VStack(spacing: 10) {
+                VStack(spacing: 2) {
+                    Text(product.displayName)
+                        .font(.headline)
+                    Text(product.description)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                Button {
+                    configuration.purchase()
+                } label: {
+                    Text(product.displayPrice)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        default:
+            ProductView(configuration)
+                .frame(maxWidth: .infinity)
         }
     }
 }
