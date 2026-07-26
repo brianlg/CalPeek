@@ -144,11 +144,16 @@ final class NextMeetingModel {
                 // Outside the lead window: nothing shows until it opens.
                 fire = windowEntry.addingTimeInterval(0.5)
             } else {
-                // Counting down: the text changes at the next minute boundary
-                // of the remaining time.
+                // Counting down: the title ceils to whole minutes, so it
+                // changes the instant `remaining` drops through a multiple of
+                // 60. Fire just past that boundary — a near-zero phase means
+                // a boundary is imminent, not a minute away; skipping it (as
+                // a `: 60` fallback would) leaves the old minute showing for
+                // most of the next one.
                 let remaining = meeting.startDate.timeIntervalSince(now)
-                let toNextMinute = remaining.truncatingRemainder(dividingBy: 60)
-                fire = now.addingTimeInterval(toNextMinute > 0.5 ? toNextMinute : 60)
+                var toNextMinute = remaining.truncatingRemainder(dividingBy: 60)
+                if toNextMinute < 0.1 { toNextMinute += 60 }
+                fire = now.addingTimeInterval(toNextMinute + 0.1)
             }
         }
 
