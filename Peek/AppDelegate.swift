@@ -134,9 +134,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             weekdayColor: currentWeekdayColor.color,
             badgeDots: badgeDots
         )
-        .environment(\.colorScheme, colorScheme)
 
-        let renderer = ImageRenderer(content: view)
+        let renderer = ImageRenderer(content: view.environment(\.colorScheme, colorScheme))
         renderer.scale = button.window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
             ?? 2.0
@@ -146,6 +145,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         image.isTemplate = false
+        // The rasterized image is all VoiceOver sees; view-side accessibility
+        // modifiers don't survive `ImageRenderer`.
+        image.accessibilityDescription = view.accessibilityText
         button.image = image
     }
 

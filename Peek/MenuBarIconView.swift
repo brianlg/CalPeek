@@ -53,11 +53,12 @@ struct MenuBarIconView: View {
                 }
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityText)
     }
 
-    private var accessibilityText: String {
+    /// VoiceOver text for the status item. Applied by the owner as the
+    /// rendered image's `accessibilityDescription` — modifiers on this view
+    /// wouldn't survive rasterization through `ImageRenderer`.
+    var accessibilityText: String {
         let base = "\(weekday), \(String(localized: "day \(day)"))"
         guard !badgeDots.isEmpty else { return base }
         return "\(base), \(String(localized: "has events today"))"
