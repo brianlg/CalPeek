@@ -52,6 +52,33 @@ final class Store {
                 pro = true
             }
         }
+        // Xcode's local StoreKit test environment on macOS never populates
+        // `currentEntitlements`, even for a verified, finished, unrevoked
+        // purchase that `Transaction.all` reports fine — so without this the
+        // unlock can't be exercised in local testing at all. For a single
+        // non-consumable, the latest transaction plus a revocation check is
+        // equivalent to an entitlement, so the fallback is also safe in
+        // production.
+        if !pro,
+           case .verified(let transaction)? = await Transaction.latest(for: Self.proProductID),
+           transaction.revocationDate == nil {
+            pro = true
+        }
+        applyPro(pro)
+    }
+
+    /// Unlocks straight from a transaction the purchase flow just verified.
+    /// A fresh purchase takes a moment to reach the daemon-backed queries
+    /// (`currentEntitlements`, `latest(for:)`), so re-querying immediately
+    /// after `finish()` can still say "not purchased" — this skips the
+    /// round trip entirely.
+    func unlock(with transaction: Transaction) {
+        guard transaction.productID == Self.proProductID,
+              transaction.revocationDate == nil else { return }
+        applyPro(true)
+    }
+
+    private func applyPro(_ pro: Bool) {
         guard pro != isPro else { return }
         isPro = pro
         // AppKit-side consumers (NextMeetingModel, the status item) don't sit

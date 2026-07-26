@@ -51,16 +51,17 @@ struct ProSettingsView: View {
                             // StoreKit's views run the purchase themselves, and
                             // the resulting transaction does not arrive on
                             // `Transaction.updates` — that sequence carries
-                            // out-of-band events, not the app's own flow. Without
-                            // re-reading here the unlock only takes effect on the
-                            // next launch.
+                            // out-of-band events, not the app's own flow. The
+                            // verified transaction in hand is applied directly:
+                            // re-querying the App Store this soon after
+                            // `finish()` can still miss the purchase.
                             .onInAppPurchaseCompletion { _, result in
                                 guard case .success(let purchase) = result,
                                       case .success(let verification) = purchase else { return }
                                 if case .verified(let transaction) = verification {
                                     await transaction.finish()
+                                    store.unlock(with: transaction)
                                 }
-                                await store.refreshEntitlement()
                             }
                     }
                 } footer: {

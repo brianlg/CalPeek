@@ -15,6 +15,10 @@ targets:
     platform: macOS
     sources:
       - path: Peek
+      # In the project for visibility/editing only — .storekit files have no
+      # build phase; the scheme references it for local StoreKit testing.
+      - path: Peek.storekit
+        buildPhase: none
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.peek.Peek
