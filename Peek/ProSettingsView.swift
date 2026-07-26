@@ -48,6 +48,20 @@ struct ProSettingsView: View {
                     } else {
                         ProductView(id: Store.proProductID)
                             .productViewStyle(.large)
+                            // StoreKit's views run the purchase themselves, and
+                            // the resulting transaction does not arrive on
+                            // `Transaction.updates` — that sequence carries
+                            // out-of-band events, not the app's own flow. Without
+                            // re-reading here the unlock only takes effect on the
+                            // next launch.
+                            .onInAppPurchaseCompletion { _, result in
+                                guard case .success(let purchase) = result,
+                                      case .success(let verification) = purchase else { return }
+                                if case .verified(let transaction) = verification {
+                                    await transaction.finish()
+                                }
+                                await store.refreshEntitlement()
+                            }
                     }
                 } footer: {
                     VStack(alignment: .leading, spacing: 2) {

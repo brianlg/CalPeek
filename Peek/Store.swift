@@ -12,14 +12,7 @@ final class Store {
     /// Non-consumable unlock. Must match App Store Connect and Peek.storekit.
     static let proProductID = "com.peek.Peek.pro"
 
-    private(set) var isPro = false {
-        didSet {
-            guard isPro != oldValue else { return }
-            // AppKit-side consumers (NextMeetingModel, the status item) don't
-            // sit in a SwiftUI body, so observation tracking can't reach them.
-            NotificationCenter.default.post(name: .proStatusDidChange, object: nil)
-        }
-    }
+    private(set) var isPro = false
 
     /// Held for the app's lifetime so refunds, family-sharing revocations,
     /// and purchases finished outside the app all land while it's running.
@@ -59,7 +52,13 @@ final class Store {
                 pro = true
             }
         }
+        guard pro != isPro else { return }
         isPro = pro
+        // AppKit-side consumers (NextMeetingModel, the status item) don't sit
+        // in a SwiftUI body, so observation tracking can't reach them. Posted
+        // explicitly rather than from a `didSet`, which would sit in the
+        // middle of the @Observable macro's generated accessors.
+        NotificationCenter.default.post(name: .proStatusDidChange, object: nil)
     }
 
     // MARK: - Trial
