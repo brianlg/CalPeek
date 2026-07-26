@@ -24,9 +24,6 @@ struct CalendarPopoverView: View {
         static let todayCircleSize: CGFloat = 34
         static let dayCircleSize: CGFloat = 34
         static let eventDotSize: CGFloat = 4
-        /// Width of the see-through ring punched out of the today circle
-        /// around each dot.
-        static let eventDotCutoutWidth: CGFloat = 0
         static let eventDotSpacing: CGFloat = 2
         static let eventDotNudge: CGFloat = -1.5
         static let headerSpacing: CGFloat = 5
@@ -339,9 +336,6 @@ struct CalendarPopoverView: View {
             // Nudge the dots toward the digit without affecting layout.
             .offset(y: Layout.eventDotNudge)
         }
-        // Flatten the cell so the dots' destinationOut cutout erases the
-        // accent circle in this layer only, not views behind the grid.
-        .compositingGroup()
         .frame(height: Layout.rowHeight)
         .contentShape(Rectangle())
         .onTapGesture { toggleSelection(date) }
@@ -391,18 +385,6 @@ struct CalendarPopoverView: View {
         return Circle()
             .fill(fill)
             .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
-            .background {
-                // Punch a see-through ring out of the accent circle so the dot
-                // looks cut into it; destinationOut erases the cell's layer
-                // (see the compositingGroup on the cell) down to the popover
-                // background rather than showing red under the ring.
-                if isToday {
-                    let cutout = Layout.eventDotSize + Layout.eventDotCutoutWidth * 2
-                    Circle()
-                        .frame(width: cutout, height: cutout)
-                        .blendMode(.destinationOut)
-                }
-            }
     }
 
     // MARK: - Day selection
