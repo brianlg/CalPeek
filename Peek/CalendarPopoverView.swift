@@ -1823,8 +1823,12 @@ private struct NewItemForm: View {
                 }
                 event.isAllDay = isAllDay
                 if isAllDay {
+                    // Mirrors `createEvent`: all-day events end at 23:59:59 of
+                    // the last day, matching what EventKit returns on fetch so
+                    // an edit round-trip neither shrinks nor grows the span.
                     event.startDate = calendar.startOfDay(for: startTime)
-                    event.endDate = calendar.startOfDay(for: max(startTime, endTime))
+                    let lastDay = calendar.startOfDay(for: max(startTime, endTime))
+                    event.endDate = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: lastDay) ?? lastDay
                 } else {
                     event.startDate = startTime
                     event.endDate = endTime

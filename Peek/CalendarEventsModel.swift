@@ -217,8 +217,14 @@ final class CalendarEventsModel {
         event.calendar = eventCalendar
         event.isAllDay = isAllDay
         if isAllDay {
+            // All-day events end at 23:59:59 of the last day — the convention
+            // EventKit itself returns for fetched events. A midnight end would
+            // make a one-day event zero-length (breaking the `endDate > now`
+            // badge and next-meeting filters), and a next-midnight end puts the
+            // end's day component on the following day.
             event.startDate = cal.startOfDay(for: start)
-            event.endDate = cal.startOfDay(for: max(start, end))
+            let lastDay = cal.startOfDay(for: max(start, end))
+            event.endDate = cal.date(byAdding: DateComponents(day: 1, second: -1), to: lastDay) ?? lastDay
         } else {
             event.startDate = start
             event.endDate = end
