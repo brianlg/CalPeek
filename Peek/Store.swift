@@ -28,10 +28,14 @@ final class Store {
     private init() {
         // Stamp the trial start on first launch so the 14 days run from
         // first use, not from whenever the user finds the unlock screen.
-        if UserDefaults.standard.object(forKey: Self.trialStartKey) == nil {
-            UserDefaults.standard.set(Date(), forKey: Self.trialStartKey)
+        if let stored = UserDefaults.standard.object(forKey: Self.trialStartKey) as? Date {
+            trialStart = stored
+        } else {
+            trialStart = Date()
+            UserDefaults.standard.set(trialStart, forKey: Self.trialStartKey)
         }
         Task { await refreshEntitlement() }
+        Task { await anchorTrialStart() }
         updatesTask = Task {
             for await update in Transaction.updates {
                 if case .verified(let transaction) = update {
@@ -63,6 +67,25 @@ final class Store {
     static let trialStartKey = "trialStartDate"
     static let trialDays = 14
 
+    /// Anchor for the 14-day trial. Seeded from UserDefaults (or now, on
+    /// first launch) and then pulled back to the App Store's first-download
+    /// date once `anchorTrialStart()` resolves, so a delete-and-reinstall
+    /// doesn't restart the trial.
+    private(set) var trialStart: Date {
+        didSet { UserDefaults.standard.set(trialStart, forKey: Self.trialStartKey) }
+    }
+
+    /// Re-anchors the trial to `AppTransaction.originalPurchaseDate` — the
+    /// App Store-signed first-download date, which survives reinstall and
+    /// container resets. The UserDefaults stamp remains the offline fallback;
+    /// the earlier of the two wins so the trial can only shorten, never reset.
+    private func anchorTrialStart() async {
+        guard case .verified(let appTransaction)? = try? await AppTransaction.shared else { return }
+        if appTransaction.originalPurchaseDate < trialStart {
+            trialStart = appTransaction.originalPurchaseDate
+        }
+    }
+
     var hasFullAccess: Bool { isPro || Date() < trialEnd }
 
     /// Whole days of trial left, clamped to zero for display.
@@ -71,10 +94,7 @@ final class Store {
     }
 
     private var trialEnd: Date {
-        guard let start = UserDefaults.standard.object(forKey: Self.trialStartKey) as? Date else {
-            return Date()
-        }
-        return Calendar.current.date(byAdding: .day, value: Self.trialDays, to: start) ?? start
+        Calendar.current.date(byAdding: .day, value: Self.trialDays, to: trialStart) ?? trialStart
     }
 }
 
