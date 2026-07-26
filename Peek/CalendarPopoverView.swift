@@ -238,7 +238,9 @@ struct CalendarPopoverView: View {
     /// appear, with a shortcut to the relevant System Settings pane.
     private var accessDeniedFooter: some View {
         HStack(spacing: 4) {
-            Text(String(localized: "Calendar access is off."))
+            Text(events.accessWriteOnly
+                ? String(localized: "Peek needs full calendar access to show events.")
+                : String(localized: "Calendar access is off."))
                 .foregroundStyle(.secondary)
             Button(String(localized: "Open Settings")) {
                 let pane = "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars"

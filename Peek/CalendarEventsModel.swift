@@ -52,6 +52,9 @@ final class CalendarEventsModel {
     /// True when the user has denied (or can't grant) calendar access, so the
     /// view can point them at System Settings instead of silently showing no dots.
     private(set) var accessDenied = false
+    /// True when the denial is specifically the "Add Events Only" grant,
+    /// which allows writing but not the reading Peek needs.
+    private(set) var accessWriteOnly = false
 
     /// Tint for event dots: the color of the user's default calendar (the
     /// Calendar app's "Default Calendar" setting, via
@@ -289,7 +292,11 @@ final class CalendarEventsModel {
             accessDenied = false
             fetch(days: days, calendar: calendar)
         } else {
-            accessDenied = EKEventStore.authorizationStatus(for: .event) != .notDetermined
+            let status = EKEventStore.authorizationStatus(for: .event)
+            accessDenied = status != .notDetermined
+            // "Add Events Only" is a distinct grant that still can't be read
+            // from; the footer wording must not claim access is off entirely.
+            accessWriteOnly = status == .writeOnly
             daysWithEvents = []
         }
 
