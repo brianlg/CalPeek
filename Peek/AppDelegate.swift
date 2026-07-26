@@ -424,7 +424,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             proVC.title = String(localized: "Settings")
             let pro = NSTabViewItem(viewController: proVC)
             pro.label = String(localized: "Peek Pro")
-            pro.image = NSImage(systemSymbolName: "sparkles", accessibilityDescription: nil)
+            pro.image = NSImage(systemSymbolName: "checkmark.seal.fill", accessibilityDescription: nil)
 
             tabs.tabViewItems = [general, appearance, pro]
 
