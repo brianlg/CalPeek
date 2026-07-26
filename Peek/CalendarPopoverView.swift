@@ -133,6 +133,15 @@ struct CalendarPopoverView: View {
             hoveredDate = nil
             events.load(days: monthDays, calendar: calendar)
         }
+        // A popover left open across midnight (or restored on wake) would keep
+        // yesterday's "today" ring; reloading re-renders the grid against the
+        // new day. Delivered off the main queue, hence the hop.
+        .onReceive(
+            NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                .receive(on: RunLoop.main)
+        ) { _ in
+            events.load(days: monthDays, calendar: calendar)
+        }
     }
 
     // MARK: - Header
