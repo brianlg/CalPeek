@@ -13,7 +13,9 @@
 		2556627C1E697F54F41D6348 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FABCE5BD9E282FE2CB14CA9 /* Store.swift */; };
 		267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */; };
 		30CC9AAD1567BCE03AA6D91C /* CalendarEventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */; };
+		35068B22367FA2AA14DDCAB5 /* NextMeetingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */; };
 		3796E7A36A8F8287F15E57F1 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62509D0EDCAAD924CE85A349 /* Logging.swift */; };
+		4BC08683CBC6624BC8166183 /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7918815FB5D40948BF85615 /* GlobalHotKey.swift */; };
 		4E5584C125926955262D9098 /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */; };
 		4F9B833225D1A1502EBBDDD4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */; };
 		60823FFB2C985E4F939C38A7 /* WeekdayColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A438FD825076DC8EA1B8470E /* WeekdayColor.swift */; };
@@ -56,11 +58,13 @@
 		A975481247ACCE26852C9E0C /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		AA810293F4EB656FB298572B /* ProSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProSettingsView.swift; sourceTree = "<group>"; };
 		AAE27E2ACF65341E0B879BCB /* TodayBadgeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayBadgeModel.swift; sourceTree = "<group>"; };
+		AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingModel.swift; sourceTree = "<group>"; };
 		C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaddedDatePicker.swift; sourceTree = "<group>"; };
 		C7FBF3A5FCDF732EEECAFA35 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E0FA03320A7AEC2597D899B7 /* FormPresetMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormPresetMappingTests.swift; sourceTree = "<group>"; };
 		E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventsModel.swift; sourceTree = "<group>"; };
+		E7918815FB5D40948BF85615 /* GlobalHotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotKey.swift; sourceTree = "<group>"; };
 		FFF7FD7CD7AB70EB98892DBF /* Peek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Peek.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -99,11 +103,13 @@
 				E6709F96EE3724EB4DF61BC8 /* Assets.xcassets */,
 				E7132E85A50A7B21323833F8 /* CalendarEventsModel.swift */,
 				0E3815A784200C57D267B397 /* CalendarPopoverView.swift */,
+				E7918815FB5D40948BF85615 /* GlobalHotKey.swift */,
 				C7FBF3A5FCDF732EEECAFA35 /* Info.plist */,
 				A975481247ACCE26852C9E0C /* Localizable.xcstrings */,
 				62509D0EDCAAD924CE85A349 /* Logging.swift */,
 				2604E1D2649CF328497406C9 /* MeetingLinkParser.swift */,
 				3418AD25C11F5AF914643A5E /* MenuBarIconView.swift */,
+				AB53C07D6A6CAB3034637342 /* NextMeetingModel.swift */,
 				C4AE7E0D058251BA4B757A30 /* PaddedDatePicker.swift */,
 				FFF7FD7CD7AB70EB98892DBF /* Peek.entitlements */,
 				077BDF9CD1CDEE0794112FB9 /* PeekApp.swift */,
@@ -216,9 +222,11 @@
 				AE914B05A8CEA5275C11D4A4 /* AppDelegate.swift in Sources */,
 				30CC9AAD1567BCE03AA6D91C /* CalendarEventsModel.swift in Sources */,
 				252D43A41047A4EFAA2BE5C1 /* CalendarPopoverView.swift in Sources */,
+				4BC08683CBC6624BC8166183 /* GlobalHotKey.swift in Sources */,
 				3796E7A36A8F8287F15E57F1 /* Logging.swift in Sources */,
 				693C78AC8BECDD841933CC3A /* MeetingLinkParser.swift in Sources */,
 				4E5584C125926955262D9098 /* MenuBarIconView.swift in Sources */,
+				35068B22367FA2AA14DDCAB5 /* NextMeetingModel.swift in Sources */,
 				AF58FAAB72AE0FDA4B603895 /* PaddedDatePicker.swift in Sources */,
 				267D276712E6FD12DCAD9094 /* PeekApp.swift in Sources */,
 				1B5D21495455EBF3CBD94FC5 /* Preferences.swift in Sources */,
