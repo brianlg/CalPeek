@@ -235,7 +235,7 @@ struct CalendarPopoverView: View {
     private var accessDeniedFooter: some View {
         HStack(spacing: 4) {
             Text(events.accessWriteOnly
-                ? String(localized: "Peek needs full calendar access to show events.")
+                ? String(localized: "CalPeek needs full calendar access to show events.")
                 : String(localized: "Calendar access is off."))
                 .foregroundStyle(.secondary)
             Button(String(localized: "Open Settings")) {
@@ -588,7 +588,7 @@ private struct DayEventsPopover: View {
     private enum Mode {
         case list, create, edit
         /// Shown instead of `create`/`edit` when the trial has ended and
-        /// Peek Pro isn't purchased; offers a route to the unlock screen.
+        /// CalPeek Pro isn't purchased; offers a route to the unlock screen.
         case locked
     }
 
@@ -718,9 +718,9 @@ private struct DayEventsPopover: View {
     /// the popover is something the user sees many times a day.
     private var lockedContent: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(String(localized: "Peek Pro"), systemImage: "checkmark.seal.fill")
+            Label(String(localized: "CalPeek Pro"), systemImage: "checkmark.seal.fill")
                 .font(.system(size: 13, weight: .semibold))
-            Text(String(localized: "Creating and editing events and reminders needs Peek Pro. Viewing your calendar stays free."))
+            Text(String(localized: "Creating and editing events and reminders needs CalPeek Pro. Viewing your calendar stays free."))
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -855,7 +855,7 @@ private struct ItemRow: View {
                     // The deep link is a private scheme; if the OS stops
                     // handling it, still get the user into Reminders.
                     if let url = item.openURL, !NSWorkspace.shared.open(url) {
-                        Logger.peek.error("Reminders deep link no longer handled; launching app instead")
+                        Logger.calPeek.error("Reminders deep link no longer handled; launching app instead")
                         if let app = NSWorkspace.shared.urlForApplication(
                             withBundleIdentifier: "com.apple.reminders"
                         ) {
@@ -1876,7 +1876,7 @@ private struct NewItemForm: View {
             }
             dismiss()
         } catch {
-            Logger.peek.error("Failed to save edits: \(error.localizedDescription)")
+            Logger.calPeek.error("Failed to save edits: \(error.localizedDescription)")
             saveFailed = true
         }
     }
@@ -1892,7 +1892,7 @@ private struct NewItemForm: View {
             }
             dismiss()
         } catch {
-            Logger.peek.error("Failed to delete item: \(error.localizedDescription)")
+            Logger.calPeek.error("Failed to delete item: \(error.localizedDescription)")
             saveFailed = true
         }
     }
@@ -1934,7 +1934,7 @@ private struct NewItemForm: View {
             }
             dismiss()
         } catch {
-            Logger.peek.error("Failed to save item: \(error.localizedDescription)")
+            Logger.calPeek.error("Failed to save item: \(error.localizedDescription)")
             saveFailed = true
         }
     }

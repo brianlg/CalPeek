@@ -125,12 +125,12 @@ extension Notification.Name {
     /// their `EKEventStore` and refetching: a store created before the grant
     /// keeps serving empty reminder fetches until it forgets its cached state,
     /// which would otherwise require an app restart.
-    static let remindersSettingDidChange = Notification.Name("PeekRemindersSettingDidChange")
+    static let remindersSettingDidChange = Notification.Name("CalPeekRemindersSettingDidChange")
 
     /// Posted by `SettingsView` when the Show Calendar toggle changes state or
     /// calendar access is freshly granted, for the same store-reset reason as
     /// `remindersSettingDidChange`.
-    static let calendarSettingDidChange = Notification.Name("PeekCalendarSettingDidChange")
+    static let calendarSettingDidChange = Notification.Name("CalPeekCalendarSettingDidChange")
 }
 
 enum CalendarAccess {

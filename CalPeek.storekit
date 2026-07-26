@@ -11,12 +11,12 @@
       "localizations" : [
         {
           "description" : "Create, edit, and check off events and reminders.",
-          "displayName" : "Peek Pro",
+          "displayName" : "CalPeek Pro",
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.peek.Peek.pro",
-      "referenceName" : "Peek Pro",
+      "productID" : "com.calpeek.CalPeek.pro",
+      "referenceName" : "CalPeek Pro",
       "type" : "NonConsumable"
     }
   ],

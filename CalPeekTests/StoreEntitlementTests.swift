@@ -1,7 +1,7 @@
 import StoreKit
 import StoreKitTest
 import Testing
-@testable import Peek
+@testable import CalPeek
 
 /// Drives a purchase through a local SKTestSession and checks that `Store`
 /// derives the entitlement from it. Guards the `Transaction.latest(for:)`
@@ -10,12 +10,12 @@ import Testing
 /// purchase testing in the app) fails.
 @MainActor
 struct StoreEntitlementTests {
-    /// Peek.storekit lives at the repo root, two levels up from this file.
+    /// CalPeek.storekit lives at the repo root, two levels up from this file.
     private static var configURL: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-            .appendingPathComponent("Peek.storekit")
+            .appendingPathComponent("CalPeek.storekit")
     }
 
     @Test func purchaseUnlocksProAndClearingRevokesIt() async throws {

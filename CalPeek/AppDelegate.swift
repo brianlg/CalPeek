@@ -8,7 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let popover = NSPopover()
     /// App-lifetime source of the next joinable meeting, feeding the menu bar
     /// countdown, the context menu's join item, and the popover banner.
-    /// Peek Pro: the model resolves to nil without full access.
+    /// CalPeek Pro: the model resolves to nil without full access.
     private let nextMeeting = NextMeetingModel()
     /// Drives the agenda dots on the menu bar icon, tinted with the user's
     /// default calendar and default reminders list colors.
@@ -92,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Receive both mouse buttons so right-click can open the context menu
         // while left-click continues to toggle the popover.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        button.toolTip = String(localized: "Peek")
+        button.toolTip = String(localized: "CalPeek")
         // The glyph image sits left of the (usually empty) countdown title.
         button.imagePosition = .imageLeft
         button.font = NSFont.menuBarFont(ofSize: 0)
@@ -310,7 +310,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
-            title: String(localized: "Quit Peek"),
+            title: String(localized: "Quit CalPeek"),
             action: #selector(quit),
             keyEquivalent: "q"
         )
@@ -356,17 +356,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem?.button {
             if let text = nextMeeting.menuBarText {
                 button.title = text
-                button.toolTip = nextMeeting.nextMeeting?.title ?? String(localized: "Peek")
+                button.toolTip = nextMeeting.nextMeeting?.title ?? String(localized: "CalPeek")
             } else {
                 button.title = ""
-                button.toolTip = String(localized: "Peek")
+                button.toolTip = String(localized: "CalPeek")
             }
         }
         updateJoinHotKey()
     }
 
     private func updateJoinHotKey() {
-        // Part of Peek Pro alongside the countdown — a hotkey joining
+        // Part of CalPeek Pro alongside the countdown — a hotkey joining
         // meetings the UI no longer shows would be surprising.
         if Preferences.joinHotKeyEnabled, Store.shared.hasFullAccess {
             guard joinHotKey == nil else { return }
@@ -423,7 +423,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             proVC.sizingOptions = .preferredContentSize
             proVC.title = String(localized: "Settings")
             let pro = NSTabViewItem(viewController: proVC)
-            pro.label = String(localized: "Peek Pro")
+            pro.label = String(localized: "CalPeek Pro")
             pro.image = NSImage(systemSymbolName: "checkmark.seal.fill", accessibilityDescription: nil)
 
             tabs.tabViewItems = [general, appearance, pro]
@@ -441,7 +441,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Opens Settings on a specific tab, closing the calendar popover first.
-    /// Reached via `.openProSettings` from the popover's Peek Pro unlock
+    /// Reached via `.openProSettings` from the popover's CalPeek Pro unlock
     /// prompt — under the SwiftUI lifecycle `NSApp.delegate` is SwiftUI's
     /// own proxy object, so views can't get at this delegate directly.
     private func showSettings(selecting tab: SettingsTab) {
@@ -460,10 +460,10 @@ extension Notification.Name {
     /// Posted by `AppDelegate` just before the calendar popover is shown, so
     /// `CalendarPopoverView` (whose state outlives each presentation) can
     /// reset navigation to the current month.
-    static let popoverWillShow = Notification.Name("PeekPopoverWillShow")
+    static let popoverWillShow = Notification.Name("CalPeekPopoverWillShow")
     /// Posted by the popover's unlock prompt to open Settings on the
-    /// Peek Pro tab (see `AppDelegate.showSettings(selecting:)`).
-    static let openProSettings = Notification.Name("PeekOpenProSettings")
+    /// CalPeek Pro tab (see `AppDelegate.showSettings(selecting:)`).
+    static let openProSettings = Notification.Name("CalPeekOpenProSettings")
 }
 
 /// Keeps the settings window's title pinned to "Settings" — the base class

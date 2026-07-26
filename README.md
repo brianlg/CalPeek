@@ -1,4 +1,4 @@
-# Peek
+# CalPeek
 
 A minimal macOS menu bar calendar. Click the menu bar glyph to peek at a compact month view; right-click for settings.
 
@@ -22,18 +22,18 @@ A minimal macOS menu bar calendar. Click the menu bar glyph to peek at a compact
 ```sh
 brew install xcodegen
 xcodegen generate
-open Peek.xcodeproj
+open CalPeek.xcodeproj
 ```
 
-Then build and run the `Peek` scheme in Xcode.
+Then build and run the `CalPeek` scheme in Xcode.
 
 ## Project structure
 
-- `Peek/PeekApp.swift` — SwiftUI app entry point; menu-bar-only via `LSUIElement`.
-- `Peek/AppDelegate.swift` — owns the `NSStatusItem`, the popover, the right-click menu, and renders the menu bar glyph to an `NSImage` via `ImageRenderer`.
-- `Peek/MenuBarIconView.swift` — pure SwiftUI view for the menu bar glyph (weekday + day number).
-- `Peek/CalendarPopoverView.swift` — the month calendar shown in the popover.
-- `Peek/WeekdayColor.swift` — the curated weekday color palette and its persisted preference key.
+- `CalPeek/CalPeekApp.swift` — SwiftUI app entry point; menu-bar-only via `LSUIElement`.
+- `CalPeek/AppDelegate.swift` — owns the `NSStatusItem`, the popover, the right-click menu, and renders the menu bar glyph to an `NSImage` via `ImageRenderer`.
+- `CalPeek/MenuBarIconView.swift` — pure SwiftUI view for the menu bar glyph (weekday + day number).
+- `CalPeek/CalendarPopoverView.swift` — the month calendar shown in the popover.
+- `CalPeek/WeekdayColor.swift` — the curated weekday color palette and its persisted preference key.
 
 ## License
 

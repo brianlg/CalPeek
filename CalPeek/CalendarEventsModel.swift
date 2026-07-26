@@ -53,7 +53,7 @@ final class CalendarEventsModel {
     /// view can point them at System Settings instead of silently showing no dots.
     private(set) var accessDenied = false
     /// True when the denial is specifically the "Add Events Only" grant,
-    /// which allows writing but not the reading Peek needs.
+    /// which allows writing but not the reading CalPeek needs.
     private(set) var accessWriteOnly = false
 
     /// Tint for event dots: the color of the user's default calendar (the
@@ -141,7 +141,7 @@ final class CalendarEventsModel {
         do {
             try store.save(reminder, commit: true)
         } catch {
-            Logger.peek.error("Failed to save reminder: \(error.localizedDescription)")
+            Logger.calPeek.error("Failed to save reminder: \(error.localizedDescription)")
             return
         }
         // Optimistic local update for instant checkbox feedback; the

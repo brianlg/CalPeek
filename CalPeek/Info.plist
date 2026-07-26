@@ -27,12 +27,12 @@
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>Peek shows a dot on days that have events in your calendar.</string>
-	<key>NSRemindersFullAccessUsageDescription</key>
-	<string>Peek shows reminders with a due date alongside your calendar events.</string>
+	<string>CalPeek shows a dot on days that have events in your calendar.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 Brian Gibson. All rights reserved.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSRemindersFullAccessUsageDescription</key>
+	<string>CalPeek shows reminders with a due date alongside your calendar events.</string>
 </dict>
 </plist>

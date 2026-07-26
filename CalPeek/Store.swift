@@ -1,7 +1,7 @@
 import Foundation
 import StoreKit
 
-/// Entitlement state for the one-time Peek Pro unlock, plus the 14-day
+/// Entitlement state for the one-time CalPeek Pro unlock, plus the 14-day
 /// full-access trial that runs from first launch. Viewing is free forever;
 /// the write paths (create, edit, delete, complete) check `hasFullAccess`.
 @MainActor
@@ -9,8 +9,8 @@ import StoreKit
 final class Store {
     static let shared = Store()
 
-    /// Non-consumable unlock. Must match App Store Connect and Peek.storekit.
-    static let proProductID = "com.peek.Peek.pro"
+    /// Non-consumable unlock. Must match App Store Connect and CalPeek.storekit.
+    static let proProductID = "com.calpeek.CalPeek.pro"
 
     private(set) var isPro = false
 
@@ -127,5 +127,5 @@ final class Store {
 extension Notification.Name {
     /// Posted when `Store.isPro` flips (purchase, restore, refund) so
     /// non-SwiftUI consumers can re-evaluate gated features.
-    static let proStatusDidChange = Notification.Name("PeekProStatusDidChange")
+    static let proStatusDidChange = Notification.Name("CalPeekProStatusDidChange")
 }

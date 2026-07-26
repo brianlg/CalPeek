@@ -1,0 +1,514 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0004FBC8383587BF3DFD54FC /* TodayBadgeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */; };
+		0CFA391EA684486052FB5D30 /* StoreEntitlementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */; };
+		15CF12B7EF02100AB2ED8631 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2783A7488491E7E5C8F90367 /* Store.swift */; };
+		3760C9968E14FD8403E540F6 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 986AE77718BCD36EB5970057 /* AppIcon.icon */; };
+		41E1B179CD1DE740FD935E8C /* RemindersSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */; };
+		4B766E7393D73C94446DEA8A /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0ACC9A3B9DD4F85592AF827 /* GlobalHotKey.swift */; };
+		4BAB8CFD8DB535A331B3A58A /* CalPeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3748012E628E6BD24595FF00 /* CalPeekApp.swift */; };
+		618425A2B12D636375173F89 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9E9170CF295C454638825CB5 /* Assets.xcassets */; };
+		6548F43AC2848F1F3C9DD88B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D869E1CCDBA54140AB6A8DE /* AppDelegate.swift */; };
+		7B03B142EC932EB48DFA5664 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = D47ED693F1EA7215AB832796 /* Logging.swift */; };
+		7D89CC607118528F65BDF26E /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2D9B2C494330F1B8F3BCF80 /* Preferences.swift */; };
+		8632116B38086A3F3654AB47 /* DateFormatPaddingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2C71B16D74FE37BF54127F /* DateFormatPaddingTests.swift */; };
+		868F04306154C407E68F352E /* NextMeetingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0919D937F59FF78719716CDC /* NextMeetingModel.swift */; };
+		98A3D153EE877CD507B44C10 /* WeekdayColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */; };
+		9C9EB49E31AA0DBFCA97EF4E /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 4C70804A4DB833AD50AE8E38 /* Localizable.xcstrings */; };
+		A05B5AF4B5318C0A85ED496B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D125E5F61FBAC3CC1EBD5C21 /* PrivacyInfo.xcprivacy */; };
+		A4710466B4FAB89D5548AB7E /* CalendarPopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01370DC55AF63E18CEAA8E96 /* CalendarPopoverView.swift */; };
+		A823E2A667B4CFCEE90BAA99 /* FormPresetMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC22E229E8F7E5418788D14B /* FormPresetMappingTests.swift */; };
+		B0B6A0B027318902334DB531 /* CalendarEventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E0B9F5BF6316F5B49960B8 /* CalendarEventsModel.swift */; };
+		BAB9CCE467310A80C04F6579 /* MeetingLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B588B7B3E7A38E6E7778B84 /* MeetingLinkParser.swift */; };
+		D5EA24D2107A16E008649FE9 /* ProSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0165C74EF9EBB01B1DC871D0 /* ProSettingsView.swift */; };
+		EE6E8B9295BAC9A7DC607782 /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF2F4A468A4799560653E4DF /* MenuBarIconView.swift */; };
+		F179DC42A31AC5B30608D802 /* PaddedDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77E4F75B1DDE9B4026BA13D /* PaddedDatePicker.swift */; };
+		F84924D463FDA53C0D7C2ADB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C178F51F4B279FBAA8F32F7B /* SettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3566B3C7003541B60A8A8D10 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8A3562734D12D09A9A061640 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3800893FB8687C593276876C;
+			remoteInfo = CalPeek;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		01370DC55AF63E18CEAA8E96 /* CalendarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarPopoverView.swift; sourceTree = "<group>"; };
+		0165C74EF9EBB01B1DC871D0 /* ProSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProSettingsView.swift; sourceTree = "<group>"; };
+		0919D937F59FF78719716CDC /* NextMeetingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingModel.swift; sourceTree = "<group>"; };
+		1683E82FBFDAEBB51EC3124B /* CalPeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CalPeek.entitlements; sourceTree = "<group>"; };
+		2783A7488491E7E5C8F90367 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
+		2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayColor.swift; sourceTree = "<group>"; };
+		346C4CE462AADE8BB167B623 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		3748012E628E6BD24595FF00 /* CalPeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalPeekApp.swift; sourceTree = "<group>"; };
+		4C70804A4DB833AD50AE8E38 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		4E2C71B16D74FE37BF54127F /* DateFormatPaddingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatPaddingTests.swift; sourceTree = "<group>"; };
+		7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSupport.swift; sourceTree = "<group>"; };
+		80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreEntitlementTests.swift; sourceTree = "<group>"; };
+		86E0B9F5BF6316F5B49960B8 /* CalendarEventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventsModel.swift; sourceTree = "<group>"; };
+		8D869E1CCDBA54140AB6A8DE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		986AE77718BCD36EB5970057 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		9A3EEC4CA2ED6892D140FA69 /* CalPeekTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CalPeekTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9B588B7B3E7A38E6E7778B84 /* MeetingLinkParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingLinkParser.swift; sourceTree = "<group>"; };
+		9E9170CF295C454638825CB5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B0ACC9A3B9DD4F85592AF827 /* GlobalHotKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalHotKey.swift; sourceTree = "<group>"; };
+		B5398693D2D2CCCF90A58771 /* CalPeek.storekit */ = {isa = PBXFileReference; path = CalPeek.storekit; sourceTree = "<group>"; };
+		C178F51F4B279FBAA8F32F7B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		C77E4F75B1DDE9B4026BA13D /* PaddedDatePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaddedDatePicker.swift; sourceTree = "<group>"; };
+		CC2294D118BC29B66911B751 /* CalPeek.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CalPeek.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D125E5F61FBAC3CC1EBD5C21 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D2D9B2C494330F1B8F3BCF80 /* Preferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Preferences.swift; sourceTree = "<group>"; };
+		D47ED693F1EA7215AB832796 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
+		DF2F4A468A4799560653E4DF /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
+		E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayBadgeModel.swift; sourceTree = "<group>"; };
+		FC22E229E8F7E5418788D14B /* FormPresetMappingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormPresetMappingTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		23D990FFC0B2640F8D88F41D /* CalPeekTests */ = {
+			isa = PBXGroup;
+			children = (
+				4E2C71B16D74FE37BF54127F /* DateFormatPaddingTests.swift */,
+				FC22E229E8F7E5418788D14B /* FormPresetMappingTests.swift */,
+				80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */,
+			);
+			path = CalPeekTests;
+			sourceTree = "<group>";
+		};
+		6BBD7F7B26A46FB339FD5ABC /* CalPeek */ = {
+			isa = PBXGroup;
+			children = (
+				8D869E1CCDBA54140AB6A8DE /* AppDelegate.swift */,
+				986AE77718BCD36EB5970057 /* AppIcon.icon */,
+				9E9170CF295C454638825CB5 /* Assets.xcassets */,
+				86E0B9F5BF6316F5B49960B8 /* CalendarEventsModel.swift */,
+				01370DC55AF63E18CEAA8E96 /* CalendarPopoverView.swift */,
+				1683E82FBFDAEBB51EC3124B /* CalPeek.entitlements */,
+				3748012E628E6BD24595FF00 /* CalPeekApp.swift */,
+				B0ACC9A3B9DD4F85592AF827 /* GlobalHotKey.swift */,
+				346C4CE462AADE8BB167B623 /* Info.plist */,
+				4C70804A4DB833AD50AE8E38 /* Localizable.xcstrings */,
+				D47ED693F1EA7215AB832796 /* Logging.swift */,
+				9B588B7B3E7A38E6E7778B84 /* MeetingLinkParser.swift */,
+				DF2F4A468A4799560653E4DF /* MenuBarIconView.swift */,
+				0919D937F59FF78719716CDC /* NextMeetingModel.swift */,
+				C77E4F75B1DDE9B4026BA13D /* PaddedDatePicker.swift */,
+				D2D9B2C494330F1B8F3BCF80 /* Preferences.swift */,
+				D125E5F61FBAC3CC1EBD5C21 /* PrivacyInfo.xcprivacy */,
+				0165C74EF9EBB01B1DC871D0 /* ProSettingsView.swift */,
+				7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */,
+				C178F51F4B279FBAA8F32F7B /* SettingsView.swift */,
+				2783A7488491E7E5C8F90367 /* Store.swift */,
+				E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */,
+				2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */,
+			);
+			path = CalPeek;
+			sourceTree = "<group>";
+		};
+		7C24781C51689EA23BBE6D90 = {
+			isa = PBXGroup;
+			children = (
+				B5398693D2D2CCCF90A58771 /* CalPeek.storekit */,
+				6BBD7F7B26A46FB339FD5ABC /* CalPeek */,
+				23D990FFC0B2640F8D88F41D /* CalPeekTests */,
+				C166418791F58FEF65E81239 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C166418791F58FEF65E81239 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				CC2294D118BC29B66911B751 /* CalPeek.app */,
+				9A3EEC4CA2ED6892D140FA69 /* CalPeekTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3800893FB8687C593276876C /* CalPeek */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DA5B3D70B2A685C620E473CA /* Build configuration list for PBXNativeTarget "CalPeek" */;
+			buildPhases = (
+				FE48ADC0740A994FD167F9A2 /* Sources */,
+				43A41CE9F4D4184B52189DC3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CalPeek;
+			packageProductDependencies = (
+			);
+			productName = CalPeek;
+			productReference = CC2294D118BC29B66911B751 /* CalPeek.app */;
+			productType = "com.apple.product-type.application";
+		};
+		9C7BBEBB191CB9656008F28B /* CalPeekTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9B88D5B2C5F64955EC5B16FF /* Build configuration list for PBXNativeTarget "CalPeekTests" */;
+			buildPhases = (
+				1D9DAADE537B7D5A527E279C /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				33DE8F0C51CA676DD1A8DC99 /* PBXTargetDependency */,
+			);
+			name = CalPeekTests;
+			packageProductDependencies = (
+			);
+			productName = CalPeekTests;
+			productReference = 9A3EEC4CA2ED6892D140FA69 /* CalPeekTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8A3562734D12D09A9A061640 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					3800893FB8687C593276876C = {
+						DevelopmentTeam = LK42KQYP3M;
+						ProvisioningStyle = Automatic;
+					};
+					9C7BBEBB191CB9656008F28B = {
+						DevelopmentTeam = LK42KQYP3M;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = FC28C54B8CCC9AC1AEA11F72 /* Build configuration list for PBXProject "CalPeek" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7C24781C51689EA23BBE6D90;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = C166418791F58FEF65E81239 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3800893FB8687C593276876C /* CalPeek */,
+				9C7BBEBB191CB9656008F28B /* CalPeekTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		43A41CE9F4D4184B52189DC3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3760C9968E14FD8403E540F6 /* AppIcon.icon in Resources */,
+				618425A2B12D636375173F89 /* Assets.xcassets in Resources */,
+				9C9EB49E31AA0DBFCA97EF4E /* Localizable.xcstrings in Resources */,
+				A05B5AF4B5318C0A85ED496B /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1D9DAADE537B7D5A527E279C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8632116B38086A3F3654AB47 /* DateFormatPaddingTests.swift in Sources */,
+				A823E2A667B4CFCEE90BAA99 /* FormPresetMappingTests.swift in Sources */,
+				0CFA391EA684486052FB5D30 /* StoreEntitlementTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FE48ADC0740A994FD167F9A2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6548F43AC2848F1F3C9DD88B /* AppDelegate.swift in Sources */,
+				4BAB8CFD8DB535A331B3A58A /* CalPeekApp.swift in Sources */,
+				B0B6A0B027318902334DB531 /* CalendarEventsModel.swift in Sources */,
+				A4710466B4FAB89D5548AB7E /* CalendarPopoverView.swift in Sources */,
+				4B766E7393D73C94446DEA8A /* GlobalHotKey.swift in Sources */,
+				7B03B142EC932EB48DFA5664 /* Logging.swift in Sources */,
+				BAB9CCE467310A80C04F6579 /* MeetingLinkParser.swift in Sources */,
+				EE6E8B9295BAC9A7DC607782 /* MenuBarIconView.swift in Sources */,
+				868F04306154C407E68F352E /* NextMeetingModel.swift in Sources */,
+				F179DC42A31AC5B30608D802 /* PaddedDatePicker.swift in Sources */,
+				7D89CC607118528F65BDF26E /* Preferences.swift in Sources */,
+				D5EA24D2107A16E008649FE9 /* ProSettingsView.swift in Sources */,
+				41E1B179CD1DE740FD935E8C /* RemindersSupport.swift in Sources */,
+				F84924D463FDA53C0D7C2ADB /* SettingsView.swift in Sources */,
+				15CF12B7EF02100AB2ED8631 /* Store.swift in Sources */,
+				0004FBC8383587BF3DFD54FC /* TodayBadgeModel.swift in Sources */,
+				98A3D153EE877CD507B44C10 /* WeekdayColor.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		33DE8F0C51CA676DD1A8DC99 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3800893FB8687C593276876C /* CalPeek */;
+			targetProxy = 3566B3C7003541B60A8A8D10 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		23B8ABEA56B0440357686651 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.calpeek.CalPeekTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CalPeek.app/Contents/MacOS/CalPeek";
+			};
+			name = Debug;
+		};
+		781E9A31B3FCEE991B1CFD70 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		9A51C5405AD29DF48059B099 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.calpeek.CalPeekTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CalPeek.app/Contents/MacOS/CalPeek";
+			};
+			name = Release;
+		};
+		E1C552EA93D191446EE52E0B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CalPeek/CalPeek.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = CalPeek/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.calpeek.CalPeek;
+				PRODUCT_NAME = CalPeek;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EC87E4899ACA836F880D3095 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.6;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		F10BFE8557AACAE4DC811875 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = CalPeek/CalPeek.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = LK42KQYP3M;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = CalPeek/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.calpeek.CalPeek;
+				PRODUCT_NAME = CalPeek;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9B88D5B2C5F64955EC5B16FF /* Build configuration list for PBXNativeTarget "CalPeekTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				23B8ABEA56B0440357686651 /* Debug */,
+				9A51C5405AD29DF48059B099 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DA5B3D70B2A685C620E473CA /* Build configuration list for PBXNativeTarget "CalPeek" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E1C552EA93D191446EE52E0B /* Debug */,
+				F10BFE8557AACAE4DC811875 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FC28C54B8CCC9AC1AEA11F72 /* Build configuration list for PBXProject "CalPeek" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				781E9A31B3FCEE991B1CFD70 /* Debug */,
+				EC87E4899ACA836F880D3095 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8A3562734D12D09A9A061640 /* Project object */;
+}

@@ -12,8 +12,8 @@ final class GlobalHotKey {
     private nonisolated(unsafe) var hotKeyRef: EventHotKeyRef?
     private nonisolated(unsafe) var eventHandler: EventHandlerRef?
 
-    /// Four-char code "PEEK" namespacing our hotkey IDs.
-    private static let signature: OSType = 0x5045_454B
+    /// Four-char code "CPEK" namespacing our hotkey IDs.
+    private static let signature: OSType = 0x4350_454B
 
     /// ⌥⌘J — join the next meeting.
     static func joinMeeting(handler: @escaping @MainActor () -> Void) -> GlobalHotKey? {

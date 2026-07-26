@@ -30,7 +30,7 @@ struct NextMeeting {
 /// with the Settings window's Show Calendar toggle — so launching the app
 /// doesn't front-load a privacy dialog.
 ///
-/// Part of Peek Pro: `computeNextMeeting` returns nil without full access, so
+/// Part of CalPeek Pro: `computeNextMeeting` returns nil without full access, so
 /// every surface (menu bar, context menu, banner) disappears together when
 /// the trial lapses, and comes back on purchase via `.proStatusDidChange`.
 @Observable @MainActor
