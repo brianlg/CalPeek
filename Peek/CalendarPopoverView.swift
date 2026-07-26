@@ -21,7 +21,6 @@ struct CalendarPopoverView: View {
         static let totalDays = daysPerWeek * numberOfWeeks // 42
         /// Today, hover, and selection circles share one size so highlight
         /// states swap without shifting the layout.
-        static let todayCircleSize: CGFloat = 34
         static let dayCircleSize: CGFloat = 34
         static let eventDotSize: CGFloat = 4
         static let eventDotSpacing: CGFloat = 2
@@ -299,7 +298,7 @@ struct CalendarPopoverView: View {
         // highlight circles, which overhang the top row's bounds (they're
         // taller than the day-number text they center on): clip the sides
         // tight but give the mask vertical slack.
-        .mask(Rectangle().padding(.vertical, -Layout.todayCircleSize / 2))
+        .mask(Rectangle().padding(.vertical, -Layout.dayCircleSize / 2))
     }
 
     private func dayCell(for date: Date) -> some View {
@@ -355,14 +354,14 @@ struct CalendarPopoverView: View {
 
     /// Circular highlight behind a day number. Precedence: today (filled accent)
     /// over the selected day (system grey selection fill) over hover (faint
-    /// fill). Selection and hover share one circle size so they swap without
-    /// shifting the layout; today's circle is a touch larger.
+    /// fill). All three share one circle size so highlight states swap
+    /// without shifting the layout.
     @ViewBuilder
     private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
         let size = Layout.dayCircleSize
         if isToday {
             Circle().fill(accent)
-                .frame(width: Layout.todayCircleSize, height: Layout.todayCircleSize)
+                .frame(width: size, height: size)
         } else if isSelected {
             // Apple's standard grey for selected, unemphasized content —
             // adapts to light and dark mode automatically.
