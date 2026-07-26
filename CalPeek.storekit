@@ -15,7 +15,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.calpeek.CalPeek.pro",
+      "productID" : "com.briangibson.calpeek.pro",
       "referenceName" : "CalPeek Pro",
       "type" : "NonConsumable"
     }

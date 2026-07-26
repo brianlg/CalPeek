@@ -10,7 +10,7 @@ final class Store {
     static let shared = Store()
 
     /// Non-consumable unlock. Must match App Store Connect and CalPeek.storekit.
-    static let proProductID = "com.calpeek.CalPeek.pro"
+    static let proProductID = "com.briangibson.calpeek.pro"
 
     private(set) var isPro = false
 

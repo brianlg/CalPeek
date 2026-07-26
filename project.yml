@@ -1,6 +1,6 @@
 name: CalPeek
 options:
-  bundleIdPrefix: com.calpeek
+  bundleIdPrefix: com.briangibson
   deploymentTarget:
     macOS: "14.6"
   createIntermediateGroups: true
@@ -21,7 +21,7 @@ targets:
         buildPhase: none
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.calpeek.CalPeek
+        PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek
         PRODUCT_NAME: CalPeek
         INFOPLIST_FILE: CalPeek/Info.plist
         CODE_SIGN_ENTITLEMENTS: CalPeek/CalPeek.entitlements
@@ -49,7 +49,7 @@ targets:
       - target: CalPeek
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.calpeek.CalPeekTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.tests
         GENERATE_INFOPLIST_FILE: YES
         CODE_SIGN_STYLE: Automatic
         # Must match the app target's team — a test bundle signed by a
