@@ -34,6 +34,13 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         COMBINE_HIDPI_IMAGES: YES
         DEAD_CODE_STRIPPING: YES
+      configs:
+        # Debug builds get their own bundle ID so local development can't
+        # collide with an installed App Store/TestFlight build: separate
+        # sandbox container (and therefore separate UserDefaults), separate
+        # TCC grants, and separate Launch at Login registration.
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.debug
     scheme:
       testTargets:
         - CalPeekTests
