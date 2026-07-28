@@ -785,8 +785,8 @@ private struct ItemRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        // The open button sits outside the top-aligned content so it centers
-        // against the full row height.
+        // The join and open buttons sit outside the top-aligned content so
+        // they center against the full row height.
         HStack(spacing: 8) {
             HStack(alignment: .top, spacing: 8) {
                 switch item.kind {
@@ -825,18 +825,18 @@ private struct ItemRow: View {
                 }
 
                 Spacer(minLength: 0)
+            }
 
-                if let url = item.joinURL {
-                    Button {
-                        NSWorkspace.shared.open(url)
-                    } label: {
-                        Image(systemName: "video.fill")
-                            .font(.system(size: 11))
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(accent)
-                    .help(String(localized: "Join meeting"))
+            if let url = item.joinURL {
+                Button {
+                    NSWorkspace.shared.open(url)
+                } label: {
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 11))
                 }
+                .buttonStyle(.borderless)
+                .foregroundStyle(accent)
+                .help(String(localized: "Join meeting"))
             }
 
             Button {
