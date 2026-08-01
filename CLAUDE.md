@@ -64,7 +64,7 @@ Rules for changes:
   bundle ID and the same Release configuration — never create a "Beta"
   configuration with a suffixed ID.
 - **Anything development-only goes inside `#if DEBUG`.** The debug menu header,
-  the glyph's orange marker bar, the suppressed Launch at Login toggle, and
+  the glyph's purple marker bar, the suppressed Launch at Login toggle, and
   `Store`'s `Transaction.latest` fallback all rely on this. Debug-only strings
   stay out of `Localizable.xcstrings` — they never ship.
 - **Never weaken production logic to make testing work.** If something can't be

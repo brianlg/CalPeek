@@ -62,7 +62,7 @@ isn't carrying the `.debug` identifier.
 
 The debug build marks itself in three places, all behind `#if DEBUG`:
 
-- an **orange bar** to the left of the menu bar glyph;
+- a **purple bar** to the left of the menu bar glyph;
 - a tooltip and a disabled menu header reading
   `CalPeek Debug 1.0 (1) · a1b2c3d`;
 - a **Quit CalPeek Debug** menu item.

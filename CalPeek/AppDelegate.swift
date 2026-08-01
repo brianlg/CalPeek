@@ -336,9 +336,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// A bar on the left rather than a dot on the right, deliberately: the
     /// agenda badges are round dots trailing the day number, and a trailing
-    /// dot here reads as one more badge — especially since the reminders badge
-    /// color is user-configurable and can itself be orange. Differing in both
-    /// shape and side leaves no ambiguity.
+    /// dot here reads as one more badge. Differing in both shape and side
+    /// leaves no ambiguity.
     private func markedAsDebug(_ image: NSImage) -> NSImage {
         let barWidth: CGFloat = 2
         let gap: CGFloat = 3
@@ -349,7 +348,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let marked = NSImage(size: size, flipped: false) { _ in
-            NSColor.systemOrange.setFill()
+            NSColor.systemPurple.setFill()
             NSBezierPath(
                 roundedRect: NSRect(
                     x: 0,
