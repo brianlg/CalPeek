@@ -747,10 +747,13 @@ private struct ItemRow: View {
     @State private var isHovered = false
 
     var body: some View {
-        // The join and open buttons sit outside the top-aligned content so
-        // they center against the full row height.
+        // The join and open buttons sit outside the leading content so they
+        // center against the full row height. The content aligns on the first
+        // text baseline: the 12 pt glyph next to 13 pt title text would sit
+        // visibly high if their boxes were merely top-aligned, and a symbol
+        // on the title's baseline is optically centered with the first line.
         HStack(spacing: 8) {
-            HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 switch item.kind {
                 case .event:
                     // Same glyph metrics as the reminder checkbox below so the
