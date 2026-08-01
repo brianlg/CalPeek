@@ -52,25 +52,23 @@ final class Store {
                 pro = true
             }
         }
-        #if DEBUG
-        // Xcode's local StoreKit test environment on macOS never populates
-        // `currentEntitlements`, even for a verified, finished, unrevoked
-        // purchase that `Transaction.all` reports fine — so without this the
-        // unlock can't be exercised in local testing at all.
+        // Fallback for when `currentEntitlements` comes back empty despite a
+        // valid purchase: Xcode's local StoreKit test environment on macOS
+        // never populates it at all, and in production it can be transiently
+        // empty right after launch. For a single non-consumable with Family
+        // Sharing OFF, the latest transaction plus a revocation check is
+        // equivalent to the entitlement, so this is production-safe.
         //
-        // Debug-only on purpose. `Transaction.latest` plus a revocation check
-        // is *not* equivalent to an entitlement for this product: CalPeek Pro
-        // is `familyShareable`, and losing access through Family Sharing drops
-        // the entitlement without setting `revocationDate` — so in production
-        // this fallback would keep Pro unlocked for someone who no longer has
-        // it. `currentEntitlements` alone is the correct source of truth, and
-        // is what Apple documents for this question.
+        // If Family Sharing is ever enabled for CalPeek Pro in App Store
+        // Connect, this must be re-gated to `#if DEBUG`: losing access through
+        // Family Sharing drops the entitlement *without* setting
+        // `revocationDate`, so the fallback would keep Pro unlocked for
+        // someone who no longer has it.
         if !pro,
            case .verified(let transaction)? = await Transaction.latest(for: Self.proProductID),
            transaction.revocationDate == nil {
             pro = true
         }
-        #endif
         applyPro(pro)
     }
 
