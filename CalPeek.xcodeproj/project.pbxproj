@@ -10,6 +10,7 @@
 		0004FBC8383587BF3DFD54FC /* TodayBadgeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */; };
 		0CFA391EA684486052FB5D30 /* StoreEntitlementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */; };
 		15CF12B7EF02100AB2ED8631 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2783A7488491E7E5C8F90367 /* Store.swift */; };
+		34AD863FD45E71B77FBE3528 /* BuildInfo.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C900534C59B2CCE3477574 /* BuildInfo.generated.swift */; };
 		3760C9968E14FD8403E540F6 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 986AE77718BCD36EB5970057 /* AppIcon.icon */; };
 		41E1B179CD1DE740FD935E8C /* RemindersSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */; };
 		4B766E7393D73C94446DEA8A /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0ACC9A3B9DD4F85592AF827 /* GlobalHotKey.swift */; };
@@ -54,6 +55,7 @@
 		3748012E628E6BD24595FF00 /* CalPeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalPeekApp.swift; sourceTree = "<group>"; };
 		4C70804A4DB833AD50AE8E38 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		4E2C71B16D74FE37BF54127F /* DateFormatPaddingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatPaddingTests.swift; sourceTree = "<group>"; };
+		60C900534C59B2CCE3477574 /* BuildInfo.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfo.generated.swift; sourceTree = "<group>"; };
 		7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSupport.swift; sourceTree = "<group>"; };
 		80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreEntitlementTests.swift; sourceTree = "<group>"; };
 		86E0B9F5BF6316F5B49960B8 /* CalendarEventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventsModel.swift; sourceTree = "<group>"; };
@@ -122,6 +124,7 @@
 				B5398693D2D2CCCF90A58771 /* CalPeek.storekit */,
 				6BBD7F7B26A46FB339FD5ABC /* CalPeek */,
 				23D990FFC0B2640F8D88F41D /* CalPeekTests */,
+				F3CC103E7FD6791642AB2AB6 /* Generated */,
 				C166418791F58FEF65E81239 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -135,6 +138,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		F3CC103E7FD6791642AB2AB6 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				60C900534C59B2CCE3477574 /* BuildInfo.generated.swift */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -142,6 +153,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = DA5B3D70B2A685C620E473CA /* Build configuration list for PBXNativeTarget "CalPeek" */;
 			buildPhases = (
+				3E04242ED1C6A24EBEA38975 /* Generate Build Info */,
 				FE48ADC0740A994FD167F9A2 /* Sources */,
 				43A41CE9F4D4184B52189DC3 /* Resources */,
 			);
@@ -227,6 +239,29 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		3E04242ED1C6A24EBEA38975 /* Generate Build Info */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Generate Build Info";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Generated/BuildInfo.generated.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "bash \"$SRCROOT/Scripts/generate-build-info.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		1D9DAADE537B7D5A527E279C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -243,6 +278,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6548F43AC2848F1F3C9DD88B /* AppDelegate.swift in Sources */,
+				34AD863FD45E71B77FBE3528 /* BuildInfo.generated.swift in Sources */,
 				4BAB8CFD8DB535A331B3A58A /* CalPeekApp.swift in Sources */,
 				B0B6A0B027318902334DB531 /* CalendarEventsModel.swift in Sources */,
 				A4710466B4FAB89D5548AB7E /* CalendarPopoverView.swift in Sources */,
@@ -393,6 +429,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.briangibson.calpeek.debug;
+				PRODUCT_DISPLAY_NAME = "CalPeek Debug";
 				PRODUCT_NAME = CalPeek;
 				SDKROOT = macosx;
 			};
@@ -473,6 +510,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.briangibson.calpeek;
+				PRODUCT_DISPLAY_NAME = CalPeek;
 				PRODUCT_NAME = CalPeek;
 				SDKROOT = macosx;
 			};

@@ -1,5 +1,9 @@
 import AppKit
 import SwiftUI
+#if DEBUG
+import ServiceManagement
+import os
+#endif
 
 /// Owns the menu bar status item and the calendar popover.
 @MainActor
@@ -41,6 +45,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        purgeDebugLoginItem()
+        #endif
         configurePopover()
         configureStatusItem()
         observeDateChanges()
@@ -92,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Receive both mouse buttons so right-click can open the context menu
         // while left-click continues to toggle the popover.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        button.toolTip = String(localized: "CalPeek")
+        button.toolTip = Self.idleToolTip
         // The glyph image sits left of the (usually empty) countdown title.
         button.imagePosition = .imageLeft
         button.font = NSFont.menuBarFont(ofSize: 0)
@@ -148,7 +155,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The rasterized image is all VoiceOver sees; view-side accessibility
         // modifiers don't survive `ImageRenderer`.
         image.accessibilityDescription = view.accessibilityText
+        #if DEBUG
+        button.image = markedAsDebug(image)
+        #else
         button.image = image
+        #endif
     }
 
     private func observeDateChanges() {
@@ -270,6 +281,99 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Build identity
+
+    /// Status item tooltip when no meeting countdown is showing. Debug builds
+    /// name themselves here so a stray instance can be identified by hovering,
+    /// without opening the menu.
+    private static var idleToolTip: String {
+        #if DEBUG
+        return debugBuildLabel
+        #else
+        return String(localized: "CalPeek")
+        #endif
+    }
+
+    #if DEBUG
+    /// Drops any login item this Debug build owns.
+    ///
+    /// Login items are keyed by bundle ID, so `com.briangibson.calpeek.debug`
+    /// registers a *separate* item from the release app. Left in place it would
+    /// relaunch a throwaway build at every boot — and keep trying after the
+    /// build it points at is deleted, leaving a stale entry in System Settings.
+    /// Running unconditionally means simply launching a Debug build cleans up
+    /// an item registered by any earlier one.
+    private func purgeDebugLoginItem() {
+        guard SMAppService.mainApp.status == .enabled else { return }
+        do {
+            try SMAppService.mainApp.unregister()
+            Logger.calPeek.info("Debug build: removed its Launch at Login item")
+        } catch {
+            Logger.calPeek.error(
+                "Debug build: failed to remove Launch at Login item: \(error.localizedDescription)"
+            )
+        }
+    }
+
+    /// Version, build, and originating commit — shown in the tooltip and as the
+    /// context menu's header. Deliberately not localized: it never ships, so it
+    /// has no business in `Localizable.xcstrings`.
+    static var debugBuildLabel: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        let sha = BuildInfo.gitSHA.isEmpty ? "no git" : BuildInfo.gitSHA
+        return "CalPeek Debug \(version) (\(build)) · \(sha)"
+    }
+
+    /// Prepends a marker bar to the rendered glyph so a Debug status item is
+    /// distinguishable at a glance from an installed release build.
+    ///
+    /// The glyph is composited in unmodified and the bar occupies *prepended*
+    /// width, so Debug still renders `MenuBarIconView` pixel-for-pixel like
+    /// Release — which matters because the glyph is the thing most often being
+    /// visually verified.
+    ///
+    /// A bar on the left rather than a dot on the right, deliberately: the
+    /// agenda badges are round dots trailing the day number, and a trailing
+    /// dot here reads as one more badge — especially since the reminders badge
+    /// color is user-configurable and can itself be orange. Differing in both
+    /// shape and side leaves no ambiguity.
+    private func markedAsDebug(_ image: NSImage) -> NSImage {
+        let barWidth: CGFloat = 2
+        let gap: CGFloat = 3
+        let inset: CGFloat = 2
+        let size = NSSize(
+            width: barWidth + gap + image.size.width,
+            height: image.size.height
+        )
+
+        let marked = NSImage(size: size, flipped: false) { _ in
+            NSColor.systemOrange.setFill()
+            NSBezierPath(
+                roundedRect: NSRect(
+                    x: 0,
+                    y: inset,
+                    width: barWidth,
+                    height: size.height - inset * 2
+                ),
+                xRadius: barWidth / 2,
+                yRadius: barWidth / 2
+            ).fill()
+            image.draw(
+                at: NSPoint(x: barWidth + gap, y: 0),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+            return true
+        }
+        marked.isTemplate = false
+        marked.accessibilityDescription = image.accessibilityDescription
+        return marked
+    }
+    #endif
+
     // MARK: - Context menu
 
     /// Attaches a menu to the status item just long enough to display it, then
@@ -283,6 +387,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeContextMenu() -> NSMenu {
         let menu = NSMenu()
+
+        #if DEBUG
+        // Header naming the build, so the right instance gets quit.
+        let header = NSMenuItem(title: Self.debugBuildLabel, action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
+        menu.addItem(.separator())
+        #endif
 
         if let meeting = nextMeeting.nextMeeting {
             let joinItem = NSMenuItem(
@@ -315,6 +427,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             keyEquivalent: "q"
         )
         quitItem.target = self
+        #if DEBUG
+        // Removes any doubt about which of the two running apps this quits.
+        quitItem.title = "Quit CalPeek Debug"
+        #endif
         menu.addItem(quitItem)
 
         return menu
@@ -356,10 +472,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem?.button {
             if let text = nextMeeting.menuBarText {
                 button.title = text
-                button.toolTip = nextMeeting.nextMeeting?.title ?? String(localized: "CalPeek")
+                button.toolTip = nextMeeting.nextMeeting?.title ?? Self.idleToolTip
             } else {
                 button.title = ""
-                button.toolTip = String(localized: "CalPeek")
+                button.toolTip = Self.idleToolTip
             }
         }
         updateJoinHotKey()

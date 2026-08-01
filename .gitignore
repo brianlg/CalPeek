@@ -9,6 +9,9 @@
 build/
 DerivedData/
 
+# Written by Scripts/generate-build-info.sh on every build
+Generated/
+
 # Xcode user-specific files
 *.xcuserstate
 xcuserdata/

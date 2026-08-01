@@ -19,10 +19,30 @@ targets:
       # build phase; the scheme references it for local StoreKit testing.
       - path: CalPeek.storekit
         buildPhase: none
+      # Written by the pre-build script below, gitignored. `optional` keeps
+      # `xcodegen generate` working on a fresh clone, before any build has
+      # produced the file.
+      - path: Generated/BuildInfo.generated.swift
+        optional: true
+    preBuildScripts:
+      # Runs ahead of the Sources phase, so the generated file always exists
+      # by the time swiftc reaches it.
+      - name: Generate Build Info
+        script: bash "$SRCROOT/Scripts/generate-build-info.sh"
+        outputFiles:
+          - $(SRCROOT)/Generated/BuildInfo.generated.swift
+        # The SHA changes without any tracked input file changing, so
+        # dependency analysis would wrongly skip this.
+        basedOnDependencyAnalysis: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek
         PRODUCT_NAME: CalPeek
+        # Drives CFBundleDisplayName. Kept separate from PRODUCT_NAME so the
+        # Debug build can be renamed for humans (Finder, Force Quit, the
+        # Login Items list) without renaming the executable or the .app —
+        # which would break the test target's TEST_HOST path.
+        PRODUCT_DISPLAY_NAME: CalPeek
         INFOPLIST_FILE: CalPeek/Info.plist
         CODE_SIGN_ENTITLEMENTS: CalPeek/CalPeek.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -41,6 +61,7 @@ targets:
         # TCC grants, and separate Launch at Login registration.
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.debug
+          PRODUCT_DISPLAY_NAME: CalPeek Debug
     scheme:
       testTargets:
         - CalPeekTests

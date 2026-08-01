@@ -27,6 +27,118 @@ open CalPeek.xcodeproj
 
 Then build and run the `CalPeek` scheme in Xcode.
 
+## Debug and release builds side by side
+
+A Debug build can run at the same time as the App Store build without either
+one disturbing the other. They are different applications as far as macOS is
+concerned:
+
+| | Debug | Release |
+|---|---|---|
+| Bundle ID | `com.briangibson.calpeek.debug` | `com.briangibson.calpeek` |
+| Name | CalPeek Debug | CalPeek |
+| Lives in | `~/Applications/CalPeek Debug.app` | `/Applications/CalPeek.app` |
+| Built by | `Scripts/install-dev.sh` | Xcode → Product → Archive |
+| Preferences | its own sandbox container | its own sandbox container |
+| Launch at Login | not offered | Settings → General |
+
+Release's identity is fixed: real purchases are tied to
+`com.briangibson.calpeek`, so its bundle ID, entitlements, signing, and
+version numbering must not change. A TestFlight build uses that **same**
+bundle ID and the same Release configuration — never a suffixed one.
+
+### Installing a dev build
+
+```sh
+Scripts/install-dev.sh --run
+```
+
+Builds Debug, quits any running debug instance, replaces
+`~/Applications/CalPeek Debug.app`, and prints the path, version, and commit.
+It refuses to write into `/Applications` and refuses to install a bundle that
+isn't carrying the `.debug` identifier.
+
+### Spotting and quitting a stale debug instance
+
+The debug build marks itself in three places, all behind `#if DEBUG`:
+
+- an **orange bar** to the left of the menu bar glyph;
+- a tooltip and a disabled menu header reading
+  `CalPeek Debug 1.0 (1) · a1b2c3d`;
+- a **Quit CalPeek Debug** menu item.
+
+To quit one from the terminal:
+
+```sh
+osascript -e 'quit app id "com.briangibson.calpeek.debug"'
+```
+
+To find every running copy, including ones Xcode launched from DerivedData:
+
+```sh
+ps -eo pid,comm= | grep -i calpeek
+```
+
+### Resetting debug state
+
+Preferences live inside the sandbox container, so deleting the container
+resets the build completely without touching real CalPeek settings:
+
+```sh
+osascript -e 'quit app id "com.briangibson.calpeek.debug"'
+rm -rf ~/Library/Containers/com.briangibson.calpeek.debug/Data
+killall -u "$USER" cfprefsd        # drop the preference daemon's cache
+```
+
+Delete `Data`, not the container directory itself — `containermanagerd` owns
+the directory and its metadata file, and `rm` on those fails with
+"Operation not permitted".
+
+To confirm the two builds really are isolated, compare the two plists:
+
+```sh
+defaults read ~/Library/Containers/com.briangibson.calpeek/Data/Library/Preferences/com.briangibson.calpeek.plist
+defaults read ~/Library/Containers/com.briangibson.calpeek.debug/Data/Library/Preferences/com.briangibson.calpeek.debug.plist
+```
+
+### Testing the in-app purchase locally
+
+App Store Connect products are registered against the release bundle ID, so a
+`.debug` build cannot resolve them. `CalPeek.storekit` stands in: it declares
+CalPeek Pro locally, and the scheme's **Run → Options → StoreKit
+Configuration** points at it (set in `project.yml`, so it survives
+`xcodegen generate`).
+
+The product ID in that file **must** match both `Store.proProductID` and App
+Store Connect — currently `com.briangibson.calpeek.pro`. Nothing enforces
+this automatically; if you change the product in App Store Connect, edit the
+`.storekit` file to match by hand. Price and display name in the local file
+are for testing only and don't have to match.
+
+**Verification differs from production.** Under local testing StoreKit signs
+transactions with a local test certificate rather than Apple's, so
+`Transaction.updates` and `Product.purchase()` still yield `.verified`
+results and no verification code needs to change. What *does* differ:
+`Transaction.currentEntitlements` stays empty on macOS even after a verified,
+finished purchase. `Store.refreshEntitlement()` therefore keeps a
+`Transaction.latest(for:)` fallback **inside `#if DEBUG`** — production relies
+on `currentEntitlements` alone, which is correct because CalPeek Pro is
+family-shareable and a Family Sharing revocation drops the entitlement
+without setting `revocationDate`.
+
+Reset purchase state from Xcode's **Debug → StoreKit → Manage Transactions**
+(delete rows), or in code via `SKTestSession.clearTransactions()` as
+`CalPeekTests/StoreEntitlementTests.swift` does.
+
+**Local testing is not Sandbox testing.** Local `.storekit` testing runs
+entirely on-device, needs no network or Apple ID, and can't validate your App
+Store Connect setup. Sandbox testing uses a real sandbox Apple ID against
+Apple's servers with the **real** bundle ID and real product IDs — so it only
+works from a Release-identity build (TestFlight or a direct-signed archive),
+never from a `.debug` build. Use local testing for day-to-day work and
+Sandbox or TestFlight to confirm the App Store Connect products are right
+before shipping.
+
 ## Project structure
 
 - `CalPeek/CalPeekApp.swift` — SwiftUI app entry point; menu-bar-only via `LSUIElement`.
