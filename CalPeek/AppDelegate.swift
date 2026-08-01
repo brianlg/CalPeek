@@ -484,7 +484,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func updateJoinHotKey() {
         // Part of CalPeek Pro alongside the countdown — a hotkey joining
         // meetings the UI no longer shows would be surprising.
-        if Preferences.joinHotKeyEnabled, Store.shared.hasFullAccess {
+        if Preferences.joinHotKeyEnabled, Store.shared.hasProAccess {
             guard joinHotKey == nil else { return }
             joinHotKey = GlobalHotKey.joinMeeting { [weak self] in
                 self?.nextMeeting.joinNextMeeting()

@@ -122,13 +122,13 @@ struct ProSettingsView: View {
     @ViewBuilder
     private var trialStatus: some View {
         if store.trialDaysRemaining > 0 {
-            Text(String(localized: "Free trial: \(store.trialDaysRemaining) days of full access left."))
-        } else if store.hasFullAccess {
+            Text(String(localized: "Free trial: \(store.trialDaysRemaining) days of Next Meeting left."))
+        } else if store.hasProAccess {
             // Whole-day counting floors to 0 for the entire final day while
             // access is still live — don't claim the trial ended early.
-            Text(String(localized: "Free trial: less than a day of full access left."))
+            Text(String(localized: "Free trial: less than a day of Next Meeting left."))
         } else {
-            Text(String(localized: "Your free trial has ended. Viewing your calendar stays free."))
+            Text(String(localized: "Your free trial has ended. Everything except Next Meeting stays free."))
         }
     }
 

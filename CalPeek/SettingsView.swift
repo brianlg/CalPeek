@@ -104,17 +104,17 @@ struct GeneralSettingsView: View {
                 // The next-meeting feature reads from the calendar, so it has
                 // nothing to show until Show Calendar is on; without CalPeek Pro
                 // the toggles would drive a feature that never renders.
-                .disabled(!showCalendar || !store.hasFullAccess)
+                .disabled(!showCalendar || !store.hasProAccess)
             } header: {
                 HStack(spacing: 6) {
                     Text(String(localized: "Next Meeting"))
-                    if !store.hasFullAccess {
+                    if !store.hasProAccess {
                         Image(systemName: "checkmark.seal.fill")
                             .foregroundStyle(.tint)
                     }
                 }
             } footer: {
-                if store.hasFullAccess {
+                if store.hasProAccess {
                     Text(String(localized: "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)

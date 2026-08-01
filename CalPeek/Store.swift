@@ -2,8 +2,9 @@ import Foundation
 import StoreKit
 
 /// Entitlement state for the one-time CalPeek Pro unlock, plus the 14-day
-/// full-access trial that runs from first launch. Viewing is free forever;
-/// the write paths (create, edit, delete, complete) check `hasFullAccess`.
+/// trial that runs from first launch. Everything else is free forever; the
+/// Next Meeting surfaces (menu bar countdown, ⌥⌘J join hotkey, and their
+/// settings) check `hasProAccess`.
 @MainActor
 @Observable
 final class Store {
@@ -117,7 +118,7 @@ final class Store {
         }
     }
 
-    var hasFullAccess: Bool { isPro || Date() < trialEnd }
+    var hasProAccess: Bool { isPro || Date() < trialEnd }
 
     /// Whole days of trial left, clamped to zero for display.
     var trialDaysRemaining: Int {

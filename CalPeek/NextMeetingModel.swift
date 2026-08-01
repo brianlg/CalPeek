@@ -168,7 +168,7 @@ final class NextMeetingModel {
     }
 
     private func computeNextMeeting() -> NextMeeting? {
-        guard Store.shared.hasFullAccess,
+        guard Store.shared.hasProAccess,
               Preferences.showCalendar, CalendarAccess.hasFullAccess else { return nil }
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
