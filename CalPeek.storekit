@@ -5,12 +5,12 @@
   ],
   "products" : [
     {
-      "displayPrice" : "9.99",
+      "displayPrice" : "8.99",
       "familyShareable" : false,
       "internalID" : "6E1D9B24-3A7F-4C58-8D2E-9F0A1B6C7D83",
       "localizations" : [
         {
-          "description" : "Create, edit, and check off events and reminders.",
+          "description" : "Your next meeting in the menu bar, with a countdown and one-keystroke join.",
           "displayName" : "CalPeek Pro",
           "locale" : "en_US"
         }
