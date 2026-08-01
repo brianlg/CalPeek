@@ -326,35 +326,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return "CalPeek Debug \(version) (\(build)) · \(sha)"
     }
 
-    /// Appends a marker dot beside the rendered glyph so a Debug status item is
+    /// Prepends a marker bar to the rendered glyph so a Debug status item is
     /// distinguishable at a glance from an installed release build.
     ///
-    /// The glyph is composited in unmodified and the dot occupies *appended*
+    /// The glyph is composited in unmodified and the bar occupies *prepended*
     /// width, so Debug still renders `MenuBarIconView` pixel-for-pixel like
     /// Release — which matters because the glyph is the thing most often being
     /// visually verified.
+    ///
+    /// A bar on the left rather than a dot on the right, deliberately: the
+    /// agenda badges are round dots trailing the day number, and a trailing
+    /// dot here reads as one more badge — especially since the reminders badge
+    /// color is user-configurable and can itself be orange. Differing in both
+    /// shape and side leaves no ambiguity.
     private func markedAsDebug(_ image: NSImage) -> NSImage {
-        let diameter: CGFloat = 5
+        let barWidth: CGFloat = 2
         let gap: CGFloat = 3
+        let inset: CGFloat = 2
         let size = NSSize(
-            width: image.size.width + gap + diameter,
+            width: barWidth + gap + image.size.width,
             height: image.size.height
         )
 
         let marked = NSImage(size: size, flipped: false) { _ in
+            NSColor.systemOrange.setFill()
+            NSBezierPath(
+                roundedRect: NSRect(
+                    x: 0,
+                    y: inset,
+                    width: barWidth,
+                    height: size.height - inset * 2
+                ),
+                xRadius: barWidth / 2,
+                yRadius: barWidth / 2
+            ).fill()
             image.draw(
-                at: .zero,
+                at: NSPoint(x: barWidth + gap, y: 0),
                 from: .zero,
                 operation: .sourceOver,
                 fraction: 1
             )
-            NSColor.systemOrange.setFill()
-            NSBezierPath(ovalIn: NSRect(
-                x: image.size.width + gap,
-                y: (size.height - diameter) / 2,
-                width: diameter,
-                height: diameter
-            )).fill()
             return true
         }
         marked.isTemplate = false

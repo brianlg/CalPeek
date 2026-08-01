@@ -50,6 +50,33 @@ This project uses **XcodeGen** — the Xcode project is generated from `project.
 - Never edit `CalPeek.xcodeproj` directly; change `project.yml` and regenerate.
 - Build/verify commands live in the `verify` skill (`.claude/skills/verify/SKILL.md`) — read it before driving the UI. It documents the non-obvious mechanics (CGEvent clicking, region screenshots, the fact that System Events can't see the popover, and how to type into a non-frontmost app).
 
+## Debug vs Release builds
+
+Debug and Release are separate applications to macOS — different bundle IDs,
+different sandbox containers, different TCC grants. See the README for the
+full workflow (installing, resetting state, local StoreKit testing).
+
+Rules for changes:
+
+- **Release identity is frozen.** `com.briangibson.calpeek`, its entitlements,
+  signing, and version numbering are what real purchases are tied to. Never
+  change them to make development easier. A TestFlight build uses the *same*
+  bundle ID and the same Release configuration — never create a "Beta"
+  configuration with a suffixed ID.
+- **Anything development-only goes inside `#if DEBUG`.** The debug menu header,
+  the glyph's orange marker bar, the suppressed Launch at Login toggle, and
+  `Store`'s `Transaction.latest` fallback all rely on this. Debug-only strings
+  stay out of `Localizable.xcstrings` — they never ship.
+- **Never weaken production logic to make testing work.** If something can't be
+  tested without a code change, gate the accommodation to Debug and say why in
+  a comment — as `Store.refreshEntitlement()` does.
+- **Install dev builds with `Scripts/install-dev.sh`**, which puts them in
+  `~/Applications`. Nothing but an Xcode archive belongs in `/Applications`.
+- `Scripts/generate-build-info.sh` writes `Generated/BuildInfo.generated.swift`
+  as a pre-build phase. It is gitignored and declared `optional` in
+  `project.yml` so a fresh clone still generates and builds. It deliberately
+  never invokes git in Release, so archives don't depend on a `.git` directory.
+
 ## Code style & conventions
 
 - **Swift 6**, strict concurrency. UI/AppKit-touching types are `@MainActor`.
