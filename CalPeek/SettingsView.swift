@@ -39,6 +39,11 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
+            // Debug builds deliberately offer no Launch at Login control: a
+            // login item registered by a build in ~/Applications or DerivedData
+            // would relaunch at every boot, and keep doing so after that build
+            // is deleted. AppDelegate also unregisters defensively on launch.
+            #if !DEBUG
             Section(String(localized: "General")) {
                 Toggle(String(localized: "Launch at Login"), isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
@@ -52,6 +57,7 @@ struct GeneralSettingsView: View {
                         launchAtLogin = SMAppService.mainApp.status == .enabled
                     }
             }
+            #endif
 
             Section {
                 Toggle(isOn: $showCalendar) {
