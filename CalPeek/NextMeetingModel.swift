@@ -29,10 +29,6 @@ struct NextMeeting {
 /// Read-only, and never triggers the permission prompt itself — that stays
 /// with the Settings window's Show Calendar toggle — so launching the app
 /// doesn't front-load a privacy dialog.
-///
-/// Part of CalPeek Pro: `computeNextMeeting` returns nil without full access, so
-/// every surface (menu bar, context menu, banner) disappears together when
-/// the trial lapses, and comes back on purchase via `.proStatusDidChange`.
 @Observable @MainActor
 final class NextMeetingModel {
     /// The next event today with a recognizable video-conference link that
@@ -56,12 +52,10 @@ final class NextMeetingModel {
 
     init() {
         // Store changes catch new/edited events; the day-change notification
-        // recomputes against the new day at midnight; the Pro status change
-        // shows or hides the whole feature on purchase, restore, or refund.
+        // recomputes against the new day at midnight.
         let names: [(Notification.Name, AnyObject?)] = [
             (.EKEventStoreChanged, store),
             (.NSCalendarDayChanged, nil),
-            (.proStatusDidChange, nil),
         ]
         observers = names.map { name, object in
             NotificationCenter.default.addObserver(
@@ -168,8 +162,7 @@ final class NextMeetingModel {
     }
 
     private func computeNextMeeting() -> NextMeeting? {
-        guard Store.shared.hasProAccess,
-              Preferences.showCalendar, CalendarAccess.hasFullAccess else { return nil }
+        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return nil }
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
         store.refreshSourcesIfNecessary()

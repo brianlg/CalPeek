@@ -1,5 +1,6 @@
 import EventKit
 import Foundation
+import SwiftUI
 
 /// UserDefaults keys and defaults for the settings window, kept in one place so
 /// `SettingsView`'s `@AppStorage` sites and the models read the same values.
@@ -13,6 +14,13 @@ enum Preferences {
     static let todayMarkerColorKey = "todayMarkerColor"
     static let calendarEventsColorKey = "calendarEventsColor"
     static let remindersColorKey = "remindersColor"
+    /// Companion keys holding each setting's custom color as a hex string
+    /// (CalPeek Pro); read only while the selection key stores
+    /// `WeekdayColor.customRawValue`. The weekday label's pair lives in
+    /// `WeekdayColor` alongside its selection key.
+    static let todayMarkerCustomColorKey = "todayMarkerCustomColor"
+    static let calendarEventsCustomColorKey = "calendarEventsCustomColor"
+    static let remindersCustomColorKey = "remindersCustomColor"
 
     static let showNextMeetingDefault = true
     static let showMeetingTitleDefault = true
@@ -50,12 +58,27 @@ enum Preferences {
         bool(forKey: showCalendarKey, default: showCalendarDefault)
     }
 
-    static var todayMarkerColor: WeekdayColor { themeColor(forKey: todayMarkerColorKey) }
-    static var calendarEventsColor: WeekdayColor { themeColor(forKey: calendarEventsColorKey) }
-    static var remindersColor: WeekdayColor { themeColor(forKey: remindersColorKey) }
+    /// Explicit color overrides for the AppKit-side consumers (status item
+    /// rendering); nil means Automatic. SwiftUI views read the same keys via
+    /// `@AppStorage` so they re-render on change.
+    static var weekdayOverride: Color? {
+        themeOverride(selectionKey: WeekdayColor.defaultsKey, customKey: WeekdayColor.customColorDefaultsKey)
+    }
+    static var todayMarkerOverride: Color? {
+        themeOverride(selectionKey: todayMarkerColorKey, customKey: todayMarkerCustomColorKey)
+    }
+    static var calendarEventsOverride: Color? {
+        themeOverride(selectionKey: calendarEventsColorKey, customKey: calendarEventsCustomColorKey)
+    }
+    static var remindersOverride: Color? {
+        themeOverride(selectionKey: remindersColorKey, customKey: remindersCustomColorKey)
+    }
 
-    private static func themeColor(forKey key: String) -> WeekdayColor {
-        UserDefaults.standard.string(forKey: key).flatMap(WeekdayColor.init(rawValue:)) ?? .auto
+    private static func themeOverride(selectionKey: String, customKey: String) -> Color? {
+        WeekdayColor.overrideColor(
+            selection: UserDefaults.standard.string(forKey: selectionKey) ?? WeekdayColor.auto.rawValue,
+            customHex: UserDefaults.standard.string(forKey: customKey) ?? ""
+        )
     }
 
     private static func bool(forKey key: String, default defaultValue: Bool) -> Bool {

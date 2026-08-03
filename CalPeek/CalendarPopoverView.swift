@@ -57,26 +57,34 @@ struct CalendarPopoverView: View {
 
     @AppStorage(Preferences.todayMarkerColorKey)
     private var todayMarkerRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.todayMarkerCustomColorKey)
+    private var todayMarkerCustomHex = ""
     @AppStorage(Preferences.calendarEventsColorKey)
     private var calendarEventsRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.calendarEventsCustomColorKey)
+    private var calendarEventsCustomHex = ""
     @AppStorage(Preferences.remindersColorKey)
     private var remindersRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.remindersCustomColorKey)
+    private var remindersCustomHex = ""
 
     /// Accent for the "today" circle, year picker selection, and other
     /// highlights. Automatic is Calendar-app red regardless of the system
     /// accent; the user can pick another color in Appearance settings.
     private var accent: Color {
-        (WeekdayColor(rawValue: todayMarkerRaw) ?? .auto).overrideColor
+        WeekdayColor.overrideColor(selection: todayMarkerRaw, customHex: todayMarkerCustomHex)
             ?? Color(nsColor: .systemRed)
     }
 
     /// Month-grid dot tints, honoring the Appearance overrides and falling
     /// back to the user's default calendar/list colors.
     private var eventDotColor: Color {
-        (WeekdayColor(rawValue: calendarEventsRaw) ?? .auto).overrideColor ?? events.eventDotColor
+        WeekdayColor.overrideColor(selection: calendarEventsRaw, customHex: calendarEventsCustomHex)
+            ?? events.eventDotColor
     }
     private var reminderDotColor: Color {
-        (WeekdayColor(rawValue: remindersRaw) ?? .auto).overrideColor ?? events.reminderDotColor
+        WeekdayColor.overrideColor(selection: remindersRaw, customHex: remindersCustomHex)
+            ?? events.reminderDotColor
     }
     
     /// The user's calendar, honoring their system "first day of week" setting so
@@ -599,17 +607,23 @@ private struct DayEventsPopover: View {
 
     @AppStorage(Preferences.calendarEventsColorKey)
     private var calendarEventsRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.calendarEventsCustomColorKey)
+    private var calendarEventsCustomHex = ""
     @AppStorage(Preferences.remindersColorKey)
     private var remindersRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.remindersCustomColorKey)
+    private var remindersCustomHex = ""
 
     /// Row glyph tint: the Appearance override for the item's kind, or the
     /// item's own calendar/list color when set to Automatic.
     private func tint(for item: DayItem) -> Color {
         switch item.kind {
         case .event:
-            return (WeekdayColor(rawValue: calendarEventsRaw) ?? .auto).overrideColor ?? item.color
+            return WeekdayColor.overrideColor(selection: calendarEventsRaw, customHex: calendarEventsCustomHex)
+                ?? item.color
         case .reminder:
-            return (WeekdayColor(rawValue: remindersRaw) ?? .auto).overrideColor ?? item.color
+            return WeekdayColor.overrideColor(selection: remindersRaw, customHex: remindersCustomHex)
+                ?? item.color
         }
     }
 
