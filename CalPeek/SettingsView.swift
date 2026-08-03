@@ -347,8 +347,8 @@ struct AppearanceSettingsView: View {
 /// color it currently resolves to), the explicit colors, then Custom
 /// (CalPeek Pro), each with a swatch dot. Swatches are pre-rendered
 /// `NSImage`s because bare SwiftUI shapes are dropped from macOS menu items.
-/// With Custom selected, a standard color well appears in the row — it opens
-/// the system color panel, wheel and hex field included.
+/// With Custom selected, a standard color well appears in its own row below —
+/// it opens the system color panel, wheel and hex field included.
 private struct ThemeColorPicker: View {
     let title: String
     let help: String
@@ -359,46 +359,50 @@ private struct ThemeColorPicker: View {
     private let proStore = Store.shared
 
     var body: some View {
-        HStack(spacing: 8) {
-            Picker(selection: $selection) {
-                swatchLabel(automaticSwatch, WeekdayColor.auto.displayName)
-                    .tag(WeekdayColor.auto.rawValue)
-                Divider()
-                ForEach(WeekdayColor.allCases.filter { $0 != .auto }) { option in
-                    swatchLabel(option.color, option.displayName)
-                        .tag(option.rawValue)
-                }
-                Divider()
-                customLabel
-                    .tag(WeekdayColor.customRawValue)
-            } label: {
-                // Same title-and-caption row style as the General tab's toggles.
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                    Text(help)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+        Picker(selection: $selection) {
+            swatchLabel(automaticSwatch, WeekdayColor.auto.displayName)
+                .tag(WeekdayColor.auto.rawValue)
+            Divider()
+            ForEach(WeekdayColor.allCases.filter { $0 != .auto }) { option in
+                swatchLabel(option.color, option.displayName)
+                    .tag(option.rawValue)
             }
-            .onChange(of: selection) { oldValue, newValue in
-                guard newValue == WeekdayColor.customRawValue else { return }
-                guard proStore.isPro else {
-                    // The upsell: put the selection back and show the unlock.
-                    selection = oldValue
-                    NotificationCenter.default.post(name: .openProSettings, object: nil)
-                    return
-                }
-                // Seed the well from the color being replaced, so switching
-                // to Custom doesn't visibly change anything until the user
-                // picks.
-                if Color(hexString: customHex) == nil {
-                    let previous = WeekdayColor(rawValue: oldValue)?.overrideColor ?? automaticSwatch
-                    customHex = previous.hexString ?? "#007AFF"
-                }
+            Divider()
+            customLabel
+                .tag(WeekdayColor.customRawValue)
+        } label: {
+            // Same title-and-caption row style as the General tab's toggles.
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(help)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+        }
+        .onChange(of: selection) { oldValue, newValue in
+            guard newValue == WeekdayColor.customRawValue else { return }
+            guard proStore.isPro else {
+                // The upsell: put the selection back and show the unlock.
+                selection = oldValue
+                NotificationCenter.default.post(name: .openProSettings, object: nil)
+                return
+            }
+            // Seed the well from the color being replaced, so switching
+            // to Custom doesn't visibly change anything until the user
+            // picks.
+            if Color(hexString: customHex) == nil {
+                let previous = WeekdayColor(rawValue: oldValue)?.overrideColor ?? automaticSwatch
+                customHex = previous.hexString ?? "#007AFF"
+            }
+        }
 
-            if selection == WeekdayColor.customRawValue {
+        // The well gets its own labeled row: sharing the picker's row would
+        // squeeze the popup out of column alignment, and the system well
+        // keeps its standard size trailing-aligned — how System Settings
+        // lays out dependent controls.
+        if selection == WeekdayColor.customRawValue {
+            LabeledContent(String(localized: "Custom Color")) {
                 ColorPicker(selection: customColor, supportsOpacity: false) {
                     EmptyView()
                 }
