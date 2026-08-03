@@ -1,10 +1,11 @@
 import StoreKit
 import SwiftUI
 
-/// The CalPeek Pro settings tab: the one-time unlock purchase and Restore
-/// Purchases. Uses StoreKit's `ProductView` so pricing, locale, and the
-/// purchase sheet are all the system's.
-struct ProSettingsView: View {
+/// The About settings tab: app identity (icon, version, copyright) with the
+/// Support CalPeek one-time purchase and Restore Purchases beneath. Uses
+/// StoreKit's `ProductView` so pricing, locale, and the purchase sheet are
+/// all the system's.
+struct AboutSettingsView: View {
     private let store = Store.shared
 
     /// Outcome of the last Restore Purchases attempt, shown under the button.
@@ -19,12 +20,16 @@ struct ProSettingsView: View {
 
     var body: some View {
         Form {
+            Section {
+                appIdentity
+            }
+
             if store.isPro {
-                Section {
+                Section(String(localized: "Support CalPeek")) {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(String(localized: "CalPeek Pro is unlocked"))
-                            Text(String(localized: "Thanks for supporting CalPeek. All features are yours, forever."))
+                            Text(String(localized: "Thanks for supporting CalPeek. Custom colors are yours, forever."))
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
                         }
@@ -65,6 +70,8 @@ struct ProSettingsView: View {
                                 }
                             }
                     }
+                } header: {
+                    Text(String(localized: "Support CalPeek"))
                 } footer: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "One-time purchase. No subscription, free updates."))
@@ -96,6 +103,32 @@ struct ProSettingsView: View {
             guard !store.isPro else { return }
             productLoadFailed = !(await Self.productIsLoadable())
         }
+    }
+
+    /// Icon, name, version, and copyright, all read from the bundle so this
+    /// view never drifts from what actually shipped.
+    private var appIdentity: some View {
+        VStack(spacing: 2) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
+            Text(Self.bundleString("CFBundleDisplayName") ?? "CalPeek")
+                .font(.headline)
+            Text(String(localized: "Version \(Self.bundleString("CFBundleShortVersionString") ?? "–") (\(Self.bundleString("CFBundleVersion") ?? "–"))"))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            if let copyright = Self.bundleString("NSHumanReadableCopyright") {
+                Text(copyright)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+    }
+
+    private static func bundleString(_ key: String) -> String? {
+        Bundle.main.object(forInfoDictionaryKey: key) as? String
     }
 
     /// Runs the same query `ProductView` depends on, racing a timeout, so a
@@ -174,5 +207,5 @@ private struct CenteredProductViewStyle: ProductViewStyle {
 }
 
 #Preview {
-    ProSettingsView()
+    AboutSettingsView()
 }

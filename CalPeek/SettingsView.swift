@@ -6,7 +6,7 @@ import SwiftUI
 /// Tab order of the settings window built in `AppDelegate.openSettings`,
 /// so callers can select a tab by name rather than a magic index.
 enum SettingsTab: Int {
-    case general, appearance, pro
+    case general, appearance, about
 }
 
 /// The General settings tab.
@@ -328,7 +328,7 @@ struct AppearanceSettingsView: View {
                         Text(String(localized: "Custom colors require CalPeek Pro."))
                             .foregroundStyle(.secondary)
                         Button(String(localized: "Learn More")) {
-                            NotificationCenter.default.post(name: .openProSettings, object: nil)
+                            NotificationCenter.default.post(name: .openAboutSettings, object: nil)
                         }
                         .buttonStyle(.plain)
                         .foregroundStyle(.tint)
@@ -403,7 +403,7 @@ private struct ThemeColorPicker: View {
             let previous = selection
             selection = newValue
             selection = previous
-            NotificationCenter.default.post(name: .openProSettings, object: nil)
+            NotificationCenter.default.post(name: .openAboutSettings, object: nil)
             return
         }
         // Seed from the color being replaced, so switching to Custom doesn't

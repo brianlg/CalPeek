@@ -62,11 +62,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         todayBadge.onChange = { [weak self] in self?.refreshIcon() }
 
         NotificationCenter.default.addObserver(
-            forName: .openProSettings, object: nil, queue: .main
+            forName: .openAboutSettings, object: nil, queue: .main
         ) { [weak self] _ in
             // Hop through MainActor explicitly: the observer closure isn't
             // isolated even though it runs on the main queue.
-            MainActor.assumeIsolated { self?.showSettings(selecting: .pro) }
+            MainActor.assumeIsolated { self?.showSettings(selecting: .about) }
         }
     }
 
@@ -550,14 +550,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appearance.label = String(localized: "Appearance")
             appearance.image = NSImage(systemSymbolName: "paintpalette", accessibilityDescription: nil)
 
-            let proVC = NSHostingController(rootView: ProSettingsView())
-            proVC.sizingOptions = .preferredContentSize
-            proVC.title = String(localized: "Settings")
-            let pro = NSTabViewItem(viewController: proVC)
-            pro.label = String(localized: "CalPeek Pro")
-            pro.image = NSImage(systemSymbolName: "checkmark.seal.fill", accessibilityDescription: nil)
+            let aboutVC = NSHostingController(rootView: AboutSettingsView())
+            aboutVC.sizingOptions = .preferredContentSize
+            aboutVC.title = String(localized: "Settings")
+            let about = NSTabViewItem(viewController: aboutVC)
+            about.label = String(localized: "About")
+            about.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
 
-            tabs.tabViewItems = [general, appearance, pro]
+            tabs.tabViewItems = [general, appearance, about]
 
             let window = NSWindow(contentViewController: tabs)
             window.title = String(localized: "Settings")
@@ -572,7 +572,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Opens Settings on a specific tab, closing the calendar popover first.
-    /// Reached via `.openProSettings` from the popover's CalPeek Pro unlock
+    /// Reached via `.openAboutSettings` from the Appearance tab's unlock
     /// prompt — under the SwiftUI lifecycle `NSApp.delegate` is SwiftUI's
     /// own proxy object, so views can't get at this delegate directly.
     private func showSettings(selecting tab: SettingsTab) {
@@ -592,9 +592,10 @@ extension Notification.Name {
     /// `CalendarPopoverView` (whose state outlives each presentation) can
     /// reset navigation to the current month.
     static let popoverWillShow = Notification.Name("CalPeekPopoverWillShow")
-    /// Posted by the popover's unlock prompt to open Settings on the
-    /// CalPeek Pro tab (see `AppDelegate.showSettings(selecting:)`).
-    static let openProSettings = Notification.Name("CalPeekOpenProSettings")
+    /// Posted by the Appearance tab's unlock prompt to open Settings on the
+    /// About tab, where the purchase lives (see
+    /// `AppDelegate.showSettings(selecting:)`).
+    static let openAboutSettings = Notification.Name("CalPeekOpenAboutSettings")
 }
 
 /// Keeps the settings window's title pinned to "Settings" — the base class
