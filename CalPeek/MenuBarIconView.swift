@@ -19,8 +19,18 @@ struct MenuBarIconView: View {
         static let size: CGFloat = 5
         static let spacing: CGFloat = 2
         /// Room reserved beside the glyph so the dots render clear of the text
-        /// and aren't clipped by the rasterized image bounds.
-        static let inset: CGFloat = 6
+        /// and aren't clipped by the rasterized image bounds. Must cover the
+        /// dot plus `trailingGap`, which shifts the dot back into this space —
+        /// too small and the dots collide with the day number.
+        static let inset: CGFloat = 10
+        /// Holds the dots off the image's trailing edge, where the status
+        /// item's countdown title begins. Without it the title butts up
+        /// against the badge and the two read as one crowded blob.
+        ///
+        /// The HIG has no rule for this: it documents menu bar extra icons
+        /// and the 24pt bar height, but badge dots on a status item are our
+        /// own element, so the spacing is a house convention.
+        static let trailingGap: CGFloat = 4
     }
 
     /// "MON", "TUE", … from the user's locale, via the system format style.
@@ -51,6 +61,7 @@ struct MenuBarIconView: View {
                             .frame(width: Badge.size, height: Badge.size)
                     }
                 }
+                .padding(.trailing, Badge.trailingGap)
             }
         }
     }

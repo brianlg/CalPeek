@@ -26,3 +26,6 @@ Package.resolved
 # CocoaPods / Carthage (in case added later)
 Pods/
 Carthage/Build/
+
+# App Store capture assets (large binaries, regenerated on demand)
+AppStoreAssets/
