@@ -22,7 +22,10 @@ final class Store {
     private init() {
         // Stamp the trial start on first launch so the 14 days run from
         // first use, not from whenever the user finds the unlock screen.
-        if let stored = UserDefaults.standard.object(forKey: Self.trialStartKey) as? Date {
+        // An implausible stored value is repaired rather than honoured — see
+        // `earliestPlausibleTrialStart` for the bug it heals.
+        if let stored = UserDefaults.standard.object(forKey: Self.trialStartKey) as? Date,
+           Self.isPlausibleTrialStart(stored) {
             trialStart = stored
         } else {
             trialStart = Date()
@@ -107,15 +110,36 @@ final class Store {
         didSet { UserDefaults.standard.set(trialStart, forKey: Self.trialStartKey) }
     }
 
+    /// A trial anchor older than this is a bug fingerprint rather than a real
+    /// first launch, so it is discarded instead of honoured. Outside the
+    /// production App Store, `AppTransaction.originalPurchaseDate` reports the
+    /// Unix epoch; builds that anchored to it put `trialEnd` in 1970 and
+    /// expired the trial permanently, with no way back — the anchor only ever
+    /// moves earlier, so every subsequent launch re-applied it. This heals
+    /// containers already carrying that value. CalPeek did not exist in 2017,
+    /// so nothing this old can be genuine.
+    nonisolated static let earliestPlausibleTrialStart = Date(timeIntervalSince1970: 1_500_000_000)
+
+    /// Pure, so it carries no actor isolation of its own.
+    nonisolated static func isPlausibleTrialStart(_ date: Date) -> Bool {
+        date >= earliestPlausibleTrialStart
+    }
+
     /// Re-anchors the trial to `AppTransaction.originalPurchaseDate` — the
     /// App Store-signed first-download date, which survives reinstall and
     /// container resets. The UserDefaults stamp remains the offline fallback;
     /// the earlier of the two wins so the trial can only shorten, never reset.
     private func anchorTrialStart() async {
         guard case .verified(let appTransaction)? = try? await AppTransaction.shared else { return }
-        if appTransaction.originalPurchaseDate < trialStart {
-            trialStart = appTransaction.originalPurchaseDate
-        }
+        // Only the production App Store reports a real first-download date.
+        // StoreKit Testing, Xcode-run builds, and TestFlight report the epoch
+        // (or a synthetic date) instead, which would expire the trial forever.
+        // Falling back to the UserDefaults stamp in those environments is also
+        // the behaviour a tester should get: 14 days from first launch.
+        guard appTransaction.environment == .production else { return }
+        let anchor = appTransaction.originalPurchaseDate
+        guard Self.isPlausibleTrialStart(anchor), anchor < trialStart else { return }
+        trialStart = anchor
     }
 
     var hasProAccess: Bool { isPro || Date() < trialEnd }
