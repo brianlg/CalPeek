@@ -1,9 +1,9 @@
 import StoreKit
 import SwiftUI
 
-/// The CalPeek Pro settings tab: the one-time unlock purchase, trial status,
-/// and Restore Purchases. Uses StoreKit's `ProductView` so pricing, locale,
-/// and the purchase sheet are all the system's.
+/// The CalPeek Pro settings tab: the one-time unlock purchase and Restore
+/// Purchases. Uses StoreKit's `ProductView` so pricing, locale, and the
+/// purchase sheet are all the system's.
 struct ProSettingsView: View {
     private let store = Store.shared
 
@@ -68,7 +68,7 @@ struct ProSettingsView: View {
                 } footer: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "One-time purchase. No subscription, free updates."))
-                        trialStatus
+                        Text(String(localized: "Everything else in CalPeek is free — Pro unlocks custom colors and supports development."))
                     }
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
@@ -116,19 +116,6 @@ struct ProSettingsView: View {
             return !products.isEmpty
         } catch {
             return false
-        }
-    }
-
-    @ViewBuilder
-    private var trialStatus: some View {
-        if store.trialDaysRemaining > 0 {
-            Text(String(localized: "Free trial: \(store.trialDaysRemaining) days of Next Meeting left."))
-        } else if store.hasProAccess {
-            // Whole-day counting floors to 0 for the entire final day while
-            // access is still live — don't claim the trial ended early.
-            Text(String(localized: "Free trial: less than a day of Next Meeting left."))
-        } else {
-            Text(String(localized: "Your free trial has ended. Everything except Next Meeting stays free."))
         }
     }
 

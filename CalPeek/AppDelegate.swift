@@ -12,7 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let popover = NSPopover()
     /// App-lifetime source of the next joinable meeting, feeding the menu bar
     /// countdown, the context menu's join item, and the popover banner.
-    /// CalPeek Pro: the model resolves to nil without full access.
     private let nextMeeting = NextMeetingModel()
     /// Drives the agenda dots on the menu bar icon, tinted with the user's
     /// default calendar and default reminders list colors.
@@ -32,8 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// any key, including the system's own bookkeeping.
     private nonisolated static let iconDefaultsKeys = [
         WeekdayColor.defaultsKey,
+        WeekdayColor.customColorDefaultsKey,
         Preferences.calendarEventsColorKey,
+        Preferences.calendarEventsCustomColorKey,
         Preferences.remindersColorKey,
+        Preferences.remindersCustomColorKey,
     ]
     /// Next Meeting preference keys, observed the same way: they change the
     /// status-item title and the hotkey registration, not the icon.
@@ -130,15 +132,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         var badgeDots: [Color] = []
         if todayBadge.showsEventDot {
-            badgeDots.append(Preferences.calendarEventsColor.overrideColor ?? todayBadge.eventDotColor)
+            badgeDots.append(Preferences.calendarEventsOverride ?? todayBadge.eventDotColor)
         }
         if todayBadge.showsReminderDot {
-            badgeDots.append(Preferences.remindersColor.overrideColor ?? todayBadge.reminderDotColor)
+            badgeDots.append(Preferences.remindersOverride ?? todayBadge.reminderDotColor)
         }
 
         let view = MenuBarIconView(
             date: Date(),
-            weekdayColor: currentWeekdayColor.color,
+            weekdayColor: Preferences.weekdayOverride ?? WeekdayColor.auto.color,
             badgeDots: badgeDots
         )
 
@@ -437,7 +439,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeWeekdayColorMenu() -> NSMenu {
         let menu = NSMenu()
-        let current = currentWeekdayColor
+        let rawSelection = UserDefaults.standard.string(forKey: WeekdayColor.defaultsKey)
+            ?? WeekdayColor.auto.rawValue
+        let isCustom = rawSelection == WeekdayColor.customRawValue
+        let current = isCustom ? nil : (WeekdayColor(rawValue: rawSelection) ?? .auto)
         for option in WeekdayColor.allCases {
             let item = NSMenuItem(
                 title: option.displayName,
@@ -449,12 +454,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             item.state = (option == current) ? .on : .off
             menu.addItem(item)
         }
+        // A custom color (CalPeek Pro) is picked in Appearance settings, not
+        // here — when one is active, reflect it with a checked item that
+        // routes there rather than silently checking nothing.
+        if isCustom {
+            menu.addItem(.separator())
+            let item = NSMenuItem(
+                title: String(localized: "Custom…"),
+                action: #selector(openAppearanceSettings),
+                keyEquivalent: ""
+            )
+            item.target = self
+            item.state = .on
+            menu.addItem(item)
+        }
         return menu
-    }
-
-    private var currentWeekdayColor: WeekdayColor {
-        let raw = UserDefaults.standard.string(forKey: WeekdayColor.defaultsKey)
-        return raw.flatMap(WeekdayColor.init(rawValue:)) ?? .auto
     }
 
     @objc private func selectWeekdayColor(_ sender: NSMenuItem) {
@@ -463,10 +477,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         UserDefaults.standard.set(raw, forKey: WeekdayColor.defaultsKey)
     }
 
+    @objc private func openAppearanceSettings() {
+        showSettings(selecting: .appearance)
+    }
+
     // MARK: - Next meeting
 
     /// Updates the countdown text next to the glyph and (de)registers the
-    /// global join hotkey to match current preferences and Pro status.
+    /// global join hotkey to match current preferences.
     private func refreshNextMeetingUI() {
         if let button = statusItem?.button {
             if let text = nextMeeting.menuBarText {
@@ -481,9 +499,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func updateJoinHotKey() {
-        // Part of CalPeek Pro alongside the countdown — a hotkey joining
-        // meetings the UI no longer shows would be surprising.
-        if Preferences.joinHotKeyEnabled, Store.shared.hasProAccess {
+        if Preferences.joinHotKeyEnabled {
             guard joinHotKey == nil else { return }
             joinHotKey = GlobalHotKey.joinMeeting { [weak self] in
                 self?.nextMeeting.joinNextMeeting()

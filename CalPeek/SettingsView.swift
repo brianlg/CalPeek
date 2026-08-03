@@ -25,9 +25,6 @@ struct GeneralSettingsView: View {
     private var showCalendar = Preferences.showCalendarDefault
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    /// Gates the Next Meeting section; reading it in `body` keeps the
-    /// section in sync with purchases via `@Observable` tracking.
-    private let store = Store.shared
     /// True after the user denied Reminders access, so the footer can point
     /// them at System Settings.
     @State private var remindersDenied = false
@@ -85,8 +82,6 @@ struct GeneralSettingsView: View {
             }
 
             Section {
-                // Disabled per-control rather than on the Section so the
-                // footer's Learn More button stays clickable when locked.
                 Group {
                     Toggle(String(localized: "Show next meeting in menu bar"), isOn: $showNextMeeting)
                     Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
@@ -102,34 +97,14 @@ struct GeneralSettingsView: View {
                     Toggle(String(localized: "Join next meeting with ⌥⌘J"), isOn: $joinHotKeyEnabled)
                 }
                 // The next-meeting feature reads from the calendar, so it has
-                // nothing to show until Show Calendar is on; without CalPeek Pro
-                // the toggles would drive a feature that never renders.
-                .disabled(!showCalendar || !store.hasProAccess)
+                // nothing to show until Show Calendar is on.
+                .disabled(!showCalendar)
             } header: {
-                HStack(spacing: 6) {
-                    Text(String(localized: "Next Meeting"))
-                    if !store.hasProAccess {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(.tint)
-                    }
-                }
+                Text(String(localized: "Next Meeting"))
             } footer: {
-                if store.hasProAccess {
-                    Text(String(localized: "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                } else {
-                    HStack(spacing: 4) {
-                        Text(String(localized: "Requires CalPeek Pro."))
-                            .foregroundStyle(.secondary)
-                        Button(String(localized: "Learn More")) {
-                            NotificationCenter.default.post(name: .openProSettings, object: nil)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.tint)
-                    }
+                Text(String(localized: "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
                     .font(.system(size: 11))
-                }
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -284,21 +259,32 @@ struct GeneralSettingsView: View {
 }
 
 /// The Appearance settings tab: theme color pickers backed by the shared
-/// `WeekdayColor` palette.
+/// `WeekdayColor` palette, plus a per-setting custom color (CalPeek Pro).
 struct AppearanceSettingsView: View {
     @AppStorage(WeekdayColor.defaultsKey)
     private var weekdayColorRaw = WeekdayColor.auto.rawValue
+    @AppStorage(WeekdayColor.customColorDefaultsKey)
+    private var weekdayCustomHex = ""
     @AppStorage(Preferences.todayMarkerColorKey)
     private var todayMarkerRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.todayMarkerCustomColorKey)
+    private var todayMarkerCustomHex = ""
     @AppStorage(Preferences.calendarEventsColorKey)
     private var calendarEventsRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.calendarEventsCustomColorKey)
+    private var calendarEventsCustomHex = ""
     @AppStorage(Preferences.remindersColorKey)
     private var remindersRaw = WeekdayColor.auto.rawValue
+    @AppStorage(Preferences.remindersCustomColorKey)
+    private var remindersCustomHex = ""
 
     /// Read-only use of the shared store, for showing what the Automatic
     /// event/reminder colors currently resolve to (the user's default
     /// calendar/list colors).
     private let store = EKEventStore.shared
+    /// Gates the Custom option; reading `isPro` in `body` keeps the tab in
+    /// sync with purchases via `@Observable` tracking.
+    private let proStore = Store.shared
 
     var body: some View {
         Form {
@@ -307,29 +293,48 @@ struct AppearanceSettingsView: View {
                     title: String(localized: "Weekday Color"),
                     help: String(localized: "Colors the weekday name in the menu bar."),
                     automaticSwatch: Color(nsColor: .secondaryLabelColor),
-                    selection: $weekdayColorRaw
+                    selection: $weekdayColorRaw,
+                    customHex: $weekdayCustomHex
                 )
             }
 
-            Section(String(localized: "Theme")) {
+            Section {
                 ThemeColorPicker(
                     title: String(localized: "Today Marker"),
                     help: String(localized: "Colors the circle around today."),
                     automaticSwatch: Color(nsColor: .systemRed),
-                    selection: $todayMarkerRaw
+                    selection: $todayMarkerRaw,
+                    customHex: $todayMarkerCustomHex
                 )
                 ThemeColorPicker(
                     title: String(localized: "Calendar Events"),
                     help: String(localized: "Colors the dots beneath days with calendar events."),
                     automaticSwatch: store.defaultEventColor ?? Color(nsColor: .systemRed),
-                    selection: $calendarEventsRaw
+                    selection: $calendarEventsRaw,
+                    customHex: $calendarEventsCustomHex
                 )
                 ThemeColorPicker(
                     title: String(localized: "Reminders"),
                     help: String(localized: "Colors the dots and checkboxes for Reminders that fall on a specific day."),
                     automaticSwatch: store.defaultReminderColor ?? Color(nsColor: .systemOrange),
-                    selection: $remindersRaw
+                    selection: $remindersRaw,
+                    customHex: $remindersCustomHex
                 )
+            } header: {
+                Text(String(localized: "Theme"))
+            } footer: {
+                if !proStore.isPro {
+                    HStack(spacing: 4) {
+                        Text(String(localized: "Custom colors require CalPeek Pro."))
+                            .foregroundStyle(.secondary)
+                        Button(String(localized: "Learn More")) {
+                            NotificationCenter.default.post(name: .openProSettings, object: nil)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.tint)
+                    }
+                    .font(.system(size: 11))
+                }
             }
         }
         .formStyle(.grouped)
@@ -339,32 +344,88 @@ struct AppearanceSettingsView: View {
 }
 
 /// Labeled menu picker over the shared color palette: Automatic (showing the
-/// color it currently resolves to), then the explicit colors, each with a
-/// swatch dot. Swatches are pre-rendered `NSImage`s because bare SwiftUI
-/// shapes are dropped from macOS menu items.
+/// color it currently resolves to), the explicit colors, then Custom
+/// (CalPeek Pro), each with a swatch dot. Swatches are pre-rendered
+/// `NSImage`s because bare SwiftUI shapes are dropped from macOS menu items.
+/// With Custom selected, a standard color well appears in the row — it opens
+/// the system color panel, wheel and hex field included.
 private struct ThemeColorPicker: View {
     let title: String
     let help: String
     let automaticSwatch: Color
     @Binding var selection: String
+    @Binding var customHex: String
+
+    private let proStore = Store.shared
 
     var body: some View {
-        Picker(selection: $selection) {
-            swatchLabel(automaticSwatch, WeekdayColor.auto.displayName)
-                .tag(WeekdayColor.auto.rawValue)
-            Divider()
-            ForEach(WeekdayColor.allCases.filter { $0 != .auto }) { option in
-                swatchLabel(option.color, option.displayName)
-                    .tag(option.rawValue)
+        HStack(spacing: 8) {
+            Picker(selection: $selection) {
+                swatchLabel(automaticSwatch, WeekdayColor.auto.displayName)
+                    .tag(WeekdayColor.auto.rawValue)
+                Divider()
+                ForEach(WeekdayColor.allCases.filter { $0 != .auto }) { option in
+                    swatchLabel(option.color, option.displayName)
+                        .tag(option.rawValue)
+                }
+                Divider()
+                customLabel
+                    .tag(WeekdayColor.customRawValue)
+            } label: {
+                // Same title-and-caption row style as the General tab's toggles.
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                    Text(help)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-        } label: {
-            // Same title-and-caption row style as the General tab's toggles.
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                Text(help)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            .onChange(of: selection) { oldValue, newValue in
+                guard newValue == WeekdayColor.customRawValue else { return }
+                guard proStore.isPro else {
+                    // The upsell: put the selection back and show the unlock.
+                    selection = oldValue
+                    NotificationCenter.default.post(name: .openProSettings, object: nil)
+                    return
+                }
+                // Seed the well from the color being replaced, so switching
+                // to Custom doesn't visibly change anything until the user
+                // picks.
+                if Color(hexString: customHex) == nil {
+                    let previous = WeekdayColor(rawValue: oldValue)?.overrideColor ?? automaticSwatch
+                    customHex = previous.hexString ?? "#007AFF"
+                }
+            }
+
+            if selection == WeekdayColor.customRawValue {
+                ColorPicker(selection: customColor, supportsOpacity: false) {
+                    EmptyView()
+                }
+                .labelsHidden()
+                .accessibilityLabel(Text(String(localized: "Custom Color")))
+            }
+        }
+    }
+
+    /// Bridges the persisted hex string to the color well.
+    private var customColor: Binding<Color> {
+        Binding(
+            get: { Color(hexString: customHex) ?? .accentColor },
+            set: { customHex = $0.hexString ?? customHex }
+        )
+    }
+
+    /// "Custom…" menu entry: swatch of the current custom color once one is
+    /// set; a lock when CalPeek Pro hasn't been unlocked yet.
+    private var customLabel: some View {
+        HStack(spacing: 6) {
+            if let color = Color(hexString: customHex) {
+                Image(nsImage: Self.swatch(color))
+            }
+            Text(String(localized: "Custom…"))
+            if !proStore.isPro {
+                Image(systemName: "lock.fill")
             }
         }
     }
