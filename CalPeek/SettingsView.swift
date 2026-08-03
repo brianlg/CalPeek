@@ -347,8 +347,9 @@ struct AppearanceSettingsView: View {
 /// color it currently resolves to), the explicit colors, then Custom
 /// (CalPeek Pro), each with a swatch dot. Swatches are pre-rendered
 /// `NSImage`s because bare SwiftUI shapes are dropped from macOS menu items.
-/// With Custom selected, a standard color well appears in its own row below —
-/// it opens the system color panel, wheel and hex field included.
+/// Picking Custom… opens the system color panel directly — wheel, hex field,
+/// eyedropper — so the whole flow lives in the one popup, the way System
+/// Settings handles Folder color. Re-picking Custom… reopens the panel.
 private struct ThemeColorPicker: View {
     let title: String
     let help: String
@@ -359,7 +360,7 @@ private struct ThemeColorPicker: View {
     private let proStore = Store.shared
 
     var body: some View {
-        Picker(selection: $selection) {
+        Picker(selection: pickerSelection) {
             swatchLabel(automaticSwatch, WeekdayColor.auto.displayName)
                 .tag(WeekdayColor.auto.rawValue)
             Divider()
@@ -380,44 +381,47 @@ private struct ThemeColorPicker: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .onChange(of: selection) { oldValue, newValue in
-            guard newValue == WeekdayColor.customRawValue else { return }
-            guard proStore.isPro else {
-                // The upsell: put the selection back and show the unlock.
-                selection = oldValue
-                NotificationCenter.default.post(name: .openProSettings, object: nil)
-                return
-            }
-            // Seed the well from the color being replaced, so switching
-            // to Custom doesn't visibly change anything until the user
-            // picks.
-            if Color(hexString: customHex) == nil {
-                let previous = WeekdayColor(rawValue: oldValue)?.overrideColor ?? automaticSwatch
-                customHex = previous.hexString ?? "#007AFF"
-            }
-        }
-
-        // The well gets its own labeled row: sharing the picker's row would
-        // squeeze the popup out of column alignment, and the system well
-        // keeps its standard size trailing-aligned — how System Settings
-        // lays out dependent controls.
-        if selection == WeekdayColor.customRawValue {
-            LabeledContent(String(localized: "Custom Color")) {
-                ColorPicker(selection: customColor, supportsOpacity: false) {
-                    EmptyView()
-                }
-                .labelsHidden()
-                .accessibilityLabel(Text(String(localized: "Custom Color")))
-            }
-        }
     }
 
-    /// Bridges the persisted hex string to the color well.
-    private var customColor: Binding<Color> {
-        Binding(
-            get: { Color(hexString: customHex) ?? .accentColor },
-            set: { customHex = $0.hexString ?? customHex }
-        )
+    /// Routes every menu pick through `handlePick` — including re-picking
+    /// the already-selected Custom…, which must reopen the panel even though
+    /// the value didn't change. `onChange` never fires for that case.
+    private var pickerSelection: Binding<String> {
+        Binding(get: { selection }, set: { handlePick($0) })
+    }
+
+    private func handlePick(_ newValue: String) {
+        guard newValue == WeekdayColor.customRawValue else {
+            selection = newValue
+            // Don't leave a panel up that no longer affects anything.
+            ColorPanelDriver.shared.close(ifOwner: title)
+            return
+        }
+        guard proStore.isPro else {
+            // The upsell: bounce the popup through the rejected value so
+            // SwiftUI repaints it back, and show the unlock.
+            let previous = selection
+            selection = newValue
+            selection = previous
+            NotificationCenter.default.post(name: .openProSettings, object: nil)
+            return
+        }
+        // Seed from the color being replaced, so switching to Custom doesn't
+        // visibly change anything until the user picks.
+        if Color(hexString: customHex) == nil {
+            let previous = WeekdayColor(rawValue: selection)?.overrideColor ?? automaticSwatch
+            customHex = previous.hexString ?? "#007AFF"
+        }
+        selection = WeekdayColor.customRawValue
+        let hexBinding = $customHex
+        ColorPanelDriver.shared.open(
+            owner: title,
+            color: Color(hexString: customHex) ?? automaticSwatch
+        ) { color in
+            if let hex = color.hexString {
+                hexBinding.wrappedValue = hex
+            }
+        }
     }
 
     /// "Custom…" menu entry: swatch of the current custom color once one is
@@ -448,6 +452,42 @@ private struct ThemeColorPicker: View {
             NSBezierPath(ovalIn: rect).fill()
             return true
         }
+    }
+}
+
+/// Feeds the shared system color panel into whichever theme picker opened it,
+/// via the panel's classic target/action API — SwiftUI's `ColorPicker` can't
+/// open the panel without its own well control. One driver serves all four
+/// pickers; the most recent opener owns the panel.
+@MainActor
+private final class ColorPanelDriver: NSObject {
+    static let shared = ColorPanelDriver()
+
+    private var owner: String?
+    private var onColorChange: ((Color) -> Void)?
+
+    func open(owner: String, color: Color, onColorChange: @escaping (Color) -> Void) {
+        self.owner = owner
+        self.onColorChange = onColorChange
+        let panel = NSColorPanel.shared
+        // The persisted "#RRGGBB" carries no alpha, so don't offer one.
+        panel.showsAlpha = false
+        panel.isContinuous = true
+        panel.color = NSColor(color)
+        panel.setTarget(self)
+        panel.setAction(#selector(colorDidChange(_:)))
+        panel.makeKeyAndOrderFront(nil)
+    }
+
+    /// Closes the panel only if `candidate` was the picker that opened it —
+    /// another picker may have claimed it since.
+    func close(ifOwner candidate: String) {
+        guard owner == candidate, NSColorPanel.shared.isVisible else { return }
+        NSColorPanel.shared.orderOut(nil)
+    }
+
+    @objc private func colorDidChange(_ sender: NSColorPanel) {
+        onColorChange?(Color(nsColor: sender.color))
     }
 }
 
