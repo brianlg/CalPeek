@@ -10,13 +10,13 @@
       "internalID" : "6E1D9B24-3A7F-4C58-8D2E-9F0A1B6C7D83",
       "localizations" : [
         {
-          "description" : "Custom theme colors for the menu bar and calendar — and a way to support CalPeek.",
-          "displayName" : "CalPeek Pro",
+          "description" : "Custom theme colors for the menu bar and calendar, and a way to support CalPeek.",
+          "displayName" : "Supporter",
           "locale" : "en_US"
         }
       ],
       "productID" : "com.briangibson.calpeek.pro",
-      "referenceName" : "CalPeek Pro",
+      "referenceName" : "Supporter",
       "type" : "NonConsumable"
     }
   ],

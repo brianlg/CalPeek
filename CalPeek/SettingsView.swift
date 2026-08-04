@@ -325,7 +325,7 @@ struct AppearanceSettingsView: View {
             } footer: {
                 if !proStore.isPro {
                     HStack(spacing: 4) {
-                        Text(String(localized: "Custom colors require CalPeek Pro."))
+                        Text(String(localized: "Custom colors require Supporter."))
                             .foregroundStyle(.secondary)
                         Button(String(localized: "Learn More")) {
                             NotificationCenter.default.post(name: .openAboutSettings, object: nil)

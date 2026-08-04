@@ -28,7 +28,7 @@ struct AboutSettingsView: View {
                 Section(String(localized: "Support CalPeek")) {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(String(localized: "CalPeek Pro is unlocked"))
+                            Text(String(localized: "Thanks for your support"))
                             Text(String(localized: "Thanks for supporting CalPeek. Custom colors are yours, forever."))
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
@@ -75,7 +75,7 @@ struct AboutSettingsView: View {
                 } footer: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(String(localized: "One-time purchase. No subscription, free updates."))
-                        Text(String(localized: "Everything else in CalPeek is free — Pro unlocks custom colors and supports development."))
+                        Text(String(localized: "Everything else in CalPeek is free. Supporter unlocks custom colors and supports development."))
                     }
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
