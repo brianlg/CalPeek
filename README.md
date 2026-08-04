@@ -113,7 +113,10 @@ The product ID in that file **must** match both `Store.proProductID` and App
 Store Connect — currently `com.briangibson.calpeek.supporter`. Nothing enforces
 this automatically; if you change the product in App Store Connect, edit the
 `.storekit` file to match by hand. Price and display name in the local file
-are for testing only and don't have to match.
+are for testing only and don't have to match, but they're kept in sync anyway
+so Debug shows what customers see. Note that App Store Connect caps the
+display name at 30 characters and the description at 45, so anything longer
+here can't be what production renders.
 
 **Verification differs from production.** Under local testing StoreKit signs
 transactions with a local test certificate rather than Apple's, so
