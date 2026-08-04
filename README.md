@@ -105,7 +105,7 @@ defaults read ~/Library/Containers/com.briangibson.calpeek.debug/Data/Library/Pr
 
 App Store Connect products are registered against the release bundle ID, so a
 `.debug` build cannot resolve them. `CalPeek.storekit` stands in: it declares
-CalPeek Pro locally, and the scheme's **Run → Options → StoreKit
+the Supporter unlock locally, and the scheme's **Run → Options → StoreKit
 Configuration** points at it (set in `project.yml`, so it survives
 `xcodegen generate`).
 
@@ -121,10 +121,20 @@ transactions with a local test certificate rather than Apple's, so
 results and no verification code needs to change. What *does* differ:
 `Transaction.currentEntitlements` stays empty on macOS even after a verified,
 finished purchase. `Store.refreshEntitlement()` therefore keeps a
-`Transaction.latest(for:)` fallback **inside `#if DEBUG`** — production relies
-on `currentEntitlements` alone, which is correct because CalPeek Pro is
-family-shareable and a Family Sharing revocation drops the entitlement
-without setting `revocationDate`.
+`Transaction.latest(for:)` fallback, and that fallback runs in **production
+too**, not just Debug — `currentEntitlements` can also come back transiently
+empty right after launch on a real install.
+
+That is safe only because Supporter has **Family Sharing off**
+(`familyShareable: false`, and off in App Store Connect). For a single
+non-consumable that nobody can lose access to through a family, the latest
+transaction plus a `revocationDate == nil` check is equivalent to the
+entitlement itself. **If Family Sharing is ever enabled in App Store Connect,
+that fallback must be re-gated to `#if DEBUG`** — losing access through
+Family Sharing drops the entitlement *without* setting `revocationDate`, so
+the fallback would keep Supporter unlocked for someone who no longer has it.
+App Store Connect cannot disable Family Sharing once it has been enabled on a
+non-consumable, so this is a one-way door.
 
 Reset purchase state from Xcode's **Debug → StoreKit → Manage Transactions**
 (delete rows), or in code via `SKTestSession.clearTransactions()` as
