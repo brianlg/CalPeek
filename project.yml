@@ -7,7 +7,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "2"
+    CURRENT_PROJECT_VERSION: "3"
     SWIFT_VERSION: "6.0"
 targets:
   CalPeek:
@@ -54,6 +54,13 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         COMBINE_HIDPI_IMAGES: YES
         DEAD_CODE_STRIPPING: YES
+        # Xcode recommends YES and will offer to set it. Don't accept: the
+        # Generate Build Info phase shells out to git for the short SHA, and
+        # the script sandbox denies reading .git, which fails the build with
+        # "Operation not permitted". Pinned here so accepting the prompt is
+        # undone by the next `xcodegen generate` rather than silently
+        # breaking every build.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
       configs:
         # Debug builds get their own bundle ID so local development can't
         # collide with an installed App Store/TestFlight build: separate

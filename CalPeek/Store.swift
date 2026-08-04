@@ -10,7 +10,11 @@ final class Store {
     static let shared = Store()
 
     /// Non-consumable unlock. Must match App Store Connect and CalPeek.storekit.
-    static let proProductID = "com.briangibson.calpeek.pro"
+    ///
+    /// The original `.pro` ID was deleted in App Store Connect, and product IDs
+    /// can never be reused there, so this one is permanent. Changing it again
+    /// would strand every existing purchase.
+    static let proProductID = "com.briangibson.calpeek.supporter"
 
     private(set) var isPro = false
 
