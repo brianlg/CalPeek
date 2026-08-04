@@ -110,7 +110,7 @@ Configuration** points at it (set in `project.yml`, so it survives
 `xcodegen generate`).
 
 The product ID in that file **must** match both `Store.proProductID` and App
-Store Connect — currently `com.briangibson.calpeek.pro`. Nothing enforces
+Store Connect — currently `com.briangibson.calpeek.supporter`. Nothing enforces
 this automatically; if you change the product in App Store Connect, edit the
 `.storekit` file to match by hand. Price and display name in the local file
 are for testing only and don't have to match.
