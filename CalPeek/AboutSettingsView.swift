@@ -28,7 +28,7 @@ struct AboutSettingsView: View {
                 Section(String(localized: "Support CalPeek")) {
                     Label {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(String(localized: "Thanks for your support"))
+                            Text(String(localized: "You're a supporter"))
                             Text(String(localized: "Thanks for supporting CalPeek. Custom colors are yours, forever."))
                                 .font(.system(size: 11))
                                 .foregroundStyle(.secondary)
