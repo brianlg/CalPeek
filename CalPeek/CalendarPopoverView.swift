@@ -604,6 +604,9 @@ private struct DayEventsPopover: View {
     /// Measured height of the list's row stack, so the ScrollView can report
     /// a real ideal height to the popover (see `listContent`).
     @State private var listHeight: CGFloat = 0
+    /// Hover state for the header "+" chip, which brightens under the
+    /// pointer like the rows' inline icon buttons.
+    @State private var plusHovered = false
 
     @AppStorage(Preferences.calendarEventsColorKey)
     private var calendarEventsRaw = WeekdayColor.auto.rawValue
@@ -680,6 +683,7 @@ private struct DayEventsPopover: View {
                             tint: tint(for: item),
                             accent: accent,
                             model: model,
+                            calendar: calendar,
                             onEdit: item.isEditable ? { beginEditing(item) } : nil
                         )
                     }
@@ -709,10 +713,12 @@ private struct DayEventsPopover: View {
             } label: {
                 plusGlyph
                     .frame(width: 24, height: 24)
-                    .background(Circle().fill(Color.primary.opacity(0.08)))
+                    .background(Circle().fill(Color.primary.opacity(plusHovered ? 0.14 : 0.08)))
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
+            .onHover { plusHovered = $0 }
+            .animation(.easeOut(duration: 0.12), value: plusHovered)
             .help(model.canCreateEvents
                 ? String(localized: "New Event")
                 : String(localized: "New Reminder"))
@@ -752,6 +758,7 @@ private struct ItemRow: View {
     let tint: Color
     let accent: Color
     let model: CalendarEventsModel
+    let calendar: Calendar
     /// Opens the editor for this row; nil when the item's calendar is
     /// read-only, which leaves the row inert.
     let onEdit: (() -> Void)?
@@ -759,6 +766,13 @@ private struct ItemRow: View {
     /// Dismisses the day popover when the user jumps to Calendar/Reminders.
     @Environment(\.dismiss) private var dismiss
     @State private var isHovered = false
+    /// Which delete confirmation the context menu's Delete put up: the
+    /// recurring-event span choice, or the plain confirmation.
+    @State private var pendingDelete: PendingDelete?
+
+    private enum PendingDelete {
+        case span, confirm
+    }
 
     var body: some View {
         // The join and open buttons sit outside the leading content so they
@@ -803,54 +817,25 @@ private struct ItemRow: View {
             }
 
             if let url = item.joinURL {
-                Button {
+                HoverIconButton(
+                    systemName: "video.fill",
+                    tint: accent,
+                    help: String(localized: "Join meeting")
+                ) {
                     NSWorkspace.shared.open(url)
-                } label: {
-                    Image(systemName: "video.fill")
-                        .font(.system(size: 11))
                 }
-                .buttonStyle(.borderless)
-                .foregroundStyle(accent)
-                .help(String(localized: "Join meeting"))
             }
 
-            Button {
-                switch item.kind {
-                case .event:
-                    // Sandbox-safe plain activation: Calendar has no deep
-                    // link to a date or event, and AppleScript navigation
-                    // would need an Apple-events entitlement the App Store
-                    // doesn't allow. In-popover editing covers the rest.
-                    if let app = NSWorkspace.shared.urlForApplication(
-                        withBundleIdentifier: "com.apple.iCal"
-                    ) {
-                        NSWorkspace.shared.openApplication(at: app, configuration: .init())
-                    }
-                case .reminder:
-                    // The deep link is a private scheme; if the OS stops
-                    // handling it, still get the user into Reminders.
-                    if let url = item.openURL, !NSWorkspace.shared.open(url) {
-                        Logger.calPeek.error("Reminders deep link no longer handled; launching app instead")
-                        if let app = NSWorkspace.shared.urlForApplication(
-                            withBundleIdentifier: "com.apple.reminders"
-                        ) {
-                            NSWorkspace.shared.openApplication(at: app, configuration: .init())
-                        }
-                    }
-                }
-                dismiss()
-            } label: {
-                Image(systemName: "arrow.up.forward.app")
-                    .font(.system(size: 11))
+            HoverIconButton(
+                systemName: "arrow.up.forward.app",
+                tint: .secondary,
+                help: openInAppTitle
+            ) {
+                openInApp()
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
             // Fades rather than inserts so revealing it never reflows
             // the row.
             .opacity(isHovered ? 1 : 0)
-            .help(item.kind == .event
-                ? String(localized: "Open Calendar")
-                : String(localized: "Open in Reminders"))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -866,11 +851,155 @@ private struct ItemRow: View {
         .accessibilityAddTraits(onEdit == nil ? [] : .isButton)
         .onHover { isHovered = $0 }
         .animation(.easeOut(duration: 0.12), value: isHovered)
+        .contextMenu { contextMenuItems }
+        .confirmationDialog(
+            String(localized: "This is a repeating event."),
+            isPresented: deleteBinding(.span),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete This Event"), role: .destructive) { performDelete(span: .thisEvent) }
+            Button(String(localized: "Delete All Future Events"), role: .destructive) { performDelete(span: .futureEvents) }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        }
+        .confirmationDialog(
+            item.kind == .event
+                ? String(localized: "Delete this event?")
+                : String(localized: "Delete this reminder?"),
+            isPresented: deleteBinding(.confirm),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete"), role: .destructive) { performDelete(span: .thisEvent) }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        }
+    }
+
+    /// Right-click actions. Read-only items offer only the open-in-app jump;
+    /// Delete sits last behind a separator, per the HIG's placement for
+    /// destructive menu items.
+    @ViewBuilder
+    private var contextMenuItems: some View {
+        if let onEdit {
+            Button(String(localized: "Edit")) { onEdit() }
+        }
+        Button(openInAppTitle) { openInApp() }
+        if item.isEditable {
+            Divider()
+            Button(String(localized: "Delete"), role: .destructive) { deleteTapped() }
+        }
+    }
+
+    private var openInAppTitle: String {
+        item.kind == .event
+            ? String(localized: "Open in Calendar")
+            : String(localized: "Open in Reminders")
+    }
+
+    /// Jumps to the item's app and closes the day popover — shared by the
+    /// row's trailing button and the context menu.
+    private func openInApp() {
+        switch item.kind {
+        case .event:
+            // Sandbox-safe plain activation: Calendar has no deep
+            // link to a date or event, and AppleScript navigation
+            // would need an Apple-events entitlement the App Store
+            // doesn't allow. In-popover editing covers the rest.
+            if let app = NSWorkspace.shared.urlForApplication(
+                withBundleIdentifier: "com.apple.iCal"
+            ) {
+                NSWorkspace.shared.openApplication(at: app, configuration: .init())
+            }
+        case .reminder:
+            // The deep link is a private scheme; if the OS stops
+            // handling it, still get the user into Reminders.
+            if let url = item.openURL, !NSWorkspace.shared.open(url) {
+                Logger.calPeek.error("Reminders deep link no longer handled; launching app instead")
+                if let app = NSWorkspace.shared.urlForApplication(
+                    withBundleIdentifier: "com.apple.reminders"
+                ) {
+                    NSWorkspace.shared.openApplication(at: app, configuration: .init())
+                }
+            }
+        }
+        dismiss()
+    }
+
+    // MARK: Delete
+
+    /// Routes the context menu's Delete to the right confirmation: recurring
+    /// events get the span choice, everything else a plain confirm. Recurring
+    /// reminders have no span semantics — deleting removes the series, as in
+    /// Reminders.app and the in-popover editor.
+    private func deleteTapped() {
+        if case .event = item.kind,
+           let identifier = item.eventIdentifier,
+           let event = model.event(withIdentifier: identifier, startingAt: item.sortDate, calendar: calendar),
+           event.hasRecurrenceRules {
+            pendingDelete = .span
+        } else {
+            pendingDelete = .confirm
+        }
+    }
+
+    private func deleteBinding(_ value: PendingDelete) -> Binding<Bool> {
+        Binding(
+            get: { pendingDelete == value },
+            set: { if !$0 { pendingDelete = nil } }
+        )
+    }
+
+    /// Re-fetches the row's backing EK object and removes it. Silently a
+    /// no-op if the item vanished from the store between render and click;
+    /// the list refreshes via the store-change reload either way.
+    private func performDelete(span: EKSpan) {
+        do {
+            switch item.kind {
+            case .event:
+                guard let identifier = item.eventIdentifier,
+                      let event = model.event(withIdentifier: identifier, startingAt: item.sortDate, calendar: calendar)
+                else { return }
+                try model.remove(event: event, span: span)
+            case .reminder(_, let reminderID):
+                guard let reminder = model.reminder(withIdentifier: reminderID) else { return }
+                try model.remove(reminder: reminder)
+            }
+        } catch {
+            Logger.calPeek.error("Failed to delete item: \(error.localizedDescription)")
+        }
     }
 
     private var isCompletedReminder: Bool {
         if case .reminder(let isCompleted, _) = item.kind { return isCompleted }
         return false
+    }
+}
+
+/// Borderless 11 pt icon button for a row's trailing accessories (join,
+/// open-in-app). Hovering shows a circular highlight chip — the standard
+/// affordance system rows use (Control Center, Notification Center) to
+/// signal that an inline glyph is clickable.
+private struct HoverIconButton: View {
+    let systemName: String
+    let tint: Color
+    let help: String
+    let action: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 11))
+                .foregroundStyle(tint)
+                .frame(width: 20, height: 20)
+                // Sits atop the row's own faint hover wash, so it's a step
+                // stronger to read as a distinct control.
+                .background(Circle().fill(Color.primary.opacity(isHovered ? 0.12 : 0)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovered = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .help(help)
     }
 }
 
