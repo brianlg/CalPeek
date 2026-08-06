@@ -604,6 +604,9 @@ private struct DayEventsPopover: View {
     /// Measured height of the list's row stack, so the ScrollView can report
     /// a real ideal height to the popover (see `listContent`).
     @State private var listHeight: CGFloat = 0
+    /// Hover state for the header "+" chip, which brightens under the
+    /// pointer like the rows' inline icon buttons.
+    @State private var plusHovered = false
 
     @AppStorage(Preferences.calendarEventsColorKey)
     private var calendarEventsRaw = WeekdayColor.auto.rawValue
@@ -710,10 +713,12 @@ private struct DayEventsPopover: View {
             } label: {
                 plusGlyph
                     .frame(width: 24, height: 24)
-                    .background(Circle().fill(Color.primary.opacity(0.08)))
+                    .background(Circle().fill(Color.primary.opacity(plusHovered ? 0.14 : 0.08)))
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
+            .onHover { plusHovered = $0 }
+            .animation(.easeOut(duration: 0.12), value: plusHovered)
             .help(model.canCreateEvents
                 ? String(localized: "New Event")
                 : String(localized: "New Reminder"))
