@@ -25,6 +25,9 @@ targets:
       - path: CalPeek
         excludes:
           - Direct
+          # The other target's Info.plist; without this XcodeGen copies it
+          # into the bundle as a stray resource.
+          - Info-Direct.plist
       # In the project for visibility/editing only — .storekit files have no
       # build phase; the scheme references it for local StoreKit testing.
       - path: CalPeek.storekit
@@ -102,6 +105,8 @@ targets:
       - path: CalPeek
         excludes:
           - AppStore
+          # See the CalPeek target's matching exclude.
+          - Info.plist
       - path: Generated/BuildInfo.generated.swift
         optional: true
     dependencies:
@@ -129,7 +134,7 @@ targets:
         ENABLE_USER_SCRIPT_SANDBOXING: NO
         # Substituted into Info-Direct.plist. The public key pairs with the
         # EdDSA signing key in the login Keychain (Sparkle's generate_keys).
-        SPARKLE_PUBLIC_ED_KEY: ""
+        SPARKLE_PUBLIC_ED_KEY: gVefxcVYhv4BECrMeR0z13fgVLjqzW9EXe6kREmazvM=
       configs:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.direct.debug

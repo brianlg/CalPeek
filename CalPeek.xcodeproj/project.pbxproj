@@ -11,6 +11,7 @@
 		06A0CB4CFCE895443DF0692F /* MeetingLinkParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B588B7B3E7A38E6E7778B84 /* MeetingLinkParser.swift */; };
 		08DFE200CB1A79F12B6F02CB /* WeekdayColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */; };
 		10B8065F020B9D4C0E90AF0E /* AboutSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B0DFCA78C6CAE15B28C26F5 /* AboutSettingsView.swift */; };
+		143F8E9B3A06712944B18A06 /* DirectAboutSectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 028AEF477FA12D323D58BA5E /* DirectAboutSectionsView.swift */; };
 		15D8DCE3C730F8B02190EBBE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D125E5F61FBAC3CC1EBD5C21 /* PrivacyInfo.xcprivacy */; };
 		264FCE75F24E2901B73E4B9B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9E9170CF295C454638825CB5 /* Assets.xcassets */; };
 		34AD863FD45E71B77FBE3528 /* BuildInfo.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C900534C59B2CCE3477574 /* BuildInfo.generated.swift */; };
@@ -20,6 +21,7 @@
 		43F6185B77FDAA60A5AC30DB /* ColorHexTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 930DFEA2C5EDE0D5BB45FCA8 /* ColorHexTests.swift */; };
 		4B766E7393D73C94446DEA8A /* GlobalHotKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0ACC9A3B9DD4F85592AF827 /* GlobalHotKey.swift */; };
 		4BAB8CFD8DB535A331B3A58A /* CalPeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3748012E628E6BD24595FF00 /* CalPeekApp.swift */; };
+		4C9E278F52D482E05FAA7DC3 /* UpdaterController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 446D04A21DEA00D994000625 /* UpdaterController.swift */; };
 		4F15A7BED941C73E9D994FDA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D869E1CCDBA54140AB6A8DE /* AppDelegate.swift */; };
 		50645F649C629DFDD02D8669 /* TodayBadgeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */; };
 		58DBCAC015A5D594C5124190 /* CalPeekApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3748012E628E6BD24595FF00 /* CalPeekApp.swift */; };
@@ -35,7 +37,6 @@
 		8632116B38086A3F3654AB47 /* DateFormatPaddingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E2C71B16D74FE37BF54127F /* DateFormatPaddingTests.swift */; };
 		868F04306154C407E68F352E /* NextMeetingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0919D937F59FF78719716CDC /* NextMeetingModel.swift */; };
 		8BD6EE12B9ED84B43AFE2738 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 4C70804A4DB833AD50AE8E38 /* Localizable.xcstrings */; };
-		906C3204961C746D1DD09528 /* Info-Direct.plist in Resources */ = {isa = PBXBuildFile; fileRef = AF1AEB84673D0979B368F76B /* Info-Direct.plist */; };
 		98A3D153EE877CD507B44C10 /* WeekdayColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */; };
 		9C9EB49E31AA0DBFCA97EF4E /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 4C70804A4DB833AD50AE8E38 /* Localizable.xcstrings */; };
 		9EE69756D4D30A96E7BE3C97 /* PaddedDatePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77E4F75B1DDE9B4026BA13D /* PaddedDatePicker.swift */; };
@@ -44,7 +45,6 @@
 		A823E2A667B4CFCEE90BAA99 /* FormPresetMappingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC22E229E8F7E5418788D14B /* FormPresetMappingTests.swift */; };
 		AB4995FA9E929D9917F4D1D4 /* BugReportLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46C6A113BECF3B8F22CF2298 /* BugReportLinkTests.swift */; };
 		ABC539774AA257AB758F6071 /* NextMeetingModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0919D937F59FF78719716CDC /* NextMeetingModel.swift */; };
-		AD04DE6950A005EAE1E45796 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 346C4CE462AADE8BB167B623 /* Info.plist */; };
 		AD56482EA2E6A1820BB4718E /* TipJar.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4ECFCCA42CFC3752DE5103D /* TipJar.swift */; };
 		B0B6A0B027318902334DB531 /* CalendarEventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E0B9F5BF6316F5B49960B8 /* CalendarEventsModel.swift */; };
 		B84DBA554F7D16EDA6A2877B /* CalendarEventsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E0B9F5BF6316F5B49960B8 /* CalendarEventsModel.swift */; };
@@ -73,12 +73,14 @@
 
 /* Begin PBXFileReference section */
 		01370DC55AF63E18CEAA8E96 /* CalendarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarPopoverView.swift; sourceTree = "<group>"; };
+		028AEF477FA12D323D58BA5E /* DirectAboutSectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DirectAboutSectionsView.swift; sourceTree = "<group>"; };
 		0919D937F59FF78719716CDC /* NextMeetingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingModel.swift; sourceTree = "<group>"; };
 		1683E82FBFDAEBB51EC3124B /* CalPeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CalPeek.entitlements; sourceTree = "<group>"; };
 		1E60D179F26806B4344F2662 /* TipJarTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TipJarTests.swift; sourceTree = "<group>"; };
 		2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayColor.swift; sourceTree = "<group>"; };
 		346C4CE462AADE8BB167B623 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3748012E628E6BD24595FF00 /* CalPeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalPeekApp.swift; sourceTree = "<group>"; };
+		446D04A21DEA00D994000625 /* UpdaterController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterController.swift; sourceTree = "<group>"; };
 		46C6A113BECF3B8F22CF2298 /* BugReportLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BugReportLinkTests.swift; sourceTree = "<group>"; };
 		4B0DFCA78C6CAE15B28C26F5 /* AboutSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutSettingsView.swift; sourceTree = "<group>"; };
 		4C70804A4DB833AD50AE8E38 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 				E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */,
 				2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */,
 				A1357F6218DAEF390BAF2B97 /* AppStore */,
+				9217B0B79470440D5B17FEFF /* Direct */,
 			);
 			path = CalPeek;
 			sourceTree = "<group>";
@@ -175,6 +178,15 @@
 				F3CC103E7FD6791642AB2AB6 /* Generated */,
 				C166418791F58FEF65E81239 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		9217B0B79470440D5B17FEFF /* Direct */ = {
+			isa = PBXGroup;
+			children = (
+				028AEF477FA12D323D58BA5E /* DirectAboutSectionsView.swift */,
+				446D04A21DEA00D994000625 /* UpdaterController.swift */,
+			);
+			path = Direct;
 			sourceTree = "<group>";
 		};
 		A1357F6218DAEF390BAF2B97 /* AppStore */ = {
@@ -319,7 +331,6 @@
 			files = (
 				3760C9968E14FD8403E540F6 /* AppIcon.icon in Resources */,
 				618425A2B12D636375173F89 /* Assets.xcassets in Resources */,
-				906C3204961C746D1DD09528 /* Info-Direct.plist in Resources */,
 				9C9EB49E31AA0DBFCA97EF4E /* Localizable.xcstrings in Resources */,
 				A05B5AF4B5318C0A85ED496B /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -331,7 +342,6 @@
 			files = (
 				E947EF23EAD0EA182E4C5A94 /* AppIcon.icon in Resources */,
 				264FCE75F24E2901B73E4B9B /* Assets.xcassets in Resources */,
-				AD04DE6950A005EAE1E45796 /* Info.plist in Resources */,
 				8BD6EE12B9ED84B43AFE2738 /* Localizable.xcstrings in Resources */,
 				15D8DCE3C730F8B02190EBBE /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -393,6 +403,7 @@
 				58DBCAC015A5D594C5124190 /* CalPeekApp.swift in Sources */,
 				B84DBA554F7D16EDA6A2877B /* CalendarEventsModel.swift in Sources */,
 				85726163C8D792334072D277 /* CalendarPopoverView.swift in Sources */,
+				143F8E9B3A06712944B18A06 /* DirectAboutSectionsView.swift in Sources */,
 				E23AFC8BD0890D13C4E94F2F /* GlobalHotKey.swift in Sources */,
 				5FB82AA32AD10836FC8D7E10 /* Logging.swift in Sources */,
 				06A0CB4CFCE895443DF0692F /* MeetingLinkParser.swift in Sources */,
@@ -403,6 +414,7 @@
 				5B3B5B6BF992BDC69E83D1F3 /* RemindersSupport.swift in Sources */,
 				699BC41F8D7AEDBE37AAEF8C /* SettingsView.swift in Sources */,
 				50645F649C629DFDD02D8669 /* TodayBadgeModel.swift in Sources */,
+				4C9E278F52D482E05FAA7DC3 /* UpdaterController.swift in Sources */,
 				08DFE200CB1A79F12B6F02CB /* WeekdayColor.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -478,7 +490,7 @@
 				PRODUCT_NAME = CalPeekDirect;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "http://localhost:8000/appcast.xml";
-				SPARKLE_PUBLIC_ED_KEY = "";
+				SPARKLE_PUBLIC_ED_KEY = "gVefxcVYhv4BECrMeR0z13fgVLjqzW9EXe6kREmazvM=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG DIRECT";
 			};
 			name = Debug;
@@ -524,7 +536,7 @@
 				PRODUCT_NAME = CalPeek;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "https://github.com/brianlg/CalPeek/releases/latest/download/appcast.xml";
-				SPARKLE_PUBLIC_ED_KEY = "";
+				SPARKLE_PUBLIC_ED_KEY = "gVefxcVYhv4BECrMeR0z13fgVLjqzW9EXe6kREmazvM=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DIRECT;
 			};
 			name = Release;

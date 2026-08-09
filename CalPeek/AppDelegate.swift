@@ -4,6 +4,9 @@ import SwiftUI
 import ServiceManagement
 import os
 #endif
+#if DIRECT
+import Sparkle
+#endif
 
 /// Owns the menu bar status item and the calendar popover.
 @MainActor
@@ -49,6 +52,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         #if DEBUG
         purgeDebugLoginItem()
+        #endif
+        #if DIRECT
+        // Start the updater at launch so Sparkle's scheduled background
+        // checks run even if the user never opens the menu or Settings.
+        _ = UpdaterController.shared
         #endif
         configurePopover()
         configureStatusItem()
@@ -411,6 +419,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         settingsItem.target = self
         menu.addItem(settingsItem)
+
+        #if DIRECT
+        // The GitHub build updates itself via Sparkle; the App Store build
+        // must not carry this item. Targeting the standard controller gets
+        // enabled/disabled state for free via menu validation.
+        let updateItem = NSMenuItem(
+            title: String(localized: "Check for Updates…"),
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        updateItem.target = UpdaterController.shared.controller
+        menu.addItem(updateItem)
+        #endif
 
         menu.addItem(.separator())
 

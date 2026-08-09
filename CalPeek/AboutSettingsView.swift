@@ -11,6 +11,8 @@ struct AboutSettingsView: View {
 
             #if APPSTORE
             TipJarSectionView()
+            #elseif DIRECT
+            DirectAboutSectionsView()
             #endif
 
             // Apple requires a working way to reach the developer from inside
