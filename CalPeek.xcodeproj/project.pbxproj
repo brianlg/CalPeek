@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0004FBC8383587BF3DFD54FC /* TodayBadgeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */; };
-		0CFA391EA684486052FB5D30 /* StoreEntitlementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */; };
-		15CF12B7EF02100AB2ED8631 /* Store.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2783A7488491E7E5C8F90367 /* Store.swift */; };
 		34AD863FD45E71B77FBE3528 /* BuildInfo.generated.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60C900534C59B2CCE3477574 /* BuildInfo.generated.swift */; };
 		3760C9968E14FD8403E540F6 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 986AE77718BCD36EB5970057 /* AppIcon.icon */; };
 		41E1B179CD1DE740FD935E8C /* RemindersSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */; };
@@ -50,7 +48,6 @@
 		01370DC55AF63E18CEAA8E96 /* CalendarPopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarPopoverView.swift; sourceTree = "<group>"; };
 		0919D937F59FF78719716CDC /* NextMeetingModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextMeetingModel.swift; sourceTree = "<group>"; };
 		1683E82FBFDAEBB51EC3124B /* CalPeek.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CalPeek.entitlements; sourceTree = "<group>"; };
-		2783A7488491E7E5C8F90367 /* Store.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Store.swift; sourceTree = "<group>"; };
 		2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekdayColor.swift; sourceTree = "<group>"; };
 		346C4CE462AADE8BB167B623 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3748012E628E6BD24595FF00 /* CalPeekApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalPeekApp.swift; sourceTree = "<group>"; };
@@ -60,7 +57,6 @@
 		4E2C71B16D74FE37BF54127F /* DateFormatPaddingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateFormatPaddingTests.swift; sourceTree = "<group>"; };
 		60C900534C59B2CCE3477574 /* BuildInfo.generated.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildInfo.generated.swift; sourceTree = "<group>"; };
 		7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersSupport.swift; sourceTree = "<group>"; };
-		80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreEntitlementTests.swift; sourceTree = "<group>"; };
 		86E0B9F5BF6316F5B49960B8 /* CalendarEventsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarEventsModel.swift; sourceTree = "<group>"; };
 		8D869E1CCDBA54140AB6A8DE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		930DFEA2C5EDE0D5BB45FCA8 /* ColorHexTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorHexTests.swift; sourceTree = "<group>"; };
@@ -89,7 +85,6 @@
 				930DFEA2C5EDE0D5BB45FCA8 /* ColorHexTests.swift */,
 				4E2C71B16D74FE37BF54127F /* DateFormatPaddingTests.swift */,
 				FC22E229E8F7E5418788D14B /* FormPresetMappingTests.swift */,
-				80D13F24B02D464484381BF1 /* StoreEntitlementTests.swift */,
 			);
 			path = CalPeekTests;
 			sourceTree = "<group>";
@@ -117,7 +112,6 @@
 				D125E5F61FBAC3CC1EBD5C21 /* PrivacyInfo.xcprivacy */,
 				7C04091BB4A9C28E92C193A8 /* RemindersSupport.swift */,
 				C178F51F4B279FBAA8F32F7B /* SettingsView.swift */,
-				2783A7488491E7E5C8F90367 /* Store.swift */,
 				E37B8975C494DA675BCE60C9 /* TodayBadgeModel.swift */,
 				2EAA21D20C2E2984109969A6 /* WeekdayColor.swift */,
 			);
@@ -277,7 +271,6 @@
 				43F6185B77FDAA60A5AC30DB /* ColorHexTests.swift in Sources */,
 				8632116B38086A3F3654AB47 /* DateFormatPaddingTests.swift in Sources */,
 				A823E2A667B4CFCEE90BAA99 /* FormPresetMappingTests.swift in Sources */,
-				0CFA391EA684486052FB5D30 /* StoreEntitlementTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -300,7 +293,6 @@
 				7D89CC607118528F65BDF26E /* Preferences.swift in Sources */,
 				41E1B179CD1DE740FD935E8C /* RemindersSupport.swift in Sources */,
 				F84924D463FDA53C0D7C2ADB /* SettingsView.swift in Sources */,
-				15CF12B7EF02100AB2ED8631 /* Store.swift in Sources */,
 				0004FBC8383587BF3DFD54FC /* TodayBadgeModel.swift in Sources */,
 				98A3D153EE877CD507B44C10 /* WeekdayColor.swift in Sources */,
 			);

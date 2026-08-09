@@ -259,7 +259,7 @@ struct GeneralSettingsView: View {
 }
 
 /// The Appearance settings tab: theme color pickers backed by the shared
-/// `WeekdayColor` palette, plus a per-setting custom color (CalPeek Pro).
+/// `WeekdayColor` palette, plus a per-setting custom color.
 struct AppearanceSettingsView: View {
     @AppStorage(WeekdayColor.defaultsKey)
     private var weekdayColorRaw = WeekdayColor.auto.rawValue
@@ -282,9 +282,6 @@ struct AppearanceSettingsView: View {
     /// event/reminder colors currently resolve to (the user's default
     /// calendar/list colors).
     private let store = EKEventStore.shared
-    /// Gates the Custom option; reading `isPro` in `body` keeps the tab in
-    /// sync with purchases via `@Observable` tracking.
-    private let proStore = Store.shared
 
     var body: some View {
         Form {
@@ -322,19 +319,6 @@ struct AppearanceSettingsView: View {
                 )
             } header: {
                 Text(String(localized: "Theme"))
-            } footer: {
-                if !proStore.isPro {
-                    HStack(spacing: 4) {
-                        Text(String(localized: "Custom colors require Supporter."))
-                            .foregroundStyle(.secondary)
-                        Button(String(localized: "Learn More")) {
-                            NotificationCenter.default.post(name: .openAboutSettings, object: nil)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.tint)
-                    }
-                    .font(.system(size: 11))
-                }
             }
         }
         .formStyle(.grouped)
@@ -344,8 +328,8 @@ struct AppearanceSettingsView: View {
 }
 
 /// Labeled menu picker over the shared color palette: Automatic (showing the
-/// color it currently resolves to), the explicit colors, then Custom
-/// (CalPeek Pro), each with a swatch dot. Swatches are pre-rendered
+/// color it currently resolves to), the explicit colors, then Custom,
+/// each with a swatch dot. Swatches are pre-rendered
 /// `NSImage`s because bare SwiftUI shapes are dropped from macOS menu items.
 /// Picking Custom… opens the system color panel directly — wheel, hex field,
 /// eyedropper — so the whole flow lives in the one popup, the way System
@@ -356,8 +340,6 @@ private struct ThemeColorPicker: View {
     let automaticSwatch: Color
     @Binding var selection: String
     @Binding var customHex: String
-
-    private let proStore = Store.shared
 
     var body: some View {
         Picker(selection: pickerSelection) {
@@ -397,15 +379,6 @@ private struct ThemeColorPicker: View {
             ColorPanelDriver.shared.close(ifOwner: title)
             return
         }
-        guard proStore.isPro else {
-            // The upsell: bounce the popup through the rejected value so
-            // SwiftUI repaints it back, and show the unlock.
-            let previous = selection
-            selection = newValue
-            selection = previous
-            NotificationCenter.default.post(name: .openAboutSettings, object: nil)
-            return
-        }
         // Seed from the color being replaced, so switching to Custom doesn't
         // visibly change anything until the user picks.
         if Color(hexString: customHex) == nil {
@@ -425,16 +398,13 @@ private struct ThemeColorPicker: View {
     }
 
     /// "Custom…" menu entry: swatch of the current custom color once one is
-    /// set; a lock when CalPeek Pro hasn't been unlocked yet.
+    /// set.
     private var customLabel: some View {
         HStack(spacing: 6) {
             if let color = Color(hexString: customHex) {
                 Image(nsImage: Self.swatch(color))
             }
             Text(String(localized: "Custom…"))
-            if !proStore.isPro {
-                Image(systemName: "lock.fill")
-            }
         }
     }
 
