@@ -27,23 +27,41 @@ open CalPeek.xcodeproj
 
 Then build and run the `CalPeek` scheme in Xcode.
 
+## Two distribution channels
+
+CalPeek ships two ways from one codebase, both free:
+
+| | `CalPeek` (App Store) | `CalPeekDirect` (GitHub) |
+|---|---|---|
+| Distribution | Mac App Store | GitHub Releases, Developer ID signed + notarized |
+| Updates | App Store | [Sparkle 2](https://sparkle-project.org) |
+| Support UI | StoreKit tip jar (About tab) | GitHub Sponsors link (About tab) |
+| Compilation condition | `APPSTORE` | `DIRECT` |
+| Channel-only sources | `CalPeek/AppStore/` | `CalPeek/Direct/` |
+| Released by | Xcode → Product → Archive | `Scripts/release-direct.sh` |
+
+Each target excludes the other's channel folder, so the App Store binary
+carries no Sparkle (App Review rejects bundled updaters) and the direct
+binary carries no StoreKit. Both **Release** builds share the bundle ID
+`com.briangibson.calpeek` deliberately: one app identity across channels
+means TCC grants and the preferences container carry over if a user switches.
+
 ## Debug and release builds side by side
 
-A Debug build can run at the same time as the App Store build without either
-one disturbing the other. They are different applications as far as macOS is
-concerned:
+A Debug build can run at the same time as an installed release build without
+either one disturbing the other. They are different applications as far as
+macOS is concerned:
 
-| | Debug | Release |
-|---|---|---|
-| Bundle ID | `com.briangibson.calpeek.debug` | `com.briangibson.calpeek` |
-| Name | CalPeek Debug | CalPeek |
-| Lives in | `~/Applications/CalPeek Debug.app` | `/Applications/CalPeek.app` |
-| Built by | `Scripts/install-dev.sh` | Xcode → Product → Archive |
-| Preferences | its own sandbox container | its own sandbox container |
-| Launch at Login | not offered | Settings → General |
+| | Debug | Direct Debug | Release (both channels) |
+|---|---|---|---|
+| Bundle ID | `com.briangibson.calpeek.debug` | `com.briangibson.calpeek.direct.debug` | `com.briangibson.calpeek` |
+| Name | CalPeek Debug | CalPeek Direct Debug | CalPeek |
+| Lives in | `~/Applications/CalPeek Debug.app` | DerivedData | `/Applications/CalPeek.app` |
+| Built by | `Scripts/install-dev.sh` | `CalPeekDirect` scheme | see channel table above |
+| Preferences | its own sandbox container | its own sandbox container | its own sandbox container |
+| Launch at Login | not offered | not offered | Settings → General |
 
-Release's identity is fixed: real purchases are tied to
-`com.briangibson.calpeek`, so its bundle ID, entitlements, signing, and
+Release's identity is fixed: its bundle ID, entitlements, signing, and
 version numbering must not change. A TestFlight build uses that **same**
 bundle ID and the same Release configuration — never a suffixed one.
 
@@ -101,47 +119,31 @@ defaults read ~/Library/Containers/com.briangibson.calpeek/Data/Library/Preferen
 defaults read ~/Library/Containers/com.briangibson.calpeek.debug/Data/Library/Preferences/com.briangibson.calpeek.debug.plist
 ```
 
-### Testing the in-app purchase locally
+### Testing the tip jar locally
 
 App Store Connect products are registered against the release bundle ID, so a
 `.debug` build cannot resolve them. `CalPeek.storekit` stands in: it declares
-the Supporter unlock locally, and the scheme's **Run → Options → StoreKit
-Configuration** points at it (set in `project.yml`, so it survives
-`xcodegen generate`).
+the three consumable tips locally, and the `CalPeek` scheme's **Run →
+Options → StoreKit Configuration** points at it (set in `project.yml`, so it
+survives `xcodegen generate`).
 
-The product ID in that file **must** match both `Store.proProductID` and App
-Store Connect — currently `com.briangibson.calpeek.supporter`. Nothing enforces
-this automatically; if you change the product in App Store Connect, edit the
-`.storekit` file to match by hand. Price and display name in the local file
-are for testing only and don't have to match, but they're kept in sync anyway
-so Debug shows what customers see. Note that App Store Connect caps the
-display name at 30 characters and the description at 45, so anything longer
-here can't be what production renders.
+The product IDs in that file **must** match both `TipJar.productIDs` and App
+Store Connect — currently `com.briangibson.calpeek.tip.small` / `.medium` /
+`.large`. Nothing enforces this automatically; if the products change in App
+Store Connect, edit the `.storekit` file to match by hand. Prices and display
+names in the local file are for testing only, but they're kept in sync anyway
+so Debug shows what customers see. App Store Connect caps the display name at
+30 characters and the description at 45.
 
-**Verification differs from production.** Under local testing StoreKit signs
-transactions with a local test certificate rather than Apple's, so
-`Transaction.updates` and `Product.purchase()` still yield `.verified`
-results and no verification code needs to change. What *does* differ:
-`Transaction.currentEntitlements` stays empty on macOS even after a verified,
-finished purchase. `Store.refreshEntitlement()` therefore keeps a
-`Transaction.latest(for:)` fallback, and that fallback runs in **production
-too**, not just Debug — `currentEntitlements` can also come back transiently
-empty right after launch on a real install.
-
-That is safe only because Supporter has **Family Sharing off**
-(`familyShareable: false`, and off in App Store Connect). For a single
-non-consumable that nobody can lose access to through a family, the latest
-transaction plus a `revocationDate == nil` check is equivalent to the
-entitlement itself. **If Family Sharing is ever enabled in App Store Connect,
-that fallback must be re-gated to `#if DEBUG`** — losing access through
-Family Sharing drops the entitlement *without* setting `revocationDate`, so
-the fallback would keep Supporter unlocked for someone who no longer has it.
-App Store Connect cannot disable Family Sharing once it has been enabled on a
-non-consumable, so this is a one-way door.
+Tips are **consumables**: a finished consumable disappears from
+`Transaction.currentEntitlements`, so there is no entitlement to re-derive.
+The only durable state is the `hasTipped` flag in `UserDefaults`, which
+drives the About tab's thank-you line and survives the App Store forgetting
+the transaction (`CalPeekTests/TipJarTests.swift` guards exactly this).
 
 Reset purchase state from Xcode's **Debug → StoreKit → Manage Transactions**
-(delete rows), or in code via `SKTestSession.clearTransactions()` as
-`CalPeekTests/StoreEntitlementTests.swift` does.
+(delete rows), or in code via `SKTestSession.clearTransactions()`. Reset the
+thank-you line by deleting the `hasTipped` key from the debug container.
 
 **Local testing is not Sandbox testing.** Local `.storekit` testing runs
 entirely on-device, needs no network or Apple ID, and can't validate your App
@@ -152,6 +154,38 @@ never from a `.debug` build. Use local testing for day-to-day work and
 Sandbox or TestFlight to confirm the App Store Connect products are right
 before shipping.
 
+## Releasing the direct (GitHub) build
+
+One-time setup:
+
+1. **Developer ID Application certificate**: Xcode → Settings → Accounts →
+   Manage Certificates → **+** → Developer ID Application.
+2. **Notarization credentials**: create an app-specific password at
+   [appleid.apple.com](https://appleid.apple.com), then
+   `xcrun notarytool store-credentials calpeek-notary --apple-id <email> --team-id LK42KQYP3M`.
+3. The Sparkle **EdDSA signing key** lives in the login Keychain (created
+   with Sparkle's `generate_keys`; the public half is `SPARKLE_PUBLIC_ED_KEY`
+   in `project.yml`). Losing it means shipped apps reject future updates, so
+   keep the Keychain backed up.
+
+Then, from a clean tree:
+
+```sh
+Scripts/release-direct.sh
+```
+
+It archives `CalPeekDirect`, exports with Developer ID, notarizes and staples,
+zips the app, and generates `appcast.xml` — then prints the
+`gh release create` command. The appcast must ride on the **latest** GitHub
+release: the app's feed URL is
+`https://github.com/brianlg/CalPeek/releases/latest/download/appcast.xml`.
+
+To test updates end to end without publishing: the direct **Debug** build's
+feed URL is `http://localhost:8000/appcast.xml`, so serve an appcast plus a
+higher-version zip with `python3 -m http.server 8000` and use Check for
+Updates. A Homebrew cask is straightforward later — the notarized zip is
+already cask-ready.
+
 ## Project structure
 
 - `CalPeek/CalPeekApp.swift` — SwiftUI app entry point; menu-bar-only via `LSUIElement`.
@@ -159,6 +193,8 @@ before shipping.
 - `CalPeek/MenuBarIconView.swift` — pure SwiftUI view for the menu bar glyph (weekday + day number).
 - `CalPeek/CalendarPopoverView.swift` — the month calendar shown in the popover.
 - `CalPeek/WeekdayColor.swift` — the curated weekday color palette and its persisted preference key.
+- `CalPeek/AppStore/` — App Store channel only: the StoreKit tip jar.
+- `CalPeek/Direct/` — GitHub channel only: the Sparkle updater and sponsor link.
 
 ## License
 
