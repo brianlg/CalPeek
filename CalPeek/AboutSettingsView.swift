@@ -9,6 +9,10 @@ struct AboutSettingsView: View {
                 appIdentity
             }
 
+            #if APPSTORE
+            TipJarSectionView()
+            #endif
+
             // Apple requires a working way to reach the developer from inside
             // the app (App Review 1.5), and it belongs here: LSUIElement means
             // there's no Help menu to hang it off.

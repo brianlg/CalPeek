@@ -69,6 +69,11 @@ targets:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.debug
           PRODUCT_DISPLAY_NAME: CalPeek Debug
+          # APPSTORE marks the App Store channel (StoreKit tip jar); the
+          # direct-distribution target uses DIRECT instead.
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG APPSTORE
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
     scheme:
       testTargets:
         - CalPeekTests
