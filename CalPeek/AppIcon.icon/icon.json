@@ -1,8 +1,8 @@
 {
   "fill" : {
     "linear-gradient" : [
-      "display-p3:0.99023,0.99951,1.00000,1.00000",
-      "display-p3:0.91211,0.89697,0.88623,1.00000"
+      "display-p3:0.99902,0.99902,0.99512,1.00000",
+      "display-p3:0.98559,0.97882,0.95852,1.00000"
     ],
     "orientation" : {
       "start" : {
@@ -48,6 +48,9 @@
           }
         },
         {
+          "fill" : {
+            "solid" : "display-p3:0.82275,0.80664,0.77539,1.00000"
+          },
           "glass" : false,
           "image-name" : "Rule-Track.png",
           "name" : "Rule-Track",
@@ -98,6 +101,7 @@
       }
     },
     {
+      "blend-mode" : "normal",
       "blur-material" : null,
       "hidden" : false,
       "layers" : [
@@ -138,7 +142,9 @@
           ],
           "fill-specializations" : [
             {
-              "value" : "automatic"
+              "value" : {
+                "solid" : "display-p3:0.82275,0.80664,0.77539,1.00000"
+              }
             },
             {
               "appearance" : "dark",
@@ -175,7 +181,7 @@
       "specular" : true,
       "translucency" : {
         "enabled" : true,
-        "value" : 0.2
+        "value" : 0.05
       }
     }
   ],
