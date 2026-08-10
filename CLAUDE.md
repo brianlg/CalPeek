@@ -59,9 +59,9 @@ Developer ID + notarized, Sparkle updates, `DIRECT` condition,
 `CalPeek/Direct/`). Each target excludes the other's channel folder — the App
 Store binary must never contain Sparkle, and the direct binary must never
 contain StoreKit. Debug builds are separate applications to macOS — different
-bundle IDs, different sandbox containers, different TCC grants. See the
-README for the full workflow (installing, resetting state, local StoreKit
-testing, direct releasing).
+bundle IDs, different sandbox containers, different TCC grants. See
+`docs/DEVELOPMENT.md` for the full workflow (installing, resetting state,
+local StoreKit testing, direct releasing); the README is user-facing only.
 
 Rules for changes:
 
