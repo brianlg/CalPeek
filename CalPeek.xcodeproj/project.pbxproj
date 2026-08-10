@@ -490,7 +490,7 @@
 				PRODUCT_NAME = CalPeekDirect;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "http://localhost:8000/appcast.xml";
-				SPARKLE_PUBLIC_ED_KEY = "gVefxcVYhv4BECrMeR0z13fgVLjqzW9EXe6kREmazvM=";
+				SPARKLE_PUBLIC_ED_KEY = "jJCodMzFEm2K4YQthDJuj/Pnt8z6JF6O29qSY4IuVn4=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG DIRECT";
 			};
 			name = Debug;
@@ -536,7 +536,7 @@
 				PRODUCT_NAME = CalPeek;
 				SDKROOT = macosx;
 				SPARKLE_FEED_URL = "https://github.com/brianlg/CalPeek/releases/latest/download/appcast.xml";
-				SPARKLE_PUBLIC_ED_KEY = "gVefxcVYhv4BECrMeR0z13fgVLjqzW9EXe6kREmazvM=";
+				SPARKLE_PUBLIC_ED_KEY = "jJCodMzFEm2K4YQthDJuj/Pnt8z6JF6O29qSY4IuVn4=";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DIRECT;
 			};
 			name = Release;

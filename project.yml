@@ -134,7 +134,7 @@ targets:
         ENABLE_USER_SCRIPT_SANDBOXING: NO
         # Substituted into Info-Direct.plist. The public key pairs with the
         # EdDSA signing key in the login Keychain (Sparkle's generate_keys).
-        SPARKLE_PUBLIC_ED_KEY: gVefxcVYhv4BECrMeR0z13fgVLjqzW9EXe6kREmazvM=
+        SPARKLE_PUBLIC_ED_KEY: jJCodMzFEm2K4YQthDJuj/Pnt8z6JF6O29qSY4IuVn4=
       configs:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.direct.debug
