@@ -5,19 +5,49 @@
   ],
   "products" : [
     {
-      "displayPrice" : "3.99",
+      "displayPrice" : "1.99",
       "familyShareable" : false,
-      "internalID" : "6E1D9B24-3A7F-4C58-8D2E-9F0A1B6C7D83",
+      "internalID" : "1A6C2E48-9D0B-4F73-B5A1-3C8E7D2F9A15",
       "localizations" : [
         {
-          "description" : "Custom colors for the menu bar and calendar.",
-          "displayName" : "Supporter",
+          "description" : "A small thanks for CalPeek.",
+          "displayName" : "Small Tip",
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.briangibson.calpeek.supporter",
-      "referenceName" : "Supporter",
-      "type" : "NonConsumable"
+      "productID" : "com.briangibson.calpeek.tip.small",
+      "referenceName" : "Small Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "2B7D3F59-0E1C-4A84-C6B2-4D9F8E3A0B26",
+      "localizations" : [
+        {
+          "description" : "A nice thanks for CalPeek.",
+          "displayName" : "Nice Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.briangibson.calpeek.tip.medium",
+      "referenceName" : "Nice Tip",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "3C8E4A6A-1F2D-4B95-D7C3-5E0A9F4B1C37",
+      "localizations" : [
+        {
+          "description" : "A generous thanks for CalPeek.",
+          "displayName" : "Generous Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.briangibson.calpeek.tip.large",
+      "referenceName" : "Generous Tip",
+      "type" : "Consumable"
     }
   ],
   "settings" : {

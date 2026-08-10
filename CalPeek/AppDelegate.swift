@@ -4,6 +4,9 @@ import SwiftUI
 import ServiceManagement
 import os
 #endif
+#if DIRECT
+import Sparkle
+#endif
 
 /// Owns the menu bar status item and the calendar popover.
 @MainActor
@@ -50,6 +53,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         purgeDebugLoginItem()
         #endif
+        #if DIRECT
+        // Start the updater at launch so Sparkle's scheduled background
+        // checks run even if the user never opens the menu or Settings.
+        _ = UpdaterController.shared
+        #endif
         configurePopover()
         configureStatusItem()
         observeDateChanges()
@@ -60,14 +68,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshNextMeetingUI()
 
         todayBadge.onChange = { [weak self] in self?.refreshIcon() }
-
-        NotificationCenter.default.addObserver(
-            forName: .openAboutSettings, object: nil, queue: .main
-        ) { [weak self] _ in
-            // Hop through MainActor explicitly: the observer closure isn't
-            // isolated even though it runs on the main queue.
-            MainActor.assumeIsolated { self?.showSettings(selecting: .about) }
-        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -420,6 +420,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        #if DIRECT
+        // The GitHub build updates itself via Sparkle; the App Store build
+        // must not carry this item. Targeting the standard controller gets
+        // enabled/disabled state for free via menu validation.
+        let updateItem = NSMenuItem(
+            title: String(localized: "Check for Updates…"),
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: ""
+        )
+        updateItem.target = UpdaterController.shared.controller
+        menu.addItem(updateItem)
+        #endif
+
         menu.addItem(.separator())
 
         let quitItem = NSMenuItem(
@@ -572,9 +585,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Opens Settings on a specific tab, closing the calendar popover first.
-    /// Reached via `.openAboutSettings` from the Appearance tab's unlock
-    /// prompt — under the SwiftUI lifecycle `NSApp.delegate` is SwiftUI's
-    /// own proxy object, so views can't get at this delegate directly.
+    /// Currently unreferenced, but kept as the one sanctioned way for future
+    /// features to deep-link a tab — under the SwiftUI lifecycle
+    /// `NSApp.delegate` is SwiftUI's own proxy object, so views can't get at
+    /// this delegate directly; they post a notification observed here.
     private func showSettings(selecting tab: SettingsTab) {
         popover.performClose(nil)
         openSettings()
@@ -592,10 +606,6 @@ extension Notification.Name {
     /// `CalendarPopoverView` (whose state outlives each presentation) can
     /// reset navigation to the current month.
     static let popoverWillShow = Notification.Name("CalPeekPopoverWillShow")
-    /// Posted by the Appearance tab's unlock prompt to open Settings on the
-    /// About tab, where the purchase lives (see
-    /// `AppDelegate.showSettings(selecting:)`).
-    static let openAboutSettings = Notification.Name("CalPeekOpenAboutSettings")
 }
 
 /// Keeps the settings window's title pinned to "Settings" — the base class

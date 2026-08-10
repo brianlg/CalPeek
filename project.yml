@@ -9,12 +9,25 @@ settings:
     MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "3"
     SWIFT_VERSION: "6.0"
+packages:
+  # Auto-updates for the direct (GitHub) channel only — the App Store target
+  # must never link it (App Review rejects bundled updaters).
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    majorVersion: 2.0.0
 targets:
+  # The Mac App Store channel. Ships the StoreKit tip jar (CalPeek/AppStore),
+  # never Sparkle. See CalPeekDirect below for the GitHub channel.
   CalPeek:
     type: application
     platform: macOS
     sources:
       - path: CalPeek
+        excludes:
+          - Direct
+          # The other target's Info.plist; without this XcodeGen copies it
+          # into the bundle as a stray resource.
+          - Info-Direct.plist
       # In the project for visibility/editing only — .storekit files have no
       # build phase; the scheme references it for local StoreKit testing.
       - path: CalPeek.storekit
@@ -69,12 +82,76 @@ targets:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.debug
           PRODUCT_DISPLAY_NAME: CalPeek Debug
+          # APPSTORE marks the App Store channel (StoreKit tip jar); the
+          # direct-distribution target uses DIRECT instead.
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG APPSTORE
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
     scheme:
       testTargets:
         - CalPeekTests
-      # Local StoreKit testing: lets Debug builds buy/refund CalPeek Pro without
+      # Local StoreKit testing: lets Debug builds buy/refund tips without
       # App Store Connect or a sandbox account.
       storeKitConfiguration: CalPeek.storekit
+  # The direct-distribution (GitHub) channel: Developer ID signed, notarized,
+  # Sparkle auto-updates, no StoreKit (CalPeek/AppStore is excluded). Release
+  # deliberately shares the App Store bundle ID — one app identity across
+  # channels, so TCC grants and the preferences container carry over if a
+  # user switches. Settings mirror the CalPeek target; keep them in sync.
+  CalPeekDirect:
+    type: application
+    platform: macOS
+    sources:
+      - path: CalPeek
+        excludes:
+          - AppStore
+          # See the CalPeek target's matching exclude.
+          - Info.plist
+      - path: Generated/BuildInfo.generated.swift
+        optional: true
+    dependencies:
+      - package: Sparkle
+    preBuildScripts:
+      - name: Generate Build Info
+        script: bash "$SRCROOT/Scripts/generate-build-info.sh"
+        outputFiles:
+          - $(SRCROOT)/Generated/BuildInfo.generated.swift
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek
+        PRODUCT_NAME: CalPeek
+        PRODUCT_DISPLAY_NAME: CalPeek
+        INFOPLIST_FILE: CalPeek/Info-Direct.plist
+        CODE_SIGN_ENTITLEMENTS: CalPeek/CalPeekDirect.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: LK42KQYP3M
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+        DEAD_CODE_STRIPPING: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        # Substituted into Info-Direct.plist. The public key pairs with the
+        # EdDSA signing key in the login Keychain (Sparkle's generate_keys).
+        SPARKLE_PUBLIC_ED_KEY: jJCodMzFEm2K4YQthDJuj/Pnt8z6JF6O29qSY4IuVn4=
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.direct.debug
+          PRODUCT_DISPLAY_NAME: CalPeek Direct Debug
+          # Distinct product name so Debug builds don't share an output path
+          # with the CalPeek target — a shared path leaves stale files (e.g.
+          # Sparkle.framework) inside whichever app was built second. Release
+          # keeps PRODUCT_NAME CalPeek: archives assemble into a fresh path,
+          # and the shipped app must be named CalPeek.app.
+          PRODUCT_NAME: CalPeekDirect
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG DIRECT
+          # Local end-to-end update testing against `python3 -m http.server`.
+          SPARKLE_FEED_URL: http://localhost:8000/appcast.xml
+        Release:
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DIRECT
+          SPARKLE_FEED_URL: https://github.com/brianlg/CalPeek/releases/latest/download/appcast.xml
+    scheme: {}
   CalPeekTests:
     type: bundle.unit-test
     platform: macOS

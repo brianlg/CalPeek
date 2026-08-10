@@ -50,26 +50,43 @@ This project uses **XcodeGen** — the Xcode project is generated from `project.
 - Never edit `CalPeek.xcodeproj` directly; change `project.yml` and regenerate.
 - Build/verify commands live in the `verify` skill (`.claude/skills/verify/SKILL.md`) — read it before driving the UI. It documents the non-obvious mechanics (CGEvent clicking, region screenshots, the fact that System Events can't see the popover, and how to type into a non-frontmost app).
 
-## Debug vs Release builds
+## Distribution channels, Debug vs Release
 
-Debug and Release are separate applications to macOS — different bundle IDs,
-different sandbox containers, different TCC grants. See the README for the
-full workflow (installing, resetting state, local StoreKit testing).
+CalPeek ships free through two channels from one codebase: the `CalPeek`
+target (Mac App Store, StoreKit tip jar, `APPSTORE` condition,
+`CalPeek/AppStore/`) and the `CalPeekDirect` target (GitHub Releases,
+Developer ID + notarized, Sparkle updates, `DIRECT` condition,
+`CalPeek/Direct/`). Each target excludes the other's channel folder — the App
+Store binary must never contain Sparkle, and the direct binary must never
+contain StoreKit. Debug builds are separate applications to macOS — different
+bundle IDs, different sandbox containers, different TCC grants. See
+`docs/DEVELOPMENT.md` for the full workflow (installing, resetting state,
+local StoreKit testing, direct releasing); the README is user-facing only.
 
 Rules for changes:
 
-- **Release identity is frozen.** `com.briangibson.calpeek`, its entitlements,
-  signing, and version numbering are what real purchases are tied to. Never
-  change them to make development easier. A TestFlight build uses the *same*
-  bundle ID and the same Release configuration — never create a "Beta"
-  configuration with a suffixed ID.
+- **Release identity is frozen.** Both channels' Release builds ship
+  `com.briangibson.calpeek`; its bundle ID, signing teams, and version
+  numbering must not change to make development easier. A TestFlight build
+  uses the *same* bundle ID and the same Release configuration — never create
+  a "Beta" configuration with a suffixed ID. Debug variants use
+  `.debug` / `.direct.debug` suffixes, never Release.
+- **Channel-only code goes behind `APPSTORE`/`DIRECT`** (or in the channel
+  folders). Never reference Sparkle outside `#if DIRECT` or StoreKit outside
+  `CalPeek/AppStore/`.
+- **The Sparkle EdDSA private key lives in the login Keychain** and its public
+  half is `SPARKLE_PUBLIC_ED_KEY` in `project.yml`. Never regenerate it:
+  shipped direct builds only accept updates signed by that key.
+- **`Info.plist` and `Info-Direct.plist` are kept in sync by hand.** When
+  editing one, mirror the change in the other (the direct plist adds only the
+  Sparkle keys at the bottom).
 - **Anything development-only goes inside `#if DEBUG`.** The debug menu header,
-  the glyph's purple marker bar, the suppressed Launch at Login toggle, and
-  `Store`'s `Transaction.latest` fallback all rely on this. Debug-only strings
-  stay out of `Localizable.xcstrings` — they never ship.
+  the glyph's purple marker bar, and the suppressed Launch at Login toggle all
+  rely on this. Debug-only strings stay out of `Localizable.xcstrings` — they
+  never ship.
 - **Never weaken production logic to make testing work.** If something can't be
   tested without a code change, gate the accommodation to Debug and say why in
-  a comment — as `Store.refreshEntitlement()` does.
+  a comment.
 - **Install dev builds with `Scripts/install-dev.sh`**, which puts them in
   `~/Applications`. Nothing but an Xcode archive belongs in `/Applications`.
 - `Scripts/generate-build-info.sh` writes `Generated/BuildInfo.generated.swift`
