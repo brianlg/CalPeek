@@ -1,4 +1,10 @@
-# CalPeek
+<p align="center">
+  <img src="docs/images/icon.png" width="128" alt="CalPeek app icon">
+</p>
+
+<h1 align="center">CalPeek</h1>
+
+---
 
 A minimal, native macOS menu bar calendar. Glance at the date in your menu
 bar, click it to peek at your month, your day, and your next meeting. Free
