@@ -11,9 +11,7 @@ bar, click it to peek at your month, your day, and your next meeting. Free
 and open source.
 
 <p align="center">
-  <img src="docs/images/month.png" width="270" alt="Month view with event dots and the next meeting banner">
-  <img src="docs/images/day.png" width="270" alt="Day agenda listing events and reminders">
-  <img src="docs/images/create.png" width="270" alt="Quick-create form for a new event or reminder">
+  <img src="docs/images/next-meeting.png" width="560" alt="CalPeek in the menu bar showing the next meeting, with the month popover open and a Join button for the upcoming call">
 </p>
 
 ## Features
