@@ -1,3 +1,5 @@
+<h1 align="center">CalPeek</h1>
+
 <table>
 <tr>
 <td width="55%" valign="middle">
