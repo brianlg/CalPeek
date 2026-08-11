@@ -14,8 +14,9 @@
 # Usage:
 #   Scripts/release-direct.sh
 #
-# Output lands in build/direct/: the stapled CalPeek.app, the release zip in
-# updates/, and appcast.xml. The final step prints the gh release command.
+# Output lands in build/direct/: the stapled CalPeek.app, the DMG humans
+# download, the Sparkle zip in updates/, and appcast.xml. The final step prints
+# the gh release command.
 set -euo pipefail
 
 readonly NOTARY_PROFILE="calpeek-notary"
@@ -35,7 +36,11 @@ step() { printf '\033[1m==>\033[0m %s\n' "$1"; }
 [ -z "$(git -C "$ROOT" status --porcelain)" ] \
     || fail "working tree is dirty — a release must be built from a committed state"
 
-security find-identity -v -p codesigning | grep -q "Developer ID Application" \
+# The archive export signs itself from the export plist, but the disk image is
+# signed by hand further down and needs the identity by name.
+SIGN_IDENTITY="$(security find-identity -v -p codesigning \
+    | sed -n 's/.*"\(Developer ID Application: .*\)"/\1/p' | head -1)"
+[ -n "$SIGN_IDENTITY" ] \
     || fail "no Developer ID Application certificate in the keychain — create one in Xcode -> Settings -> Accounts -> Manage Certificates"
 
 command -v xcodegen >/dev/null || fail "xcodegen not installed (brew install xcodegen)"
@@ -120,6 +125,37 @@ ZIP="$UPDATES/CalPeek-$version.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 
+# --- Disk image --------------------------------------------------------------
+# The zip exists for Sparkle, which controls both ends of the transfer. Humans
+# get the DMG, because a zip does not survive the trip reliably: every file in
+# the bundle carries a com.apple.provenance xattr that ditto stores as a
+# separate "._name" member, and unarchivers other than Finder's (Info-ZIP
+# unzip, Keka, some browsers' auto-expand) leave those on disk as real files.
+# Stray files inside Sparkle.framework break its seal, and Gatekeeper then
+# reports the app as unverifiable for malware. A disk image is a filesystem,
+# so there is no unarchiver in the path to get this wrong.
+DMG="$OUT/CalPeek-$version.dmg"
+STAGE="$OUT/dmg-stage"
+step "Building the disk image…"
+rm -rf "$STAGE" "$DMG"
+mkdir -p "$STAGE"
+ditto "$APP" "$STAGE/CalPeek.app"
+ln -s /Applications "$STAGE/Applications"
+hdiutil create -quiet -srcfolder "$STAGE" -volname "CalPeek" \
+    -fs HFS+ -format UDZO -imagekey zlib-level=9 "$DMG"
+rm -rf "$STAGE"
+
+# The app inside is already stapled, so the DMG could ship unsigned. Sign and
+# notarize it anyway: Gatekeeper evaluates the image itself on mount, and an
+# unnotarized one warns before the user ever reaches the app.
+step "Signing the disk image…"
+codesign --sign "$SIGN_IDENTITY" --timestamp "$DMG"
+
+step "Notarizing the disk image (second wait on Apple)…"
+xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait \
+    || fail "disk image notarization failed"
+xcrun stapler staple "$DMG"
+
 # --- Appcast -----------------------------------------------------------------
 # generate_appcast ships inside the Sparkle SwiftPM artifact this build just
 # resolved, so the tool version always matches the framework the app links.
@@ -132,15 +168,48 @@ step "Generating appcast…"
     -o "$OUT/appcast.xml"
 
 # --- Gatekeeper sanity check -------------------------------------------------
-step "Verifying with Gatekeeper…"
-spctl -a -vv "$APP"
+# Check what users actually receive, not the build directory. v1.0 shipped an
+# app that passed here and still failed on the installed copy, because the
+# damage happens during unpacking. So: unpack the zip and mount the image, and
+# verify those.
+step "Verifying the packaged artifacts with Gatekeeper…"
+
+UNZIPPED="$OUT/verify-unzipped"
+rm -rf "$UNZIPPED"
+mkdir -p "$UNZIPPED"
+ditto -x -k "$ZIP" "$UNZIPPED"
+codesign --verify --deep --strict "$UNZIPPED/CalPeek.app" \
+    || fail "the app extracted from $ZIP fails its own code signature"
+spctl -a -vv -t exec "$UNZIPPED/CalPeek.app" \
+    || fail "the app extracted from $ZIP is rejected by Gatekeeper"
+xcrun stapler validate "$UNZIPPED/CalPeek.app" >/dev/null \
+    || fail "the app extracted from $ZIP has no stapled notarization ticket"
+rm -rf "$UNZIPPED"
+
+spctl -a -vv -t open --context context:primary-signature "$DMG" \
+    || fail "the disk image is rejected by Gatekeeper"
+
+MOUNT="$OUT/verify-mount"
+rm -rf "$MOUNT"
+mkdir -p "$MOUNT"
+hdiutil attach -quiet -nobrowse -readonly -mountpoint "$MOUNT" "$DMG"
+mounted_ok=0
+if codesign --verify --deep --strict "$MOUNT/CalPeek.app" \
+    && spctl -a -vv -t exec "$MOUNT/CalPeek.app"; then
+    mounted_ok=1
+fi
+hdiutil detach -quiet "$MOUNT"
+rmdir "$MOUNT"
+[ "$mounted_ok" -eq 1 ] || fail "the app inside $DMG is rejected by Gatekeeper"
 
 printf '\n\033[32mDone.\033[0m Release artifacts:\n'
 printf '  app      %s\n' "$APP"
+printf '  dmg      %s\n' "$DMG"
 printf '  zip      %s\n' "$ZIP"
 printf '  appcast  %s\n\n' "$OUT/appcast.xml"
 printf 'Publish with:\n'
-printf '  gh release create v%s "%s" "%s" --title "CalPeek %s"\n\n' \
-    "$version" "$ZIP" "$OUT/appcast.xml" "$version"
-printf 'The appcast must be attached to the *latest* release: the app reads\n'
-printf 'releases/latest/download/appcast.xml.\n'
+printf '  gh release create v%s "%s" "%s" "%s" --title "CalPeek %s"\n\n' \
+    "$version" "$DMG" "$ZIP" "$OUT/appcast.xml" "$version"
+printf 'The DMG is the download to link from the README; the zip is there for\n'
+printf 'Sparkle. The appcast must be attached to the *latest* release: the app\n'
+printf 'reads releases/latest/download/appcast.xml.\n'

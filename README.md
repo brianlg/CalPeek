@@ -26,9 +26,12 @@ and open source.
 ## Install
 
 Download the latest notarized build from
-[Releases](https://github.com/brianlg/CalPeek/releases/latest), unzip, and
-drag CalPeek to your Applications folder. It updates itself via
+[Releases](https://github.com/brianlg/CalPeek/releases/latest), open the
+`.dmg`, and drag CalPeek to your Applications folder. It updates itself via
 [Sparkle](https://sparkle-project.org). CalPeek is also being submitted to the Mac App Store.
+
+The `.zip` on the release page is what Sparkle downloads for updates. Use the
+`.dmg` to install.
 
 Requires macOS 14.6 or later.
 

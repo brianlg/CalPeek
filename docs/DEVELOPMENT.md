@@ -190,10 +190,32 @@ Scripts/release-direct.sh
 ```
 
 It archives `CalPeekDirect`, exports with Developer ID, notarizes and staples,
-zips the app, and generates `appcast.xml` — then prints the
-`gh release create` command. The appcast must ride on the **latest** GitHub
+then produces **two** containers and generates `appcast.xml` — finally printing
+the `gh release create` command. The appcast must ride on the **latest** GitHub
 release: the app's feed URL is
 `https://github.com/brianlg/CalPeek/releases/latest/download/appcast.xml`.
+
+Both containers hold the same stapled app and both must be attached to the
+release:
+
+- **`CalPeek-<version>.dmg`** — the human download, and the only one the README
+  should link. It is signed and notarized in its own right (a second wait on
+  Apple), so mounting it is warning-free.
+- **`CalPeek-<version>.zip`** — for Sparkle, which is the only consumer.
+
+The zip is not offered to humans on purpose. Every file in the bundle carries a
+`com.apple.provenance` xattr, which `ditto -c -k` stores as a parallel `._name`
+member. Finder's Archive Utility folds those back into the files, but Info-ZIP
+`unzip`, Keka, and some browsers' auto-expand write them out as real files.
+Stray files in `Sparkle.framework`'s root break its seal, and Gatekeeper then
+tells the user macOS "could not verify" the app is free of malware. A disk
+image has no unarchiver in the path, so it can't be damaged this way. This bit
+CalPeek 1.0.
+
+Because that damage happens at unpack time, the script's Gatekeeper checks run
+on the shipped containers, not the build directory: it re-extracts the zip,
+mounts the DMG, and runs `codesign --verify --deep --strict` plus `spctl`
+against both copies. A release that would fail on a user's machine fails here.
 
 To test updates end to end without publishing: the direct **Debug** build's
 feed URL is `http://localhost:8000/appcast.xml`, so serve an appcast plus a
