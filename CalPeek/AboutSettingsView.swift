@@ -40,13 +40,13 @@ struct AboutSettingsView: View {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
                 .frame(width: 64, height: 64)
-            Text(Self.bundleString("CFBundleDisplayName") ?? "CalPeek")
+            Text(verbatim: Self.bundleString("CFBundleDisplayName") ?? "CalPeek")
                 .font(.headline)
-            Text(String(localized: "Version \(Self.bundleString("CFBundleShortVersionString") ?? "–") (\(Self.bundleString("CFBundleVersion") ?? "–"))"))
+            Text(verbatim: String(localized: "Version \(Self.bundleString("CFBundleShortVersionString") ?? "–") (\(Self.bundleString("CFBundleVersion") ?? "–"))"))
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
             if let copyright = Self.bundleString("NSHumanReadableCopyright") {
-                Text(copyright)
+                Text(verbatim: copyright)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }

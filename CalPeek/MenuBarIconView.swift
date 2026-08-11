@@ -44,10 +44,10 @@ struct MenuBarIconView: View {
 
     var body: some View {
         VStack(spacing: -1) {
-            Text(weekday)
+            Text(verbatim: weekday)
                 .font(.system(size: 7, weight: .bold))
                 .foregroundColor(weekdayColor)
-            Text(day)
+            Text(verbatim: day)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.primary)
         }

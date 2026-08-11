@@ -59,8 +59,8 @@ struct GeneralSettingsView: View {
             Section {
                 Toggle(isOn: $showCalendar) {
                     toggleLabel(
-                        String(localized: "Show Calendar"),
-                        help: String(localized: "We'll ask for Calendar access so you can see your events in the app. Tap one to check the details.")
+                        "Show Calendar",
+                        help: "We'll ask for Calendar access so you can see your events in the app. Tap one to check the details."
                     )
                 }
                 .onChange(of: showCalendar) { _, enabled in
@@ -68,15 +68,15 @@ struct GeneralSettingsView: View {
                 }
                 Toggle(isOn: $showReminders) {
                     toggleLabel(
-                        String(localized: "Show Reminders"),
-                        help: String(localized: "We'll ask for Reminders access to show your date-specific reminders alongside your events, and you can check them off without leaving the app.")
+                        "Show Reminders",
+                        help: "We'll ask for Reminders access to show your date-specific reminders alongside your events, and you can check them off without leaving the app."
                     )
                 }
                 .onChange(of: showReminders) { _, enabled in
                     handleShowRemindersChange(enabled)
                 }
             } header: {
-                Text(String(localized: "Permissions"))
+                Text("Permissions")
             } footer: {
                 permissionsFooter
             }
@@ -87,11 +87,11 @@ struct GeneralSettingsView: View {
                     Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
                         .disabled(!showNextMeeting)
                     Picker(String(localized: "Show when starting within"), selection: $leadWindowMinutes) {
-                        Text(String(localized: "10 minutes")).tag(10)
-                        Text(String(localized: "30 minutes")).tag(30)
-                        Text(String(localized: "1 hour")).tag(60)
-                        Text(String(localized: "4 hours")).tag(240)
-                        Text(String(localized: "Any time today")).tag(0)
+                        Text("10 minutes").tag(10)
+                        Text("30 minutes").tag(30)
+                        Text("1 hour").tag(60)
+                        Text("4 hours").tag(240)
+                        Text("Any time today").tag(0)
                     }
                     .disabled(!showNextMeeting)
                     Toggle(String(localized: "Join next meeting with ⌥⌘J"), isOn: $joinHotKeyEnabled)
@@ -100,9 +100,9 @@ struct GeneralSettingsView: View {
                 // nothing to show until Show Calendar is on.
                 .disabled(!showCalendar)
             } header: {
-                Text(String(localized: "Next Meeting"))
+                Text("Next Meeting")
             } footer: {
-                Text(String(localized: "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events."))
+                Text("CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events.")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
@@ -154,7 +154,7 @@ struct GeneralSettingsView: View {
 
     /// Toggle label with a caption underneath, matching the System Settings
     /// title-and-description row style.
-    private func toggleLabel(_ title: String, help: String) -> some View {
+    private func toggleLabel(_ title: LocalizedStringKey, help: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
             Text(help)
@@ -190,7 +190,7 @@ struct GeneralSettingsView: View {
 
     private func accessDeniedRow(_ message: String, pane: String) -> some View {
         HStack(spacing: 4) {
-            Text(message)
+            Text(verbatim: message)
                 .foregroundStyle(.secondary)
             Button(String(localized: "Open Settings")) {
                 let query = "x-apple.systempreferences:com.apple.preference.security?" + pane
@@ -318,7 +318,7 @@ struct AppearanceSettingsView: View {
                     customHex: $remindersCustomHex
                 )
             } header: {
-                Text(String(localized: "Theme"))
+                Text("Theme")
             }
         }
         .formStyle(.grouped)
@@ -356,8 +356,8 @@ private struct ThemeColorPicker: View {
         } label: {
             // Same title-and-caption row style as the General tab's toggles.
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                Text(help)
+                Text(verbatim: title)
+                Text(verbatim: help)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -404,14 +404,14 @@ private struct ThemeColorPicker: View {
             if let color = Color(hexString: customHex) {
                 Image(nsImage: Self.swatch(color))
             }
-            Text(String(localized: "Custom…"))
+            Text("Custom…")
         }
     }
 
     private func swatchLabel(_ color: Color, _ name: String) -> some View {
         HStack(spacing: 6) {
             Image(nsImage: Self.swatch(color))
-            Text(name)
+            Text(verbatim: name)
         }
     }
 

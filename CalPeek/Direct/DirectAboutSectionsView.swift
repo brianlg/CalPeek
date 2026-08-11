@@ -26,16 +26,16 @@ struct DirectAboutSectionsView: View {
             .disabled(!checkModel.canCheckForUpdates)
             .frame(maxWidth: .infinity)
         } header: {
-            Text(String(localized: "Software Update"))
+            Text("Software Update")
         }
 
         Section {
             Link(String(localized: "Sponsor on GitHub"), destination: Self.sponsorURL)
                 .frame(maxWidth: .infinity)
         } header: {
-            Text(String(localized: "Support CalPeek"))
+            Text("Support CalPeek")
         } footer: {
-            Text(String(localized: "CalPeek is free. If you enjoy it, you can sponsor development."))
+            Text("CalPeek is free. If you enjoy it, you can sponsor development.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         }

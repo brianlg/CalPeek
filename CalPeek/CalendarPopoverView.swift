@@ -170,7 +170,7 @@ struct CalendarPopoverView: View {
                 Button { changeMonth(by: -1) } label: { chevron("chevron.left") }
                     .buttonStyle(.plain)
                 Button(action: goToToday) {
-                    Text(String(localized: "Today"))
+                    Text("Today")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.primary)
                         // Never let the label compress away when the header
@@ -193,14 +193,14 @@ struct CalendarPopoverView: View {
         Menu {
             Picker(selection: monthBinding) {
                 ForEach(0..<calendar.monthSymbols.count, id: \.self) { index in
-                    Text(calendar.monthSymbols[index]).tag(index)
+                    Text(verbatim: calendar.monthSymbols[index]).tag(index)
                 }
             } label: {
-                Text(String(localized: "Month"))
+                Text("Month")
             }
             .pickerStyle(.inline)
         } label: {
-            Text(monthName)
+            Text(verbatim: monthName)
                 .font(.system(size: 17, weight: .bold))
                 .foregroundStyle(.primary)
         }
@@ -215,7 +215,7 @@ struct CalendarPopoverView: View {
         Button {
             isYearPickerPresented.toggle()
         } label: {
-            Text(yearString)
+            Text(verbatim: yearString)
                 .font(.system(size: 17, weight: .regular))
                 .foregroundStyle(.secondary)
                 // Never wrap the year onto a second line when the header runs
@@ -242,7 +242,7 @@ struct CalendarPopoverView: View {
     /// appear, with a shortcut to the relevant System Settings pane.
     private var accessDeniedFooter: some View {
         HStack(spacing: 4) {
-            Text(events.accessWriteOnly
+            Text(verbatim: events.accessWriteOnly
                 ? String(localized: "CalPeek needs full calendar access to show events.")
                 : String(localized: "Calendar access is off."))
                 .foregroundStyle(.secondary)
@@ -282,7 +282,7 @@ struct CalendarPopoverView: View {
         let ordered = Array(symbols[shift...] + symbols[..<shift])
         return LazyVGrid(columns: columns, spacing: 0) {
             ForEach(ordered.indices, id: \.self) { index in
-                Text(ordered[index])
+                Text(verbatim: ordered[index])
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(Color.secondary)
                     .frame(maxWidth: .infinity)
@@ -318,7 +318,7 @@ struct CalendarPopoverView: View {
         let isHovered = isSameDay(hoveredDate, date)
 
         return VStack(spacing: 2) {
-            Text(String(calendar.component(.day, from: date)))
+            Text(verbatim: String(calendar.component(.day, from: date)))
                 .font(.system(size: 15, weight: isToday ? .semibold : .regular))
                 // Today's digit sits on the accent fill, so its color derives
                 // from the accent — white on yellow would be unreadable.
@@ -641,7 +641,7 @@ private struct DayEventsPopover: View {
             switch mode {
             case .list:
                 HStack(spacing: 6) {
-                    Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                    Text(verbatim: date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundStyle(.primary)
                     Spacer(minLength: 0)
@@ -668,7 +668,7 @@ private struct DayEventsPopover: View {
     private var listContent: some View {
         let items = model.items(on: date, calendar: calendar)
         if items.isEmpty {
-            Text(String(localized: "Nothing here."))
+            Text("Nothing here.")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
         } else {
@@ -804,11 +804,11 @@ private struct ItemRow: View {
                 }
 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(item.title)
+                    Text(verbatim: item.title)
                         .font(.system(size: 13))
                         .foregroundStyle(isCompletedReminder ? .secondary : .primary)
                         .lineLimit(2)
-                    Text(item.timeText)
+                    Text(verbatim: item.timeText)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
@@ -1491,7 +1491,7 @@ private struct NewItemForm: View {
             notesSection
 
             if saveFailed {
-                Text(String(localized: "Couldn't save."))
+                Text("Couldn't save.")
                     .font(.system(size: 11))
                     .foregroundStyle(.red)
             }
@@ -1556,14 +1556,14 @@ private struct NewItemForm: View {
     @ViewBuilder
     private var header: some View {
         if editTarget != nil {
-            Text(kind == .event
+            Text(verbatim: kind == .event
                 ? String(localized: "Edit Event")
                 : String(localized: "Edit Reminder"))
                 .font(.system(size: 13, weight: .semibold))
         } else if !eventCalendars.isEmpty && !reminderLists.isEmpty {
             segmentedControl
         } else {
-            Text(kind == .event
+            Text(verbatim: kind == .event
                 ? String(localized: "New Event")
                 : String(localized: "New Reminder"))
                 .font(.system(size: 13, weight: .semibold))
@@ -1578,8 +1578,8 @@ private struct NewItemForm: View {
     /// geometry while the popover is resizing.
     private var segmentedControl: some View {
         HStack(spacing: 0) {
-            segment(String(localized: "Event"), .event)
-            segment(String(localized: "Reminder"), .reminder)
+            segment("Event", .event)
+            segment("Reminder", .reminder)
         }
         .background(alignment: .leading) {
             GeometryReader { geo in
@@ -1593,7 +1593,7 @@ private struct NewItemForm: View {
         .background(Capsule().fill(Color.primary.opacity(0.06)))
     }
 
-    private func segment(_ label: String, _ value: Kind) -> some View {
+    private func segment(_ label: LocalizedStringKey, _ value: Kind) -> some View {
         Button {
             // The fields swap and the popover resizes instantly (as in
             // Calendar.app); only the thumb's slide is animated.
@@ -1621,7 +1621,7 @@ private struct NewItemForm: View {
     }
 
     /// One labeled row inside a section card: label leading, control trailing.
-    private func formRow(_ label: String, @ViewBuilder control: () -> some View) -> some View {
+    private func formRow(_ label: LocalizedStringKey, @ViewBuilder control: () -> some View) -> some View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 12))
@@ -1663,28 +1663,28 @@ private struct NewItemForm: View {
 
     private var eventFields: some View {
         sectionCard {
-            formRow(String(localized: "All Day")) {
+            formRow("All Day") {
                 Toggle(String(localized: "All Day"), isOn: $isAllDay)
                     .labelsHidden()
                     .toggleStyle(.checkbox)
             }
             rowDivider
-            formRow(String(localized: "Starts")) {
+            formRow("Starts") {
                 dateTimeField($startTime)
             }
             rowDivider
-            formRow(String(localized: "Ends")) {
+            formRow("Ends") {
                 dateTimeField($endTime)
             }
             rowDivider
-            formRow(String(localized: "Repeat")) {
+            formRow("Repeat") {
                 repeatPicker
             }
             // All-day events use day-based alert semantics that don't fit
             // these time offsets; that nuance stays with Calendar.app.
             if !isAllDay {
                 rowDivider
-                formRow(String(localized: "Alert")) {
+                formRow("Alert") {
                     alertPicker(includeAtTime: true)
                 }
             }
@@ -1697,12 +1697,12 @@ private struct NewItemForm: View {
 
     private var reminderFields: some View {
         sectionCard {
-            formRow(String(localized: "Date")) {
+            formRow("Date") {
                 SegmentedDateField(date: $reminderDate, elements: [.yearMonthDay])
                     .fixedSize()
             }
             rowDivider
-            formRow(String(localized: "Time")) {
+            formRow("Time") {
                 if reminderHasTime {
                     SegmentedDateField(date: $reminderTime, elements: [.hourMinute], showsStepper: true)
                         .fixedSize()
@@ -1712,14 +1712,14 @@ private struct NewItemForm: View {
                     .toggleStyle(.checkbox)
             }
             rowDivider
-            formRow(String(localized: "Repeat")) {
+            formRow("Repeat") {
                 repeatPicker
             }
             // A timed reminder already alerts at its due time; the picker
             // offers only extra early alerts, and needs a time to offset.
             if reminderHasTime {
                 rowDivider
-                formRow(String(localized: "Alert")) {
+                formRow("Alert") {
                     alertPicker(includeAtTime: false)
                 }
             }
@@ -1746,7 +1746,7 @@ private struct NewItemForm: View {
         } else {
             Picker(String(localized: "Repeat"), selection: repeatSelection) {
                 ForEach(RepeatOption.allCases) { option in
-                    Text(option.displayName).tag(option)
+                    Text(verbatim: option.displayName).tag(option)
                 }
             }
             .labelsHidden()
@@ -1795,7 +1795,7 @@ private struct NewItemForm: View {
         } else {
             Picker(String(localized: "Alert"), selection: $alertOption) {
                 ForEach(AlertOption.allCases.filter { includeAtTime || $0 != .atTime }) { option in
-                    Text(option.displayName).tag(option)
+                    Text(verbatim: option.displayName).tag(option)
                 }
             }
             .labelsHidden()
@@ -1807,7 +1807,7 @@ private struct NewItemForm: View {
     /// Read-only stand-in for a picker whose stored value no preset can
     /// express; saving preserves the value untouched.
     private var customValueLabel: some View {
-        Text(String(localized: "Custom"))
+        Text("Custom")
             .font(.system(size: 12))
             .foregroundStyle(.secondary)
             .help(String(localized: "Set in Calendar or Reminders; kept as is."))
@@ -2070,13 +2070,13 @@ private struct CustomRepeatEditor: View {
         // changes, controls stay put instead of re-centering.
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                Text(String(localized: "Frequency:"))
+                Text("Frequency:")
                     .font(.system(size: 12))
                 Picker(String(localized: "Frequency"), selection: $draft.frequency) {
-                    Text(String(localized: "Daily")).tag(EKRecurrenceFrequency.daily)
-                    Text(String(localized: "Weekly")).tag(EKRecurrenceFrequency.weekly)
-                    Text(String(localized: "Monthly")).tag(EKRecurrenceFrequency.monthly)
-                    Text(String(localized: "Yearly")).tag(EKRecurrenceFrequency.yearly)
+                    Text("Daily").tag(EKRecurrenceFrequency.daily)
+                    Text("Weekly").tag(EKRecurrenceFrequency.weekly)
+                    Text("Monthly").tag(EKRecurrenceFrequency.monthly)
+                    Text("Yearly").tag(EKRecurrenceFrequency.yearly)
                 }
                 .labelsHidden()
                 .font(.system(size: 12))
@@ -2084,7 +2084,7 @@ private struct CustomRepeatEditor: View {
             }
 
             HStack(spacing: 6) {
-                Text(String(localized: "Every"))
+                Text("Every")
                     .font(.system(size: 12))
                 TextField(String(localized: "Interval"), value: $draft.interval, format: .number)
                     .labelsHidden()
@@ -2092,7 +2092,7 @@ private struct CustomRepeatEditor: View {
                     .multilineTextAlignment(.center)
                     .font(.system(size: 12))
                     .frame(width: 36)
-                Text(unitLabel)
+                Text(verbatim: unitLabel)
                     .font(.system(size: 12))
             }
 
@@ -2149,7 +2149,7 @@ private struct CustomRepeatEditor: View {
                         draft.weekdays.insert(weekday)
                     }
                 } label: {
-                    Text(calendar.veryShortStandaloneWeekdaySymbols[weekday - 1])
+                    Text(verbatim: calendar.veryShortStandaloneWeekdaySymbols[weekday - 1])
                         .font(.system(size: 11, weight: .medium))
                         .frame(width: 26, height: 22)
                         .background(Color.primary.opacity(selected ? 0.25 : 0.06))
@@ -2174,7 +2174,7 @@ private struct CustomRepeatEditor: View {
 /// but drop arbitrary shape views.
 private func calendarOptionLabel(_ cal: EKCalendar) -> some View {
     Label {
-        Text(cal.title)
+        Text(verbatim: cal.title)
     } icon: {
         Image(nsImage: calendarDotImage(cal))
     }
@@ -2227,7 +2227,7 @@ private struct NextMeetingBanner: View {
                 .foregroundStyle(accent)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(meeting.title)
+                Text(verbatim: meeting.title)
                     .font(.system(size: 12, weight: .semibold))
                     .lineLimit(1)
                 TimelineView(.everyMinute) { context in
