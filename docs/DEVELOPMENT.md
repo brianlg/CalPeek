@@ -200,7 +200,9 @@ release:
 
 - **`CalPeek-<version>.dmg`** — the human download, and the only one the README
   should link. It is signed and notarized in its own right (a second wait on
-  Apple), so mounting it is warning-free.
+  Apple), so mounting it is warning-free. Its window is styled: a 640x400
+  background with the app on the left, an arrow, and Applications on the right,
+  toolbar and status bar hidden.
 - **`CalPeek-<version>.zip`** — for Sparkle, which is the only consumer.
 
 The zip is not offered to humans on purpose. Every file in the bundle carries a
@@ -216,6 +218,22 @@ Because that damage happens at unpack time, the script's Gatekeeper checks run
 on the shipped containers, not the build directory: it re-extracts the zip,
 mounts the DMG, and runs `codesign --verify --deep --strict` plus `spctl`
 against both copies. A release that would fail on a user's machine fails here.
+
+Two notes on the DMG window, since both cost real debugging time:
+
+- Window styling lives in the volume's `.DS_Store`, and only Finder writes one.
+  The script therefore builds a writable image, mounts it **at `/Volumes`**
+  (Finder addresses volumes by name, so this one mount cannot use `-nobrowse`
+  or a private mountpoint), drives Finder over AppleScript, then converts to
+  the compressed read-only image. The first run may need Automation permission
+  for your terminal in System Settings → Privacy & Security.
+- The background is `Scripts/dmg-background.tiff`, committed, and regenerated
+  by `swift Scripts/make-dmg-background.swift`. It is a **single**
+  representation at 2x pixels tagged 144 dpi, not a `tiffutil -cathidpicheck`
+  pair: Finder ignores the hidpi markup on a multi-representation background
+  and draws the 2x page at 1x, which crops the artwork to its top-left quarter.
+  Icon positions in the AppleScript and the artwork's arrow are two halves of
+  one layout — move one and you must move the other.
 
 To test updates end to end without publishing: the direct **Debug** build's
 feed URL is `http://localhost:8000/appcast.xml`, so serve an appcast plus a

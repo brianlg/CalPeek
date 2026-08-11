@@ -136,14 +136,76 @@ ditto -c -k --keepParent "$APP" "$ZIP"
 # so there is no unarchiver in the path to get this wrong.
 DMG="$OUT/CalPeek-$version.dmg"
 STAGE="$OUT/dmg-stage"
+RW_DMG="$OUT/CalPeek-rw.dmg"
+
 step "Building the disk image…"
-rm -rf "$STAGE" "$DMG"
-mkdir -p "$STAGE"
+rm -rf "$STAGE" "$DMG" "$RW_DMG"
+mkdir -p "$STAGE/.background"
 ditto "$APP" "$STAGE/CalPeek.app"
 ln -s /Applications "$STAGE/Applications"
+cp "$ROOT/Scripts/dmg-background.tiff" "$STAGE/.background/background.tiff"
+
+# Window styling lives in the volume's .DS_Store, and only Finder writes one.
+# So: build a writable image, mount it, let Finder arrange the window, then
+# convert to the compressed read-only image that ships. This is the long-
+# standing way to produce a styled DMG; the alternative is shipping a
+# prebuilt .DS_Store, which is opaque and breaks the moment the layout moves.
 hdiutil create -quiet -srcfolder "$STAGE" -volname "CalPeek" \
-    -fs HFS+ -format UDZO -imagekey zlib-level=9 "$DMG"
+    -fs HFS+ -format UDRW "$RW_DMG"
 rm -rf "$STAGE"
+
+# Finder addresses a volume by name under /Volumes, so this one mount cannot
+# use -nobrowse or a private mountpoint the way the verification mounts below
+# do. The real path comes back from hdiutil because a name collision would
+# silently land this at "/Volumes/CalPeek 1".
+DMG_MOUNT="$(hdiutil attach -readwrite -noverify -noautoopen "$RW_DMG" \
+    | sed -n 's/.*\(\/Volumes\/.*\)$/\1/p' | tail -1)"
+[ -d "$DMG_MOUNT" ] || fail "could not determine where the writable image mounted"
+DMG_VOLUME="$(basename "$DMG_MOUNT")"
+
+step "Arranging the window…"
+# Icon centers and the window's content size must match the artwork drawn by
+# Scripts/make-dmg-background.swift — change them together or the arrow will
+# point at nothing.
+osascript <<APPLESCRIPT >/dev/null || fail "Finder refused to style the disk image — grant this terminal control of Finder in System Settings -> Privacy & Security -> Automation, then re-run"
+tell application "Finder"
+    tell disk "$DMG_VOLUME"
+        open
+        -- Finder needs the window to exist before it will accept view options.
+        delay 1
+        set w to container window
+        set current view of w to icon view
+        set toolbar visible of w to false
+        set statusbar visible of w to false
+        -- Bounds are the window frame; the 640x400 content is inset by the
+        -- title bar, so the height carries an extra 28 points.
+        set the bounds of w to {200, 140, 840, 568}
+        set opts to the icon view options of w
+        set arrangement of opts to not arranged
+        set icon size of opts to 128
+        -- The colon path is the only reference form Finder accepts here; the
+        -- "file X of folder Y of disk Z" spelling fails with an AppleEvent error.
+        set background picture of opts to file ".background:background.tiff"
+        set position of item "CalPeek.app" of w to {170, 185}
+        set position of item "Applications" of w to {470, 185}
+        update without registering applications
+        delay 2
+        close
+    end tell
+end tell
+APPLESCRIPT
+
+# Finder writes .DS_Store lazily, so give it a moment to land before the
+# volume goes away — otherwise the shipped image opens unstyled.
+sleep 2
+sync
+[ -f "$DMG_MOUNT/.DS_Store" ] || fail "Finder did not write the window layout"
+
+hdiutil detach -quiet "$DMG_MOUNT"
+
+step "Compressing the disk image…"
+hdiutil convert -quiet "$RW_DMG" -format UDZO -imagekey zlib-level=9 -o "$DMG"
+rm -f "$RW_DMG"
 
 # The app inside is already stapled, so the DMG could ship unsigned. Sign and
 # notarize it anyway: Gatekeeper evaluates the image itself on mount, and an
