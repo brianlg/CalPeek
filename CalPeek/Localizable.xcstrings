@@ -10,6 +10,69 @@
           }
         }
       }
+    },
+    "1 hour" : {
+
+    },
+    "4 hours" : {
+
+    },
+    "10 minutes" : {
+
+    },
+    "30 minutes" : {
+
+    },
+    "Any time today" : {
+
+    },
+    "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events." : {
+
+    },
+    "Couldn't save." : {
+
+    },
+    "Custom" : {
+
+    },
+    "Custom…" : {
+
+    },
+    "Daily" : {
+
+    },
+    "Every" : {
+
+    },
+    "Frequency:" : {
+
+    },
+    "Month" : {
+
+    },
+    "Monthly" : {
+
+    },
+    "Next Meeting" : {
+
+    },
+    "Nothing here." : {
+
+    },
+    "Permissions" : {
+
+    },
+    "Theme" : {
+
+    },
+    "Today" : {
+
+    },
+    "Weekly" : {
+
+    },
+    "Yearly" : {
+
     }
   },
   "version" : "1.0"
