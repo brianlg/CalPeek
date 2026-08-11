@@ -1,16 +1,27 @@
-<p align="center">
-  <img src="docs/images/icon.png" width="128" alt="CalPeek app icon">
-</p>
+<table>
+<tr>
+<td width="55%" valign="middle">
 
-<h1 align="center">CalPeek</h1>
+<img src="docs/images/icon.png" width="72" alt="CalPeek app icon">
 
-A minimal, native macOS menu bar calendar. Glance at the date in your menu
-bar, click it to peek at your month, your day, and your next meeting. Free
-and open source.
+<h1>Your calendar,<br>in the <em>menu bar</em>.</h1>
 
-<p align="center">
-  <img src="docs/images/next-meeting.png" width="560" alt="CalPeek in the menu bar showing the next meeting, with the month popover open and a Join button for the upcoming call">
-</p>
+<p>Today's date always in sight. Your whole month one click away.</p>
+
+<p><strong>CalPeek</strong> is a minimal, native macOS menu bar calendar. Glance
+at the date in your menu bar, click it to peek at your month, your day, and
+your next meeting. Free and open source.</p>
+
+<p><a href="https://github.com/brianlg/CalPeek/releases/latest"><strong>Download for macOS</strong></a></p>
+
+</td>
+<td width="45%" valign="middle">
+
+<img src="docs/images/hero.png" width="360" alt="CalPeek's popover showing the next meeting with a Join button, an August month grid with event dots, and a day agenda listing events and reminders">
+
+</td>
+</tr>
+</table>
 
 ## Features
 
