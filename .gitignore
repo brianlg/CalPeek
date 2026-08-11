@@ -21,7 +21,10 @@ xcuserdata/
 .swiftpm/
 .build/
 Packages/
-Package.resolved
+# Package.resolved is deliberately NOT ignored. CalPeek is an app, not a
+# library: the resolved file pins the exact Sparkle revision so every machine
+# and CI builds the same dependency. Xcode Cloud disables automatic dependency
+# resolution outright and fails the build without it.
 
 # CocoaPods / Carthage (in case added later)
 Pods/
