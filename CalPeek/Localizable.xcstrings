@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "(No Title)" : {
+
+    },
     "%@ · %@" : {
       "localizations" : {
         "en" : {
@@ -11,25 +14,100 @@
         }
       }
     },
+    "1 day before" : {
+
+    },
     "1 hour" : {
+
+    },
+    "1 hour before" : {
 
     },
     "4 hours" : {
 
     },
+    "5 minutes before" : {
+
+    },
     "10 minutes" : {
+
+    },
+    "10 minutes before" : {
 
     },
     "30 minutes" : {
 
     },
+    "30 minutes before" : {
+
+    },
+    "About" : {
+
+    },
+    "Alert" : {
+
+    },
+    "All Day" : {
+
+    },
+    "all-day" : {
+
+    },
+    "Amazon Chime" : {
+
+    },
     "Any time today" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "At time of event" : {
+
+    },
+    "Automatic" : {
+
+    },
+    "Blue" : {
+
+    },
+    "briangibson.dev" : {
+
+    },
+    "Calendar" : {
+
+    },
+    "Calendar access is off." : {
+
+    },
+    "Calendar Events" : {
 
     },
     "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events." : {
 
     },
+    "CalPeek needs full calendar access to show events." : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Colors the circle around today." : {
+
+    },
+    "Colors the dots and checkboxes for Reminders that fall on a specific day." : {
+
+    },
+    "Colors the dots beneath days with calendar events." : {
+
+    },
+    "Colors the weekday name in the menu bar." : {
+
+    },
     "Couldn't save." : {
+
+    },
+    "Create" : {
 
     },
     "Custom" : {
@@ -41,10 +119,137 @@
     "Daily" : {
 
     },
+    "Date" : {
+
+    },
+    "Day" : {
+
+    },
+    "day %@" : {
+
+    },
+    "Days" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete All Future Events" : {
+
+    },
+    "Delete This Event" : {
+
+    },
+    "Delete this event?" : {
+
+    },
+    "Delete this reminder?" : {
+
+    },
+    "Describe the problem here, and what you expected to happen instead." : {
+
+    },
+    "Edit" : {
+
+    },
+    "Edit Event" : {
+
+    },
+    "Edit Reminder" : {
+
+    },
+    "Ends" : {
+
+    },
+    "Event" : {
+
+    },
+    "Event title" : {
+
+    },
     "Every" : {
 
     },
+    "Every Day" : {
+
+    },
+    "Every Month" : {
+
+    },
+    "Every Week" : {
+
+    },
+    "Every Year" : {
+
+    },
+    "Frequency" : {
+
+    },
     "Frequency:" : {
+
+    },
+    "General" : {
+
+    },
+    "Google Meet" : {
+
+    },
+    "Graphite" : {
+
+    },
+    "Green" : {
+
+    },
+    "has events today" : {
+
+    },
+    "in %lldh %lldm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "in %1$lldh %2$lldm"
+          }
+        }
+      }
+    },
+    "in %lldm" : {
+
+    },
+    "Include meeting title" : {
+
+    },
+    "Interval" : {
+
+    },
+    "Jitsi" : {
+
+    },
+    "Join" : {
+
+    },
+    "Join “%@”" : {
+
+    },
+    "Join meeting" : {
+
+    },
+    "Join next meeting with ⌥⌘J" : {
+
+    },
+    "List" : {
+
+    },
+    "Mark reminder complete" : {
+
+    },
+    "Mark reminder incomplete" : {
+
+    },
+    "Menubar Icon" : {
+
+    },
+    "Microsoft Teams" : {
 
     },
     "Month" : {
@@ -53,25 +258,179 @@
     "Monthly" : {
 
     },
+    "Months" : {
+
+    },
+    "Never" : {
+
+    },
+    "New Event" : {
+
+    },
+    "New Reminder" : {
+
+    },
     "Next Meeting" : {
+
+    },
+    "None" : {
+
+    },
+    "Notes" : {
 
     },
     "Nothing here." : {
 
     },
+    "now" : {
+
+    },
+    "OK" : {
+
+    },
+    "Open in Calendar" : {
+
+    },
+    "Open in Reminders" : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Orange" : {
+
+    },
     "Permissions" : {
+
+    },
+    "Purple" : {
+
+    },
+    "Quit CalPeek" : {
+
+    },
+    "Red" : {
+
+    },
+    "Reminder" : {
+
+    },
+    "Reminder title" : {
+
+    },
+    "Reminders" : {
+
+    },
+    "Reminders access is off." : {
+
+    },
+    "Repeat" : {
+
+    },
+    "Report a Bug" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save for All Future Events" : {
+
+    },
+    "Save for This Event" : {
+
+    },
+    "Select month" : {
+
+    },
+    "Select year" : {
+
+    },
+    "Set in Calendar or Reminders; kept as is." : {
+
+    },
+    "Settings" : {
+
+    },
+    "Settings…" : {
+
+    },
+    "Show Calendar" : {
+
+    },
+    "Show next meeting in menu bar" : {
+
+    },
+    "Show Reminders" : {
+
+    },
+    "Show when starting within" : {
+
+    },
+    "Starts" : {
 
     },
     "Theme" : {
 
     },
+    "This is a repeating event." : {
+
+    },
+    "Time" : {
+
+    },
     "Today" : {
+
+    },
+    "Today Marker" : {
+
+    },
+    "Version %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Version %1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "We'll ask for Calendar access so you can see your events in the app. Tap one to check the details." : {
+
+    },
+    "We'll ask for Reminders access to show your date-specific reminders alongside your events, and you can check them off without leaving the app." : {
+
+    },
+    "Webex" : {
+
+    },
+    "Week" : {
+
+    },
+    "Weekday Color" : {
 
     },
     "Weekly" : {
 
     },
+    "Weeks" : {
+
+    },
+    "Whereby" : {
+
+    },
+    "Year" : {
+
+    },
     "Yearly" : {
+
+    },
+    "Years" : {
+
+    },
+    "Yellow" : {
+
+    },
+    "Zoom" : {
 
     }
   },
