@@ -11,7 +11,7 @@ settings:
     # edit by hand. Deriving it keeps both channels on the same number for the
     # same code, and keeps it monotonic, which is what Sparkle needs: it
     # compares CFBundleVersion to decide an update exists.
-    CURRENT_PROJECT_VERSION: "169"
+    CURRENT_PROJECT_VERSION: "170"
     SWIFT_VERSION: "6.0"
 packages:
   # Auto-updates for the direct (GitHub) channel only — the App Store target
