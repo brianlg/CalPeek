@@ -145,6 +145,22 @@ One-time setup:
    in `project.yml`). Losing it means shipped apps reject future updates, so
    keep the Keychain backed up.
 
+### Build numbers across the two channels
+
+Xcode Cloud keeps its own build counter and stamps it on the App Store
+submission; it cannot be told to use the project's `CFBundleVersion`, and the
+only knob is the next value, in App Store Connect → Xcode Cloud → Settings. So
+`CURRENT_PROJECT_VERSION` in `project.yml` is a *copy* of that counter, not its
+source, and it drifts every time Cloud builds.
+
+Before cutting a direct release, sync it up to whatever App Store Connect last
+assigned (`xcodegen generate` and commit), so both channels report the same
+build for the same code. Only ever raise it: Sparkle decides an update exists
+by comparing `CFBundleVersion`, so a number that moves backwards leaves
+existing direct users on a build they can never be offered an update from.
+`release-direct.sh` refuses to ship a build number that isn't strictly higher
+than the one in the published appcast.
+
 Then, from a clean tree:
 
 ```sh

@@ -7,7 +7,13 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "3"
+    # Xcode Cloud keeps its own build counter and stamps it on the App Store
+    # submission, so this is a copy of that number, not its source. Sync it up
+    # to whatever App Store Connect last assigned before cutting a direct
+    # release, and only ever upward: Sparkle compares CFBundleVersion, so a
+    # number that goes backwards strands direct users on an update they can
+    # never be offered.
+    CURRENT_PROJECT_VERSION: "7"
     SWIFT_VERSION: "6.0"
 packages:
   # Auto-updates for the direct (GitHub) channel only — the App Store target

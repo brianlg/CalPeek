@@ -19,6 +19,7 @@
 set -euo pipefail
 
 readonly NOTARY_PROFILE="calpeek-notary"
+readonly APPCAST_URL="https://github.com/brianlg/CalPeek/releases/latest/download/appcast.xml"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/build/direct"
@@ -45,6 +46,34 @@ version="$(sed -n 's/^ *MARKETING_VERSION: "\(.*\)"/\1/p' "$ROOT/project.yml")"
 build_num="$(sed -n 's/^ *CURRENT_PROJECT_VERSION: "\(.*\)"/\1/p' "$ROOT/project.yml")"
 [ -n "$version" ] && [ -n "$build_num" ] || fail "couldn't read versions from project.yml"
 step "Releasing CalPeek $version ($build_num)"
+
+# --- Build number must move forward ------------------------------------------
+# Sparkle decides an update exists by comparing CFBundleVersion, so shipping a
+# number at or below the published one fails silently in the worst way: the
+# release looks fine on GitHub and no existing user is ever offered it. The
+# published appcast is exactly what installed copies read, which makes it the
+# honest thing to check against — App Store Connect's counter (which Xcode
+# Cloud increments on its own) says nothing about what this channel shipped.
+case "$build_num" in
+    ''|*[!0-9]*) fail "CURRENT_PROJECT_VERSION '$build_num' is not a plain integer" ;;
+esac
+
+step "Checking the published appcast…"
+published=""
+if appcast="$(curl -fsSL --max-time 30 "$APPCAST_URL" 2>/dev/null)"; then
+    published="$(printf '%s' "$appcast" \
+        | grep -o 'sparkle:version="[0-9][0-9]*"' \
+        | tr -cd '0-9\n' \
+        | sort -n | tail -1 || true)"
+fi
+
+if [ -z "$published" ]; then
+    printf '   no published appcast yet — treating this as the first direct release\n'
+elif [ "$build_num" -le "$published" ]; then
+    fail "build $build_num is not newer than the published build $published — Sparkle would never offer this update. Raise CURRENT_PROJECT_VERSION in project.yml (match it to the App Store Connect build number)."
+else
+    printf '   last published build %s, shipping %s\n' "$published" "$build_num"
+fi
 
 rm -rf "$ARCHIVE" "$EXPORT"
 mkdir -p "$UPDATES"
