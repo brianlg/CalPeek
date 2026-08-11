@@ -20,8 +20,8 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     majorVersion: 2.0.0
 targets:
-  # The Mac App Store channel. Ships the StoreKit tip jar (CalPeek/AppStore),
-  # never Sparkle. See CalPeekDirect below for the GitHub channel.
+  # The Mac App Store channel. Ships no in-app purchases and never Sparkle.
+  # See CalPeekDirect below for the GitHub channel.
   CalPeek:
     type: application
     platform: macOS
@@ -32,10 +32,6 @@ targets:
           # The other target's Info.plist; without this XcodeGen copies it
           # into the bundle as a stray resource.
           - Info-Direct.plist
-      # In the project for visibility/editing only — .storekit files have no
-      # build phase; the scheme references it for local StoreKit testing.
-      - path: CalPeek.storekit
-        buildPhase: none
       # Written by the pre-build script below, gitignored. `optional` keeps
       # `xcodegen generate` working on a fresh clone, before any build has
       # produced the file.
@@ -86,29 +82,25 @@ targets:
         Debug:
           PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.debug
           PRODUCT_DISPLAY_NAME: CalPeek Debug
-          # APPSTORE marks the App Store channel (StoreKit tip jar); the
-          # direct-distribution target uses DIRECT instead.
+          # APPSTORE marks the App Store channel; the direct-distribution
+          # target uses DIRECT instead.
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG APPSTORE
         Release:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
     scheme:
       testTargets:
         - CalPeekTests
-      # Local StoreKit testing: lets Debug builds buy/refund tips without
-      # App Store Connect or a sandbox account.
-      storeKitConfiguration: CalPeek.storekit
   # The direct-distribution (GitHub) channel: Developer ID signed, notarized,
-  # Sparkle auto-updates, no StoreKit (CalPeek/AppStore is excluded). Release
-  # deliberately shares the App Store bundle ID — one app identity across
-  # channels, so TCC grants and the preferences container carry over if a
-  # user switches. Settings mirror the CalPeek target; keep them in sync.
+  # Sparkle auto-updates. Release deliberately shares the App Store bundle ID
+  # — one app identity across channels, so TCC grants and the preferences
+  # container carry over if a user switches. Settings mirror the CalPeek
+  # target; keep them in sync.
   CalPeekDirect:
     type: application
     platform: macOS
     sources:
       - path: CalPeek
         excludes:
-          - AppStore
           # See the CalPeek target's matching exclude.
           - Info.plist
       - path: Generated/BuildInfo.generated.swift

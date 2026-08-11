@@ -53,15 +53,17 @@ This project uses **XcodeGen** — the Xcode project is generated from `project.
 ## Distribution channels, Debug vs Release
 
 CalPeek ships free through two channels from one codebase: the `CalPeek`
-target (Mac App Store, StoreKit tip jar, `APPSTORE` condition,
-`CalPeek/AppStore/`) and the `CalPeekDirect` target (GitHub Releases,
-Developer ID + notarized, Sparkle updates, `DIRECT` condition,
-`CalPeek/Direct/`). Each target excludes the other's channel folder — the App
-Store binary must never contain Sparkle, and the direct binary must never
-contain StoreKit. Debug builds are separate applications to macOS — different
-bundle IDs, different sandbox containers, different TCC grants. See
+target (Mac App Store, `APPSTORE` condition) and the `CalPeekDirect` target
+(GitHub Releases, Developer ID + notarized, Sparkle updates, `DIRECT`
+condition, `CalPeek/Direct/`). The App Store target excludes
+`CalPeek/Direct/` — the App Store binary must never contain Sparkle. The App
+Store build ships **no in-app purchases** and no support section at all; the
+direct build's GitHub Sponsors link must not be mirrored into it (App Review
+3.1.1 treats an in-app link to an outside donation page as an external
+purchase mechanism). Debug builds are separate applications to macOS —
+different bundle IDs, different sandbox containers, different TCC grants. See
 `docs/DEVELOPMENT.md` for the full workflow (installing, resetting state,
-local StoreKit testing, direct releasing); the README is user-facing only.
+direct releasing); the README is user-facing only.
 
 Rules for changes:
 
@@ -71,9 +73,9 @@ Rules for changes:
   uses the *same* bundle ID and the same Release configuration — never create
   a "Beta" configuration with a suffixed ID. Debug variants use
   `.debug` / `.direct.debug` suffixes, never Release.
-- **Channel-only code goes behind `APPSTORE`/`DIRECT`** (or in the channel
-  folders). Never reference Sparkle outside `#if DIRECT` or StoreKit outside
-  `CalPeek/AppStore/`.
+- **Channel-only code goes behind `APPSTORE`/`DIRECT`** (or in
+  `CalPeek/Direct/`). Never reference Sparkle outside `#if DIRECT`, and never
+  add StoreKit to the App Store target.
 - **The Sparkle EdDSA private key lives in the login Keychain** and its public
   half is `SPARKLE_PUBLIC_ED_KEY` in `project.yml`. Never regenerate it:
   shipped direct builds only accept updates signed by that key.
