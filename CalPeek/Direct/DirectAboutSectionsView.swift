@@ -2,8 +2,8 @@ import Sparkle
 import SwiftUI
 
 /// The About tab's direct-build sections: software update controls (the
-/// GitHub build has no App Store to update it) and a quiet sponsor link,
-/// this channel's stand-in for the App Store tip jar.
+/// GitHub build has no App Store to update it) and a quiet sponsor link.
+/// Direct-only: the App Store build ships no support section at all.
 struct DirectAboutSectionsView: View {
     static let sponsorURL = URL(string: "https://github.com/sponsors/brianlg")!
 

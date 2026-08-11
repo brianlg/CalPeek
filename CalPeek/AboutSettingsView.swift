@@ -9,9 +9,10 @@ struct AboutSettingsView: View {
                 appIdentity
             }
 
-            #if APPSTORE
-            TipJarSectionView()
-            #elseif DIRECT
+            // The App Store build has no support section: it ships no in-app
+            // purchases, and App Review 3.1.1 treats an in-app link to an
+            // outside donation page as an external purchase mechanism.
+            #if DIRECT
             DirectAboutSectionsView()
             #endif
 

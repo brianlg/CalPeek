@@ -1,7 +1,7 @@
 # Development
 
-Maintainer documentation: distribution channels, debug builds, StoreKit
-testing, and the release process. For a quick build-from-source, see the
+Maintainer documentation: distribution channels, debug builds, and the
+release process. For a quick build-from-source, see the
 [README](../README.md#building-from-source).
 
 ## Two distribution channels
@@ -12,14 +12,15 @@ CalPeek ships two ways from one codebase, both free:
 |---|---|---|
 | Distribution | Mac App Store | GitHub Releases, Developer ID signed + notarized |
 | Updates | App Store | [Sparkle 2](https://sparkle-project.org) |
-| Support UI | StoreKit tip jar (About tab) | GitHub Sponsors link (About tab) |
+| Support UI | none | GitHub Sponsors link (About tab) |
 | Compilation condition | `APPSTORE` | `DIRECT` |
-| Channel-only sources | `CalPeek/AppStore/` | `CalPeek/Direct/` |
+| Channel-only sources | none | `CalPeek/Direct/` |
 | Released by | Xcode → Product → Archive | `Scripts/release-direct.sh` |
 
-Each target excludes the other's channel folder, so the App Store binary
-carries no Sparkle (App Review rejects bundled updaters) and the direct
-binary carries no StoreKit. Both **Release** builds share the bundle ID
+The App Store target excludes `CalPeek/Direct/`, so its binary carries no
+Sparkle (App Review rejects bundled updaters). The App Store build ships no
+in-app purchases at all, and no link to an outside donation page either:
+App Review 3.1.1 treats that as an external purchase mechanism. Both **Release** builds share the bundle ID
 `com.briangibson.calpeek` deliberately: one app identity across channels
 means TCC grants and the preferences container carry over if a user switches.
 
@@ -96,41 +97,6 @@ defaults read ~/Library/Containers/com.briangibson.calpeek/Data/Library/Preferen
 defaults read ~/Library/Containers/com.briangibson.calpeek.debug/Data/Library/Preferences/com.briangibson.calpeek.debug.plist
 ```
 
-### Testing the tip jar locally
-
-App Store Connect products are registered against the release bundle ID, so a
-`.debug` build cannot resolve them. `CalPeek.storekit` stands in: it declares
-the three consumable tips locally, and the `CalPeek` scheme's **Run →
-Options → StoreKit Configuration** points at it (set in `project.yml`, so it
-survives `xcodegen generate`).
-
-The product IDs in that file **must** match both `TipJar.productIDs` and App
-Store Connect — currently `com.briangibson.calpeek.tip.small` / `.medium` /
-`.large`. Nothing enforces this automatically; if the products change in App
-Store Connect, edit the `.storekit` file to match by hand. Prices and display
-names in the local file are for testing only, but they're kept in sync anyway
-so Debug shows what customers see. App Store Connect caps the display name at
-30 characters and the description at 45.
-
-Tips are **consumables**: a finished consumable disappears from
-`Transaction.currentEntitlements`, so there is no entitlement to re-derive.
-The only durable state is the `hasTipped` flag in `UserDefaults`, which
-drives the About tab's thank-you line and survives the App Store forgetting
-the transaction (`CalPeekTests/TipJarTests.swift` guards exactly this).
-
-Reset purchase state from Xcode's **Debug → StoreKit → Manage Transactions**
-(delete rows), or in code via `SKTestSession.clearTransactions()`. Reset the
-thank-you line by deleting the `hasTipped` key from the debug container.
-
-**Local testing is not Sandbox testing.** Local `.storekit` testing runs
-entirely on-device, needs no network or Apple ID, and can't validate your App
-Store Connect setup. Sandbox testing uses a real sandbox Apple ID against
-Apple's servers with the **real** bundle ID and real product IDs — so it only
-works from a Release-identity build (TestFlight or a direct-signed archive),
-never from a `.debug` build. Use local testing for day-to-day work and
-Sandbox or TestFlight to confirm the App Store Connect products are right
-before shipping.
-
 ## Build numbers
 
 `CURRENT_PROJECT_VERSION` is derived, not hand-maintained. Before cutting a
@@ -162,8 +128,7 @@ this scheme has to be revisited.
 1. `Scripts/bump-build.sh`
 2. Xcode → **Product → Archive** with the `CalPeek` scheme (Release).
 3. Organizer → **Distribute App** → App Store Connect.
-4. In App Store Connect: attach the build to the version, and submit the tip
-   jar in-app purchases alongside it if they've changed.
+4. In App Store Connect: attach the build to the version and submit.
 
 The upload is deliberately not scripted: it's a handful of clicks a few times
 a year, Organizer validates the archive first, and the release still ends in
@@ -248,5 +213,4 @@ already cask-ready.
 - `CalPeek/MenuBarIconView.swift` — pure SwiftUI view for the menu bar glyph (weekday + day number).
 - `CalPeek/CalendarPopoverView.swift` — the month calendar shown in the popover.
 - `CalPeek/WeekdayColor.swift` — the curated weekday color palette and its persisted preference key.
-- `CalPeek/AppStore/` — App Store channel only: the StoreKit tip jar.
 - `CalPeek/Direct/` — GitHub channel only: the Sparkle updater and sponsor link.
