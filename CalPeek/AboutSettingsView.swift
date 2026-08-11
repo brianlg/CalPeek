@@ -64,19 +64,25 @@ struct AboutSettingsView: View {
     static let websiteURL = URL(string: "https://briangibson.dev")!
     static let issuesURL = "https://github.com/brianlg/CalPeek/issues"
 
-    /// Opens a new GitHub issue with the version, build, and OS already in the
-    /// body. Users almost never think to include those, and without them a bug
-    /// report about the menu bar glyph is close to unactionable.
+    /// Opens the bug-report issue form with the version, build, and OS already
+    /// in its diagnostics field. Users almost never think to include those, and
+    /// without them a bug report about the menu bar glyph is close to
+    /// unactionable.
+    ///
+    /// The `template` item is required, not just a nicety: once a repo has
+    /// issue templates, a bare `/issues/new` redirects to the template chooser
+    /// and GitHub drops the query string — the pre-fill only survives when the
+    /// URL names the form. `diagnostics` matches the field id in
+    /// `.github/ISSUE_TEMPLATE/bug_report.yml`.
     ///
     /// Built through `URLComponents` rather than string interpolation so the
-    /// body is percent-encoded: its newlines, and any `&` a future template
-    /// might carry, would otherwise truncate the query.
+    /// value is percent-encoded: its newline, and any `&` the OS version
+    /// string might carry, would otherwise truncate the query.
     static func bugReportURL(version: String, build: String, system: String) -> URL? {
         var components = URLComponents(string: issuesURL + "/new")
         components?.queryItems = [
-            URLQueryItem(name: "body", value: """
-                \(String(localized: "Describe the problem here, and what you expected to happen instead."))
-
+            URLQueryItem(name: "template", value: "bug_report.yml"),
+            URLQueryItem(name: "diagnostics", value: """
                 CalPeek \(version) (\(build))
                 \(system)
                 """),

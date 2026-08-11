@@ -1,0 +1,31 @@
+name: Bug report
+description: Something in CalPeek isn't working right
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem, and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Version and system
+      description: >
+        Filled in automatically when you arrive from CalPeek's Report a Bug
+        link. Otherwise: the CalPeek version from Settings → About, and your
+        macOS version.
+      placeholder: |
+        CalPeek 1.0 (178)
+        Version 26.0 (Build 25A354)
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: If you can make it happen on demand, list the steps.
+    validations:
+      required: false
