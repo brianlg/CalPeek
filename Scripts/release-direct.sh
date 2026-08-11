@@ -52,8 +52,8 @@ step "Releasing CalPeek $version ($build_num)"
 # number at or below the published one fails silently in the worst way: the
 # release looks fine on GitHub and no existing user is ever offered it. The
 # published appcast is exactly what installed copies read, which makes it the
-# honest thing to check against — App Store Connect's counter (which Xcode
-# Cloud increments on its own) says nothing about what this channel shipped.
+# honest thing to check against. Scripts/bump-build.sh should have made this
+# moot; the check is here for the release where it didn't get run.
 case "$build_num" in
     ''|*[!0-9]*) fail "CURRENT_PROJECT_VERSION '$build_num' is not a plain integer" ;;
 esac

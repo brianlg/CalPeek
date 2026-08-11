@@ -131,6 +131,44 @@ never from a `.debug` build. Use local testing for day-to-day work and
 Sandbox or TestFlight to confirm the App Store Connect products are right
 before shipping.
 
+## Build numbers
+
+`CURRENT_PROJECT_VERSION` is derived, not hand-maintained. Before cutting a
+release of either channel, from a clean tree:
+
+```sh
+Scripts/bump-build.sh
+```
+
+It sets the build number to the repository's commit count, regenerates the
+project, and commits. Both channels then ship the same number for the same
+code, which matters because the in-app bug report prints `CFBundleVersion` —
+two reports of one build should not read as two different builds.
+
+The commit count is monotonic on `main`, which is what Sparkle needs: it
+compares `CFBundleVersion` to decide an update exists, so a number that moves
+backwards leaves direct users on a build they can never be offered an update
+from. `release-direct.sh` refuses to ship a number that isn't strictly higher
+than the published appcast's, as a backstop for the release where the bump
+didn't get run.
+
+CalPeek does **not** use Xcode Cloud. It keeps its own build counter and
+stamps it on the App Store submission, overriding the project's value — which
+puts the two channels permanently out of step. If it is ever turned back on,
+this scheme has to be revisited.
+
+## Releasing to the App Store
+
+1. `Scripts/bump-build.sh`
+2. Xcode → **Product → Archive** with the `CalPeek` scheme (Release).
+3. Organizer → **Distribute App** → App Store Connect.
+4. In App Store Connect: attach the build to the version, and submit the tip
+   jar in-app purchases alongside it if they've changed.
+
+The upload is deliberately not scripted: it's a handful of clicks a few times
+a year, Organizer validates the archive first, and the release still ends in
+the App Store Connect UI for release notes and submission.
+
 ## Releasing the direct (GitHub) build
 
 One-time setup:
@@ -144,22 +182,6 @@ One-time setup:
    with Sparkle's `generate_keys`; the public half is `SPARKLE_PUBLIC_ED_KEY`
    in `project.yml`). Losing it means shipped apps reject future updates, so
    keep the Keychain backed up.
-
-### Build numbers across the two channels
-
-Xcode Cloud keeps its own build counter and stamps it on the App Store
-submission; it cannot be told to use the project's `CFBundleVersion`, and the
-only knob is the next value, in App Store Connect → Xcode Cloud → Settings. So
-`CURRENT_PROJECT_VERSION` in `project.yml` is a *copy* of that counter, not its
-source, and it drifts every time Cloud builds.
-
-Before cutting a direct release, sync it up to whatever App Store Connect last
-assigned (`xcodegen generate` and commit), so both channels report the same
-build for the same code. Only ever raise it: Sparkle decides an update exists
-by comparing `CFBundleVersion`, so a number that moves backwards leaves
-existing direct users on a build they can never be offered an update from.
-`release-direct.sh` refuses to ship a build number that isn't strictly higher
-than the one in the published appcast.
 
 Then, from a clean tree:
 
