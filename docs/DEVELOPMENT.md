@@ -2,7 +2,13 @@
 
 Maintainer documentation: distribution channels, debug builds, and the
 release process. For a quick build-from-source, see the
-[README](../README.md#building-from-source).
+[README](../README.md#building-from-source). Contribution guidelines,
+including the commit message convention, live in
+[CONTRIBUTING.md](../CONTRIBUTING.md); the commit template is opt-in via:
+
+```sh
+git config commit.template .gitmessage
+```
 
 ## Two distribution channels
 

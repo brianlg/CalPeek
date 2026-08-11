@@ -1,0 +1,9 @@
+# Subject: imperative mood, capitalized, no trailing period, <= 50 chars
+# e.g. "Add a Reminders section to the day popover"
+
+# Body (optional): blank line after the subject, wrapped at 72 chars.
+# Explain what changed and why, not how. Skip it for obvious
+# one-liners.
+
+# Footer (optional):
+#   Fixes #123
