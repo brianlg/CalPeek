@@ -13,6 +13,13 @@ settings:
     # compares CFBundleVersion to decide an update exists.
     CURRENT_PROJECT_VERSION: "178"
     SWIFT_VERSION: "6.0"
+    # Extract localizable strings at compile time, not just the ones Xcode's
+    # syntactic parser can see on a SwiftUI initializer. Without it, every
+    # `String(localized:)` — most of the app's user-facing text — never
+    # reaches Localizable.xcstrings, leaving a translator with an empty
+    # worksheet. Xcode sets this by default for string-catalog projects;
+    # XcodeGen doesn't.
+    SWIFT_EMIT_LOC_STRINGS: YES
 packages:
   # Auto-updates for the direct (GitHub) channel only — the App Store target
   # must never link it (App Review rejects bundled updaters).
