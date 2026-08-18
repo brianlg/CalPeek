@@ -25,22 +25,81 @@ your next meeting. Free and open source.</p>
 </tr>
 </table>
 
-## Features
-
-- A live menu bar glyph showing the weekday and day of the month.
-- A compact month view: event dots (including multi-day spans), arrow-key
-  month and year navigation, and one click back to today.
-- Your next meeting at the top, with a Join button for video call links.
-- Click a day for its agenda: calendar events plus scheduled reminders.
-- Create events and reminders right from the popover.
-- A weekday color picker, Launch at Login, and a global hotkey.
-- Adapts to light and dark mode and wallpaper-tinted menu bars.
-
 ## See it in action
 
 <p align="center">
-<img src="docs/images/demo.gif" width="480" alt="Animation of CalPeek: clicking the menu bar glyph opens the popover, paging through months, clicking August 3 for its agenda, and creating a new event">
+<img src="docs/images/demo.gif" width="560" alt="Animation of CalPeek: clicking the menu bar glyph opens the popover, paging through months, clicking August 3 for its agenda, and creating a new event">
 </p>
+
+## Peek at any day
+
+<img src="docs/images/day.png" width="420" align="right" alt="CalPeek's popover with the August grid open and a day panel for Monday, August 3 listing Team standup, Design review, Lunch with Sam, Portfolio review, and a Submit expense report reminder">
+
+The menu bar glyph shows the weekday and the day of the month, and it stays
+current as the date rolls over.
+
+Click it for the month: event dots under every day, multi-day spans drawn
+across, arrow keys to move by month or year, and one click back to today.
+
+Click a day for its agenda. Calendar events and scheduled reminders appear
+together, with times and calendar colors, and reminders check off without
+leaving the popover.
+
+<br clear="all">
+
+## Never hunt for the meeting link
+
+<img src="docs/images/join.png" width="380" align="right" alt="A menu bar item reading Portfolio review in 15m above CalPeek's popover, whose header row shows the meeting with a Join button">
+
+CalPeek finds the video link in your next meeting and puts a Join button at
+the top of the popover. Zoom, Google Meet, Teams, Webex, and other links in
+today's events are all recognized.
+
+The countdown rides along in the menu bar so you can see the meeting coming,
+and a global hotkey joins it without opening anything.
+
+<br clear="all">
+
+## Create in seconds
+
+<img src="docs/images/create.png" width="360" align="right" alt="CalPeek's create sheet with Event and Reminder tabs, a title reading Coffee with Dana, start and end times, repeat, and alert fields">
+
+Pick a day, hit +, type. Events and reminders both, with times, repeat rules,
+and alerts.
+
+Everything writes straight back to Calendar and Reminders, so it shows up
+wherever your calendar already syncs. Check a reminder off, and it is off
+everywhere. No app switch, no second copy of your data.
+
+<br clear="all">
+
+## Make it yours
+
+Pick the accent colors for the weekday name, today's marker, event dots, and
+reminder dots. CalPeek follows light and dark mode and wallpaper-tinted menu
+bars on its own.
+
+<p align="center">
+<img src="docs/images/appearance.png" width="620" alt="CalPeek's Appearance settings in light mode next to the popover, with color pickers for the weekday name, today's marker, calendar event dots, and reminder dots">
+</p>
+
+## Set it up once
+
+<img src="docs/images/settings.png" width="380" align="right" alt="CalPeek's General settings showing Launch at Login, Calendar and Reminders permissions, and Next Meeting options including a join shortcut">
+
+Launch at login, choose how far ahead the next meeting appears, and set the
+join shortcut. That is the whole setup.
+
+CalPeek reads your calendars and reminders on your Mac and sends nothing
+anywhere. There is no account and no analytics. The only network call it
+makes is the direct build checking for its own updates.
+
+<br clear="all">
+
+## Pricing
+
+Free. No trial, no tiers, no in-app purchases, nothing held back. Download
+it, use all of it, keep it forever.
 
 ## Install
 
