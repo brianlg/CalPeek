@@ -36,6 +36,12 @@ your next meeting. Free and open source.</p>
 - A weekday color picker, Launch at Login, and a global hotkey.
 - Adapts to light and dark mode and wallpaper-tinted menu bars.
 
+## See it in action
+
+<p align="center">
+<img src="docs/images/demo.gif" width="480" alt="Animation of CalPeek: clicking the menu bar glyph opens the popover, paging through months, clicking August 3 for its agenda, and creating a new event">
+</p>
+
 ## Install
 
 Download the latest notarized build from
