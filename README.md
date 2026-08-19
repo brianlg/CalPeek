@@ -28,15 +28,6 @@ your next meeting. Free and open source.</p>
 </tr>
 </table>
 
-## See it in action
-
-<p align="center">
-<picture>
-<source media="(prefers-color-scheme: dark)" srcset="docs/images/demo-dark.gif">
-<img src="docs/images/demo-light.gif" width="480" alt="Animation of CalPeek: the popover paging forward through months and back, opening a day for its agenda, and filling in a new event">
-</picture>
-</p>
-
 ## Peek at any day
 
 <picture>
