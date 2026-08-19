@@ -21,7 +21,7 @@ your next meeting. Free and open source.</p>
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/day-dark.png">
-<img src="docs/images/day-light.png" width="360" alt="CalPeek's popover showing the next meeting with a Join button, an August month grid with event dots, and a day agenda listing events and reminders">
+<img src="docs/images/day-light.png" width="393" alt="CalPeek's popover showing the next meeting with a Join button, an August month grid with event dots, and a day agenda listing events and reminders">
 </picture>
 
 </td>
@@ -33,7 +33,7 @@ your next meeting. Free and open source.</p>
 <p align="center">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/demo-dark.gif">
-<img src="docs/images/demo-light.gif" width="560" alt="Animation of CalPeek: the popover paging forward through months and back, opening a day for its agenda, and filling in a new event">
+<img src="docs/images/demo-light.gif" width="480" alt="Animation of CalPeek: the popover paging forward through months and back, opening a day for its agenda, and filling in a new event">
 </picture>
 </p>
 
@@ -41,7 +41,7 @@ your next meeting. Free and open source.</p>
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/day-dark.png">
-<img src="docs/images/day-light.png" width="340" align="right" alt="CalPeek&apos;s popover with the August grid open and a day panel listing Team standup, Design review, Lunch with Sam and Portfolio review with their times">
+<img src="docs/images/day-light.png" width="373" align="right" alt="CalPeek&apos;s popover with the August grid open and a day panel listing Team standup, Design review, Lunch with Sam and Portfolio review with their times">
 </picture>
 
 The menu bar glyph shows the weekday and the day of the month, and it stays
@@ -60,7 +60,7 @@ leaving the popover.
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/join-dark.png">
-<img src="docs/images/join-light.png" width="330" align="right" alt="CalPeek&apos;s popover with the next meeting pinned at the top, showing a countdown and a Join button">
+<img src="docs/images/join-light.png" width="362" align="right" alt="CalPeek&apos;s popover with the next meeting pinned at the top, showing a countdown and a Join button">
 </picture>
 
 CalPeek finds the video link in your next meeting and puts a Join button at
@@ -76,7 +76,7 @@ and a global hotkey joins it without opening anything.
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/create-dark.png">
-<img src="docs/images/create-light.png" width="330" align="right" alt="CalPeek&apos;s create sheet with Event and Reminder tabs, a title reading Coffee with Dana, start and end times, repeat, and alert fields">
+<img src="docs/images/create-light.png" width="360" align="right" alt="CalPeek&apos;s create sheet with Event and Reminder tabs, a title reading Coffee with Dana, start and end times, repeat, and alert fields">
 </picture>
 
 Pick a day, hit +, type. Events and reminders both, with times, repeat rules,
@@ -97,7 +97,7 @@ bars on its own.
 <p align="center">
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/appearance-dark.png">
-<img src="docs/images/appearance-light.png" width="420" alt="CalPeek&apos;s Appearance settings with color pickers for the weekday name, today&apos;s marker, calendar event dots, and reminder dots">
+<img src="docs/images/appearance-light.png" width="452" alt="CalPeek&apos;s Appearance settings with color pickers for the weekday name, today&apos;s marker, calendar event dots, and reminder dots">
 </picture>
 </p>
 
@@ -105,7 +105,7 @@ bars on its own.
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/settings-dark.png">
-<img src="docs/images/settings-light.png" width="360" align="right" alt="CalPeek&apos;s General settings showing Launch at Login, Calendar and Reminders permissions, and Next Meeting options including a join shortcut">
+<img src="docs/images/settings-light.png" width="392" align="right" alt="CalPeek&apos;s General settings showing Launch at Login, Calendar and Reminders permissions, and Next Meeting options including a join shortcut">
 </picture>
 
 Launch at login, choose how far ahead the next meeting appears, and set the
