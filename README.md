@@ -19,7 +19,10 @@ your next meeting. Free and open source.</p>
 </td>
 <td width="45%" valign="middle">
 
-<img src="docs/images/hero.png" width="360" alt="CalPeek's popover showing the next meeting with a Join button, an August month grid with event dots, and a day agenda listing events and reminders">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/images/day-dark.png">
+<img src="docs/images/day-light.png" width="360" alt="CalPeek's popover showing the next meeting with a Join button, an August month grid with event dots, and a day agenda listing events and reminders">
+</picture>
 
 </td>
 </tr>
@@ -28,7 +31,10 @@ your next meeting. Free and open source.</p>
 ## See it in action
 
 <p align="center">
-<img src="docs/images/demo.gif" width="560" alt="Animation of CalPeek: clicking the menu bar glyph opens the popover, paging through months, clicking a day for its agenda, and creating a new event">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/images/demo-dark.gif">
+<img src="docs/images/demo-light.gif" width="560" alt="Animation of CalPeek: the popover paging forward through months and back, opening a day for its agenda, and filling in a new event">
+</picture>
 </p>
 
 ## Peek at any day
