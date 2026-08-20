@@ -1,0 +1,7 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/brianlg/CalPeek/security/advisories/new
+    about: >
+      Found a security problem? Please report it privately here instead of
+      opening a public issue. See SECURITY.md for what to include.
