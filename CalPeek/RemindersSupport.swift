@@ -154,3 +154,68 @@ enum RemindersAccess {
         (try? await EKEventStore().requestFullAccessToReminders()) ?? false
     }
 }
+
+/// Outcome of asking for one EventKit permission, in the terms the UI cares
+/// about. `writeOnly` is distinct from `denied` because the wording must not
+/// claim access is off entirely — and neither state can be re-prompted:
+/// once decided, the request APIs return the existing answer without showing
+/// the system alert, so System Settings is the user's only path back.
+enum AccessGrantOutcome {
+    case granted, denied, writeOnly, restricted
+}
+
+extension CalendarAccess {
+    /// Requests calendar access if it hasn't been decided, and on success
+    /// turns Show Calendar on and posts `.calendarSettingDidChange` so the
+    /// models reset their stores. Enabling the feature is a two-part
+    /// contract — write the key *and* post — kept in one place so no caller
+    /// (Settings toggle, welcome window) can forget half of it.
+    @MainActor
+    static func enableShowCalendar() async -> AccessGrantOutcome {
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .fullAccess:
+            return grantedShowCalendar()
+        case .notDetermined:
+            return await request() ? grantedShowCalendar() : .denied
+        case .writeOnly:
+            return .writeOnly
+        case .restricted:
+            return .restricted
+        default:
+            return .denied
+        }
+    }
+
+    @MainActor
+    private static func grantedShowCalendar() -> AccessGrantOutcome {
+        UserDefaults.standard.set(true, forKey: Preferences.showCalendarKey)
+        NotificationCenter.default.post(name: .calendarSettingDidChange, object: nil)
+        return .granted
+    }
+}
+
+extension RemindersAccess {
+    /// Reminders counterpart of `CalendarAccess.enableShowCalendar()`.
+    /// EventKit has no write-only grant for reminders, so that outcome never
+    /// occurs here.
+    @MainActor
+    static func enableShowReminders() async -> AccessGrantOutcome {
+        switch EKEventStore.authorizationStatus(for: .reminder) {
+        case .fullAccess:
+            return grantedShowReminders()
+        case .notDetermined:
+            return await request() ? grantedShowReminders() : .denied
+        case .restricted:
+            return .restricted
+        default:
+            return .denied
+        }
+    }
+
+    @MainActor
+    private static func grantedShowReminders() -> AccessGrantOutcome {
+        UserDefaults.standard.set(true, forKey: Preferences.showRemindersKey)
+        NotificationCenter.default.post(name: .remindersSettingDidChange, object: nil)
+        return .granted
+    }
+}
