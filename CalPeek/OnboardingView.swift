@@ -244,8 +244,8 @@ private struct AccessPage: View {
 
     var body: some View {
         OnboardingPageChrome(
-            title: String(localized: "Show Your Events"),
-            body_: String(localized: "See busy days and today's agenda at a glance. Everything stays on your Mac. CalPeek collects nothing.")
+            title: String(localized: "Connect Your Calendar"),
+            body_: String(localized: "See busy days and today's agenda without leaving the menu bar. Your data never leaves your Mac.")
         ) {
             Image(systemName: "calendar.badge.clock")
                 .font(.system(size: 52))
@@ -254,7 +254,7 @@ private struct AccessPage: View {
             VStack(spacing: 10) {
                 PermissionRow(
                     title: String(localized: "Calendar"),
-                    caption: String(localized: "Event dots on your month, and your day's schedule in a click."),
+                    caption: String(localized: "Event dots on the month grid, full agenda in one click."),
                     symbolName: "calendar",
                     state: PermissionRowState(calendarStatus),
                     needsFullAccessMessage: String(localized: "CalPeek needs full calendar access to show events."),
@@ -266,7 +266,7 @@ private struct AccessPage: View {
                 }
                 PermissionRow(
                     title: String(localized: "Reminders"),
-                    caption: String(localized: "See scheduled reminders and check them off without switching apps."),
+                    caption: String(localized: "See what's due and check it off without switching apps."),
                     symbolName: "checklist",
                     state: PermissionRowState(remindersStatus),
                     needsFullAccessMessage: String(localized: "Reminders access is off."),
@@ -278,7 +278,7 @@ private struct AccessPage: View {
                 }
                 // The hesitant reader's question is "what if I say no" and
                 // this is where they look for the answer.
-                Text(String(localized: "Access is optional. Without it, CalPeek is still a clean month calendar for your menu bar."))
+                Text(String(localized: "Both are optional. CalPeek works as a clean month calendar either way."))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

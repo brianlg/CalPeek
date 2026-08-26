@@ -44,9 +44,6 @@
     "About" : {
 
     },
-    "Access is optional. Without it, CalPeek is still a clean month calendar for your menu bar." : {
-
-    },
     "Access is restricted on this Mac." : {
 
     },
@@ -81,6 +78,9 @@
 
     },
     "Blue" : {
+
+    },
+    "Both are optional. CalPeek works as a clean month calendar either way." : {
 
     },
     "CalPeek" : {
@@ -132,6 +132,9 @@
 
     },
     "Colors the weekday name in the menu bar." : {
+
+    },
+    "Connect Your Calendar" : {
 
     },
     "Continue" : {
@@ -194,7 +197,7 @@
     "Event" : {
 
     },
-    "Event dots on your month, and your day's schedule in a click." : {
+    "Event dots on the month grid, full agenda in one click." : {
 
     },
     "Event title" : {
@@ -368,10 +371,10 @@
     "Save for This Event" : {
 
     },
-    "See busy days and today's agenda at a glance. Everything stays on your Mac. CalPeek collects nothing." : {
+    "See busy days and today's agenda without leaving the menu bar. Your data never leaves your Mac." : {
 
     },
-    "See scheduled reminders and check them off without switching apps." : {
+    "See what's due and check it off without switching apps." : {
 
     },
     "Select month" : {
@@ -396,9 +399,6 @@
 
     },
     "Show Welcome Guide" : {
-
-    },
-    "Show Your Events" : {
 
     },
     "Show next meeting in menu bar" : {
