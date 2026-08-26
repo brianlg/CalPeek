@@ -12,6 +12,7 @@ enum Preferences {
     static let showRemindersKey = "showReminders"
     static let showCalendarKey = "showCalendar"
     static let monochromeIconKey = "monochromeMenuBarIcon"
+    static let hasCompletedWelcomeKey = "hasCompletedWelcome"
     static let todayMarkerColorKey = "todayMarkerColor"
     static let calendarEventsColorKey = "calendarEventsColor"
     static let remindersColorKey = "remindersColor"
@@ -30,6 +31,7 @@ enum Preferences {
     static let joinHotKeyEnabledDefault = false
     static let showRemindersDefault = false
     static let monochromeIconDefault = false
+    static let hasCompletedWelcomeDefault = false
     /// Installs that granted calendar access before this toggle existed keep
     /// showing events; fresh installs start off until the user opts in.
     static var showCalendarDefault: Bool {
@@ -66,6 +68,16 @@ enum Preferences {
     /// `@AppStorage`.
     static var monochromeIcon: Bool {
         bool(forKey: monochromeIconKey, default: monochromeIconDefault)
+    }
+
+    /// Set once the welcome window has been shown, so it only appears on
+    /// first launch. Written when the window closes for any reason (Done,
+    /// Esc, the close button) — a guide the user dismissed has still been
+    /// offered. The one settable member: no `@AppStorage` binding owns this
+    /// key, `AppDelegate`'s window delegate writes it directly.
+    static var hasCompletedWelcome: Bool {
+        get { bool(forKey: hasCompletedWelcomeKey, default: hasCompletedWelcomeDefault) }
+        set { UserDefaults.standard.set(newValue, forKey: hasCompletedWelcomeKey) }
     }
 
     /// Explicit color overrides for the AppKit-side consumers (status item
