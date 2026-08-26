@@ -20,6 +20,14 @@ struct AboutSettingsView: View {
             // the app (App Review 1.5), and it belongs here: LSUIElement means
             // there's no Help menu to hang it off.
             Section {
+                // Views can't reach AppDelegate directly under the SwiftUI
+                // lifecycle; the notification is the sanctioned hop (see
+                // `.showWelcomeRequested`).
+                Button(String(localized: "Show Welcome Guide")) {
+                    NotificationCenter.default.post(name: .showWelcomeRequested, object: nil)
+                }
+                .buttonStyle(.link)
+                .frame(maxWidth: .infinity)
                 if let bugReportURL {
                     Link(String(localized: "Report a Bug"), destination: bugReportURL)
                         .frame(maxWidth: .infinity)

@@ -24,6 +24,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// `isReleasedWhenClosed = false` keeps AppKit from deallocating it when
     /// the user closes it.
     private var settingsWindow: NSWindow?
+    /// The first-launch welcome window, kept alive the same way as
+    /// `settingsWindow` so "Show Welcome Guide" can re-present it.
+    private var welcomeWindow: NSWindow?
+    /// Marks the welcome flow as offered when its window closes by any means
+    /// (Done, Esc, the close button).
+    private let welcomeWindowDelegate = WelcomeWindowDelegate()
+    private var welcomeRequestObserver: NSObjectProtocol?
 
     private var dateChangeObservers: [NSObjectProtocol] = []
     private var appearanceObservation: NSKeyValueObservation?
@@ -69,9 +76,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshNextMeetingUI()
 
         todayBadge.onChange = { [weak self] in self?.refreshIcon() }
+
+        observeWelcomeRequests()
+        presentWelcomeWindowIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        if let welcomeRequestObserver {
+            NotificationCenter.default.removeObserver(welcomeRequestObserver)
+            self.welcomeRequestObserver = nil
+        }
         dateChangeObservers.forEach(NotificationCenter.default.removeObserver)
         dateChangeObservers = []
         appearanceObservation?.invalidate()
@@ -621,6 +635,73 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit() {
         NSApp.terminate(nil)
+    }
+
+    // MARK: - Welcome window
+
+    /// Shows the welcome flow once per install. Called at the end of
+    /// `applicationDidFinishLaunching`, after the status item exists — a
+    /// failure here must never cost the app its menu bar presence.
+    private func presentWelcomeWindowIfNeeded() {
+        guard !Preferences.hasCompletedWelcome else { return }
+        // One runloop turn: inside the launch callback an accessory app
+        // hasn't finished becoming active, and activating there can leave
+        // the window ordered in but not key (no focus ring, Return doesn't
+        // fire the default button).
+        DispatchQueue.main.async { [weak self] in
+            self?.showWelcomeWindow()
+        }
+    }
+
+    /// Re-presentation entry point for the About tab's "Show Welcome Guide"
+    /// button; views can't reach this delegate directly under the SwiftUI
+    /// lifecycle, so they post `.showWelcomeRequested` instead.
+    private func observeWelcomeRequests() {
+        welcomeRequestObserver = NotificationCenter.default.addObserver(
+            forName: .showWelcomeRequested, object: nil, queue: .main
+        ) { [weak self] _ in
+            // The notification also resets OnboardingView to its first page.
+            MainActor.assumeIsolated {
+                self?.showWelcomeWindow()
+            }
+        }
+    }
+
+    private func showWelcomeWindow() {
+        if welcomeWindow == nil {
+            let hosting = NSHostingController(
+                rootView: OnboardingView { [weak self] in
+                    self?.welcomeWindow?.performClose(nil)
+                }
+            )
+            let window = NSWindow(contentViewController: hosting)
+            // Closable is deliberate: Esc, ⌘W, and the close button all
+            // dismiss the flow, and the window delegate counts any close as
+            // "offered" — a first-run window the user can't escape is a HIG
+            // violation. Full-size content with a hidden title gives the
+            // standard welcome-pane look (content under the title bar).
+            window.styleMask = [.titled, .closable, .fullSizeContentView]
+            window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
+            // Still set for the Window menu and the accessibility hierarchy.
+            window.title = String(localized: "Welcome to CalPeek")
+            window.isMovableByWindowBackground = true
+            window.isReleasedWhenClosed = false
+            window.delegate = welcomeWindowDelegate
+            window.center()
+            welcomeWindow = window
+        }
+        NSApp.activate()
+        welcomeWindow?.makeKeyAndOrderFront(nil)
+    }
+}
+
+/// Records that the welcome flow has been offered, whatever way its window
+/// closed. Kept off `AppDelegate` so the window's `delegate` (a weak AppKit
+/// reference) never entangles the app delegate's lifetime.
+private final class WelcomeWindowDelegate: NSObject, NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        Preferences.hasCompletedWelcome = true
     }
 }
 
