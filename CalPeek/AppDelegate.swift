@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Preferences.calendarEventsCustomColorKey,
         Preferences.remindersColorKey,
         Preferences.remindersCustomColorKey,
+        Preferences.monochromeIconKey,
     ]
     /// Next Meeting preference keys, observed the same way: they change the
     /// status-item title and the hotkey registration, not the icon.
@@ -112,8 +113,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Icon rendering
 
     /// Rasterizes `MenuBarIconView` to an `NSImage` and assigns it as the
-    /// status item button's image. Non-template so the weekday color preset
-    /// is preserved; the button cell draws the standard click chip behind it.
+    /// status item button's image. Always non-template so the weekday and
+    /// badge colors survive; the button cell draws the standard click chip
+    /// behind it.
     private func refreshIcon() {
         guard let button = statusItem?.button else {
             assertionFailure("Status item button is unexpectedly nil during icon refresh")
@@ -138,9 +140,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             badgeDots.append(Preferences.remindersOverride ?? todayBadge.reminderDotColor)
         }
 
+        // Monochrome drops the weekday tint in favor of the label color the
+        // system picked for this menu bar, which is the tone macOS chose
+        // against the current backdrop. It deliberately stops at the text:
+        // the badge dots carry meaning through their color, so they keep it.
+        let weekdayColor: Color = Preferences.monochromeIcon
+            ? .primary
+            : (Preferences.weekdayOverride ?? WeekdayColor.auto.color)
+
         let view = MenuBarIconView(
             date: Date(),
-            weekdayColor: Preferences.weekdayOverride ?? WeekdayColor.auto.color,
+            weekdayColor: weekdayColor,
             badgeDots: badgeDots
         )
 
@@ -153,6 +163,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             assertionFailure("Failed to render menu bar icon image")
             return
         }
+        // Never a template: that flag repaints every non-transparent pixel in
+        // one tone, which would take the badge dots with it. Drawing the text
+        // in `.primary` resolved against the menu bar's own appearance lands
+        // on the same tone template drawing would have used, without
+        // flattening the dots.
         image.isTemplate = false
         // The rasterized image is all VoiceOver sees; view-side accessibility
         // modifiers don't survive `ImageRenderer`.
@@ -388,6 +403,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func makeContextMenu() -> NSMenu {
         let menu = NSMenu()
+        // Items carry their own enabled state (the Debug header, and Weekday
+        // Color while the glyph is monochrome); AppKit's auto-enabling would
+        // override both.
+        menu.autoenablesItems = false
 
         #if DEBUG
         // Header naming the build, so the right instance gets quit.
@@ -410,6 +429,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let colorItem = NSMenuItem(title: String(localized: "Weekday Color"), action: nil, keyEquivalent: "")
         colorItem.submenu = makeWeekdayColorMenu()
+        // A monochrome glyph is painted by the system in one tone, so the
+        // weekday color has nothing to act on. Disabled rather than hidden:
+        // a menu that keeps its shape is easier to learn.
+        colorItem.isEnabled = !Preferences.monochromeIcon
         menu.addItem(colorItem)
 
         let settingsItem = NSMenuItem(

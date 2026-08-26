@@ -11,6 +11,7 @@ enum Preferences {
     static let joinHotKeyEnabledKey = "joinHotKeyEnabled"
     static let showRemindersKey = "showReminders"
     static let showCalendarKey = "showCalendar"
+    static let monochromeIconKey = "monochromeMenuBarIcon"
     static let todayMarkerColorKey = "todayMarkerColor"
     static let calendarEventsColorKey = "calendarEventsColor"
     static let remindersColorKey = "remindersColor"
@@ -28,6 +29,7 @@ enum Preferences {
     static let leadWindowMinutesDefault = 60
     static let joinHotKeyEnabledDefault = false
     static let showRemindersDefault = false
+    static let monochromeIconDefault = false
     /// Installs that granted calendar access before this toggle existed keep
     /// showing events; fresh installs start off until the user opts in.
     static var showCalendarDefault: Bool {
@@ -56,6 +58,14 @@ enum Preferences {
 
     static var showCalendar: Bool {
         bool(forKey: showCalendarKey, default: showCalendarDefault)
+    }
+
+    /// Draws the status item glyph's text in the menu bar's own label color
+    /// rather than the weekday preset, leaving the badge dots colored. Read by
+    /// the AppKit-side renderer; `SettingsView` writes the same key via
+    /// `@AppStorage`.
+    static var monochromeIcon: Bool {
+        bool(forKey: monochromeIconKey, default: monochromeIconDefault)
     }
 
     /// Explicit color overrides for the AppKit-side consumers (status item
