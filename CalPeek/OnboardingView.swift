@@ -179,8 +179,8 @@ private struct OnboardingPageChrome<Hero: View, Content: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             hero
-                .frame(height: 110)
-                .padding(.top, 36)
+                .frame(height: 96)
+                .padding(.top, 24)
                 .accessibilityHidden(true)
             Text(verbatim: title)
                 .font(titleFont.bold())
@@ -245,7 +245,7 @@ private struct AccessPage: View {
     var body: some View {
         OnboardingPageChrome(
             title: String(localized: "Show Your Events"),
-            body_: String(localized: "CalPeek reads your calendar and reminders on this Mac. Nothing leaves your device.")
+            body_: String(localized: "See busy days and today's agenda at a glance. Everything stays on your Mac. CalPeek collects nothing.")
         ) {
             Image(systemName: "calendar.badge.clock")
                 .font(.system(size: 52))
@@ -254,7 +254,7 @@ private struct AccessPage: View {
             VStack(spacing: 10) {
                 PermissionRow(
                     title: String(localized: "Calendar"),
-                    caption: String(localized: "See your events in the month view."),
+                    caption: String(localized: "Event dots on your month, and your day's schedule in a click."),
                     symbolName: "calendar",
                     state: PermissionRowState(calendarStatus),
                     needsFullAccessMessage: String(localized: "CalPeek needs full calendar access to show events."),
@@ -266,7 +266,7 @@ private struct AccessPage: View {
                 }
                 PermissionRow(
                     title: String(localized: "Reminders"),
-                    caption: String(localized: "Check off date-specific reminders alongside your events."),
+                    caption: String(localized: "See scheduled reminders and check them off without switching apps."),
                     symbolName: "checklist",
                     state: PermissionRowState(remindersStatus),
                     needsFullAccessMessage: String(localized: "Reminders access is off."),
@@ -276,9 +276,17 @@ private struct AccessPage: View {
                     _ = await RemindersAccess.enableShowReminders()
                     remindersStatus = EKEventStore.authorizationStatus(for: .reminder)
                 }
+                // The hesitant reader's question is "what if I say no" and
+                // this is where they look for the answer.
+                Text(String(localized: "Access is optional. Without it, CalPeek is still a clean month calendar for your menu bar."))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 2)
             }
             .frame(maxWidth: 400)
-            .padding(.vertical, 16)
+            .padding(.vertical, 10)
         }
         // The user may grant access in System Settings after following the
         // row's link; re-read when they come back so the row flips to
@@ -385,7 +393,7 @@ private struct MenuBarPage: View {
     var body: some View {
         OnboardingPageChrome(
             title: String(localized: "CalPeek Lives in the Menu Bar"),
-            body_: String(localized: "There's no Dock icon and no window in your way — just today's date, always in the corner of your screen.")
+            body_: String(localized: "There's no Dock icon and no window in your way. Just today's date, always in the corner of your screen.")
         ) {
             menuBarMock
         } content: {

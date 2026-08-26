@@ -44,6 +44,9 @@
     "About" : {
 
     },
+    "Access is optional. Without it, CalPeek is still a clean month calendar for your menu bar." : {
+
+    },
     "Access is restricted on this Mac." : {
 
     },
@@ -98,9 +101,6 @@
     "CalPeek needs full calendar access to show events." : {
 
     },
-    "CalPeek reads your calendar and reminders on this Mac. Nothing leaves your device." : {
-
-    },
     "Calendar" : {
 
     },
@@ -114,9 +114,6 @@
 
     },
     "Check for Updates…" : {
-
-    },
-    "Check off date-specific reminders alongside your events." : {
 
     },
     "Click the icon to open your calendar." : {
@@ -195,6 +192,9 @@
 
     },
     "Event" : {
+
+    },
+    "Event dots on your month, and your day's schedule in a click." : {
 
     },
     "Event title" : {
@@ -368,7 +368,10 @@
     "Save for This Event" : {
 
     },
-    "See your events in the month view." : {
+    "See busy days and today's agenda at a glance. Everything stays on your Mac. CalPeek collects nothing." : {
+
+    },
+    "See scheduled reminders and check them off without switching apps." : {
 
     },
     "Select month" : {
@@ -413,7 +416,7 @@
     "Theme" : {
 
     },
-    "There's no Dock icon and no window in your way — just today's date, always in the corner of your screen." : {
+    "There's no Dock icon and no window in your way. Just today's date, always in the corner of your screen." : {
 
     },
     "This is a repeating event." : {
