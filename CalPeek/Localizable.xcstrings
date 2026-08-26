@@ -1,9 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "(No Title)" : {
-
-    },
     "%@ · %@" : {
       "localizations" : {
         "en" : {
@@ -14,6 +11,9 @@
         }
       }
     },
+    "(No Title)" : {
+
+    },
     "1 day before" : {
 
     },
@@ -21,12 +21,6 @@
 
     },
     "1 hour before" : {
-
-    },
-    "4 hours" : {
-
-    },
-    "5 minutes before" : {
 
     },
     "10 minutes" : {
@@ -41,7 +35,16 @@
     "30 minutes before" : {
 
     },
+    "4 hours" : {
+
+    },
+    "5 minutes before" : {
+
+    },
     "About" : {
+
+    },
+    "Access is restricted on this Mac." : {
 
     },
     "Alert" : {
@@ -50,7 +53,10 @@
     "All Day" : {
 
     },
-    "all-day" : {
+    "Allow" : {
+
+    },
+    "Allowed" : {
 
     },
     "Amazon Chime" : {
@@ -68,19 +74,19 @@
     "Automatic" : {
 
     },
+    "Back" : {
+
+    },
     "Blue" : {
 
     },
-    "briangibson.dev" : {
+    "CalPeek" : {
 
     },
-    "Calendar" : {
+    "CalPeek Lives in the Menu Bar" : {
 
     },
-    "Calendar access is off." : {
-
-    },
-    "Calendar Events" : {
+    "CalPeek is ready. You can change any of this later in Settings." : {
 
     },
     "CalPeek" : {
@@ -92,7 +98,31 @@
     "CalPeek needs full calendar access to show events." : {
 
     },
+    "CalPeek reads your calendar and reminders on this Mac. Nothing leaves your device." : {
+
+    },
+    "Calendar" : {
+
+    },
+    "Calendar Events" : {
+
+    },
+    "Calendar access is off." : {
+
+    },
     "Cancel" : {
+
+    },
+    "Check for Updates…" : {
+
+    },
+    "Check off date-specific reminders alongside your events." : {
+
+    },
+    "Click the icon to open your calendar." : {
+
+    },
+    "Close" : {
 
     },
     "Colors the circle around today." : {
@@ -105,6 +135,9 @@
 
     },
     "Colors the weekday name in the menu bar." : {
+
+    },
+    "Continue" : {
 
     },
     "Couldn't save." : {
@@ -128,9 +161,6 @@
     "Day" : {
 
     },
-    "day %@" : {
-
-    },
     "Days" : {
 
     },
@@ -147,6 +177,9 @@
 
     },
     "Delete this reminder?" : {
+
+    },
+    "Done" : {
 
     },
     "Edit" : {
@@ -200,22 +233,6 @@
     "Green" : {
 
     },
-    "has events today" : {
-
-    },
-    "in %lldh %lldm" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "in %1$lldh %2$lldm"
-          }
-        }
-      }
-    },
-    "in %lldm" : {
-
-    },
     "Include meeting title" : {
 
     },
@@ -228,13 +245,13 @@
     "Join" : {
 
     },
-    "Join “%@”" : {
-
-    },
     "Join meeting" : {
 
     },
     "Join next meeting with ⌥⌘J" : {
+
+    },
+    "Join “%@”" : {
 
     },
     "Launch at Login" : {
@@ -291,19 +308,19 @@
     "Nothing here." : {
 
     },
-    "now" : {
+    "OK" : {
 
     },
-    "OK" : {
+    "Open CalPeek at login" : {
+
+    },
+    "Open Settings" : {
 
     },
     "Open in Calendar" : {
 
     },
     "Open in Reminders" : {
-
-    },
-    "Open Settings" : {
 
     },
     "Orange" : {
@@ -339,6 +356,9 @@
     "Report a Bug" : {
 
     },
+    "Right-click for settings and quick actions." : {
+
+    },
     "Save" : {
 
     },
@@ -346,6 +366,9 @@
 
     },
     "Save for This Event" : {
+
+    },
+    "See your events in the month view." : {
 
     },
     "Select month" : {
@@ -366,10 +389,16 @@
     "Show Calendar" : {
 
     },
-    "Show next meeting in menu bar" : {
+    "Show Reminders" : {
 
     },
-    "Show Reminders" : {
+    "Show Welcome Guide" : {
+
+    },
+    "Show Your Events" : {
+
+    },
+    "Show next meeting in menu bar" : {
 
     },
     "Show when starting within" : {
@@ -378,7 +407,13 @@
     "Starts" : {
 
     },
+    "Step %lld of %lld" : {
+
+    },
     "Theme" : {
+
+    },
+    "There's no Dock icon and no window in your way — just today's date, always in the corner of your screen." : {
 
     },
     "This is a repeating event." : {
@@ -424,6 +459,9 @@
     "Weeks" : {
 
     },
+    "Welcome to CalPeek" : {
+
+    },
     "Whereby" : {
 
     },
@@ -439,7 +477,41 @@
     "Yellow" : {
 
     },
+    "You're All Set" : {
+
+    },
+    "Your calendar, one click away in the menu bar." : {
+
+    },
     "Zoom" : {
+
+    },
+    "all-day" : {
+
+    },
+    "briangibson.dev" : {
+
+    },
+    "day %@" : {
+
+    },
+    "has events today" : {
+
+    },
+    "in %lldh %lldm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "in %1$lldh %2$lldm"
+          }
+        }
+      }
+    },
+    "in %lldm" : {
+
+    },
+    "now" : {
 
     }
   },
