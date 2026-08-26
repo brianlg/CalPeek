@@ -79,6 +79,16 @@ struct OnboardingView: View {
             controlBar
         }
         .frame(width: 560, height: 440)
+        // Esc dismisses the flow. Nothing maps Esc to close by default in a
+        // hand-built window, and `.onExitCommand` needs view focus — a
+        // hidden cancel-action button resolves at the window level, the same
+        // way the Continue button's `.defaultAction` does. Not on Back: Esc
+        // as "go back" would leave the keyboard no way to dismiss.
+        .background {
+            Button(String(localized: "Close")) { onFinish() }
+                .keyboardShortcut(.cancelAction)
+                .hidden()
+        }
         // "Show Welcome Guide" re-presents a window whose state survived the
         // last close; restart from the first page rather than resuming.
         .onReceive(NotificationCenter.default.publisher(for: .showWelcomeRequested)) { _ in
