@@ -277,6 +277,8 @@ struct AppearanceSettingsView: View {
     private var remindersRaw = WeekdayColor.auto.rawValue
     @AppStorage(Preferences.remindersCustomColorKey)
     private var remindersCustomHex = ""
+    @AppStorage(Preferences.monochromeIconKey)
+    private var monochromeIcon = Preferences.monochromeIconDefault
 
     /// Read-only use of the shared store, for showing what the Automatic
     /// event/reminder colors currently resolve to (the user's default
@@ -293,6 +295,19 @@ struct AppearanceSettingsView: View {
                     selection: $weekdayColorRaw,
                     customHex: $weekdayCustomHex
                 )
+                // Nothing for a color to act on once the system is painting
+                // the whole glyph in one tone.
+                .disabled(monochromeIcon)
+                Toggle(isOn: $monochromeIcon) {
+                    // Same title-and-caption row style as the color pickers.
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Monochrome")
+                        Text("Match your other menu bar icons and stay readable on any wallpaper. Weekday color turns off.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
 
             Section {

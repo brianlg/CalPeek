@@ -83,6 +83,9 @@
     "Calendar Events" : {
 
     },
+    "CalPeek" : {
+
+    },
     "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events." : {
 
     },
@@ -234,6 +237,9 @@
     "Join next meeting with ⌥⌘J" : {
 
     },
+    "Launch at Login" : {
+
+    },
     "List" : {
 
     },
@@ -243,10 +249,16 @@
     "Mark reminder incomplete" : {
 
     },
+    "Match your other menu bar icons and stay readable on any wallpaper. Weekday color turns off." : {
+
+    },
     "Menubar Icon" : {
 
     },
     "Microsoft Teams" : {
+
+    },
+    "Monochrome" : {
 
     },
     "Month" : {
