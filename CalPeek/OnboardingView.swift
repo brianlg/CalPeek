@@ -89,6 +89,18 @@ struct OnboardingView: View {
                 .keyboardShortcut(.cancelAction)
                 .hidden()
         }
+        // Arrow keys page through the flow, same as Back/Continue. Hidden
+        // buttons for the same window-level reason as Esc above; both edges
+        // clamp in OnboardingFlow, and Right deliberately never triggers
+        // Done — closing stays on Return, Esc, or an explicit click.
+        .background {
+            Button(String(localized: "Back")) { turnPage { $0.goBack() } }
+                .keyboardShortcut(.leftArrow, modifiers: [])
+                .hidden()
+            Button(String(localized: "Continue")) { turnPage { $0.advance() } }
+                .keyboardShortcut(.rightArrow, modifiers: [])
+                .hidden()
+        }
         // "Show Welcome Guide" re-presents a window whose state survived the
         // last close; restart from the first page rather than resuming.
         .onReceive(NotificationCenter.default.publisher(for: .showWelcomeRequested)) { _ in
@@ -113,14 +125,20 @@ struct OnboardingView: View {
         )
     }
 
+    /// One animated mutation path for every way of changing pages (buttons,
+    /// arrow keys), so the transition and reduce-motion handling never fork.
+    private func turnPage(_ mutate: (inout OnboardingFlow) -> Void) {
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) {
+            mutate(&flow)
+        }
+    }
+
     /// Back, step dots, and the primary button. Back stays in the layout on
     /// the first page (invisible and disabled) so the bar never shifts.
     private var controlBar: some View {
         HStack {
             Button(String(localized: "Back")) {
-                withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) {
-                    flow.goBack()
-                }
+                turnPage { $0.goBack() }
             }
             .opacity(flow.isFirst ? 0 : 1)
             .disabled(flow.isFirst)
@@ -134,9 +152,7 @@ struct OnboardingView: View {
                 if flow.isLast {
                     onFinish()
                 } else {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) {
-                        flow.advance()
-                    }
+                    turnPage { $0.advance() }
                 }
             }
             .keyboardShortcut(.defaultAction)
