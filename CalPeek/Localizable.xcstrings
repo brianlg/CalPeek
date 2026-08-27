@@ -197,9 +197,6 @@
     "Event" : {
 
     },
-    "Event dots on the month grid, full agenda in one click." : {
-
-    },
     "Event title" : {
 
     },
@@ -374,7 +371,7 @@
     "See busy days and today's agenda without leaving the menu bar. Your data never leaves your Mac." : {
 
     },
-    "See what's due and check it off without switching apps." : {
+    "See what's due, add reminders, and check them off without switching apps." : {
 
     },
     "Select month" : {
@@ -390,6 +387,9 @@
 
     },
     "Settings…" : {
+
+    },
+    "Show busy days at a glance, and open any day for the details." : {
 
     },
     "Show Calendar" : {

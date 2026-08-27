@@ -254,7 +254,7 @@ private struct AccessPage: View {
             VStack(spacing: 10) {
                 PermissionRow(
                     title: String(localized: "Calendar"),
-                    caption: String(localized: "Event dots on the month grid, full agenda in one click."),
+                    caption: String(localized: "Show busy days at a glance, and open any day for the details."),
                     symbolName: "calendar",
                     state: PermissionRowState(calendarStatus),
                     needsFullAccessMessage: String(localized: "CalPeek needs full calendar access to show events."),
@@ -266,7 +266,7 @@ private struct AccessPage: View {
                 }
                 PermissionRow(
                     title: String(localized: "Reminders"),
-                    caption: String(localized: "See what's due and check it off without switching apps."),
+                    caption: String(localized: "See what's due, add reminders, and check them off without switching apps."),
                     symbolName: "checklist",
                     state: PermissionRowState(remindersStatus),
                     needsFullAccessMessage: String(localized: "Reminders access is off."),
