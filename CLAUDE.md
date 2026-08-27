@@ -40,6 +40,10 @@ For every code change:
    (`Added`/`Changed`/`Fixed`/`Removed` groupings). Entries feed the Mac App
    Store release notes and GitHub Releases, so write them for users, not
    developers — skip refactors, tests, and repo housekeeping.
+   **The PR description IS the changelog entry**: write it as user-facing
+   prose (what changed for the user, not how), so that at release time it
+   is copied, not reconstructed. Implementation notes go below the
+   user-facing prose, not in place of it.
 4. **Auto-commit the completed task** with a descriptive message. **Never push** unless explicitly asked.
 
 ## Branching
