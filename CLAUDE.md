@@ -34,7 +34,13 @@ For every code change:
    xcodebuild -scheme CalPeek -configuration Debug build
    ```
 2. **For any UI change, visually verify at runtime.** Use the `verify` skill — build, launch, and drive the app, then screenshot to confirm it actually looks and behaves right. Don't claim a UI change works without seeing it.
-3. **Auto-commit the completed task** with a descriptive message. **Never push** unless explicitly asked.
+3. **On completing a feature or bug fix, add a user-facing entry to the
+   `[Unreleased]` section of `CHANGELOG.md`**, following
+   [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/)
+   (`Added`/`Changed`/`Fixed`/`Removed` groupings). Entries feed the Mac App
+   Store release notes and GitHub Releases, so write them for users, not
+   developers — skip refactors, tests, and repo housekeeping.
+4. **Auto-commit the completed task** with a descriptive message. **Never push** unless explicitly asked.
 
 ## Branching
 
