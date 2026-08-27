@@ -424,7 +424,9 @@ private struct MenuBarPage: View {
                     Image(systemName: "battery.75percent")
                     MenuBarIconView(
                         date: .now,
-                        weekdayColor: Preferences.weekdayOverride ?? WeekdayColor.auto.color
+                        weekdayColor: Preferences.monochromeIcon
+                            ? .primary
+                            : (Preferences.weekdayOverride ?? WeekdayColor.auto.color)
                     )
                 }
                 .foregroundStyle(.secondary)
