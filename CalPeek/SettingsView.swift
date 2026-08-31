@@ -112,37 +112,31 @@ struct GeneralSettingsView: View {
         .fixedSize()
     }
 
-    /// Requests calendar access the first time the toggle is enabled — this is
-    /// the only place the standard permission prompt starts. If the user
-    /// denies (now or previously), flip the toggle back off so it honestly
-    /// reflects state, and point at the System Settings privacy pane.
+    /// Requests calendar access the first time the toggle is enabled, via
+    /// `CalendarAccess.enableShowCalendar()` (shared with the welcome
+    /// window). If the user denies (now or previously), flip the toggle back
+    /// off so it honestly reflects state, and point at the System Settings
+    /// privacy pane.
     private func handleShowCalendarChange(_ enabled: Bool) {
         guard enabled else {
             calendarDenied = false
             notifyCalendarSettingChanged()
             return
         }
-        switch EKEventStore.authorizationStatus(for: .event) {
-        case .fullAccess:
-            calendarDenied = false
-            notifyCalendarSettingChanged()
-        case .notDetermined:
-            Task {
-                if await CalendarAccess.request() {
-                    calendarDenied = false
-                    notifyCalendarSettingChanged()
-                } else {
-                    showCalendar = false
-                    calendarDenied = true
-                    calendarWriteOnly = false
-                }
+        Task {
+            switch await CalendarAccess.enableShowCalendar() {
+            case .granted:
+                calendarDenied = false
+                calendarWriteOnly = false
+            case .writeOnly:
+                showCalendar = false
+                calendarDenied = true
+                calendarWriteOnly = true
+            case .denied, .restricted:
+                showCalendar = false
+                calendarDenied = true
+                calendarWriteOnly = false
             }
-        default:
-            // Denied, restricted, or write-only — none of which allow reading.
-            showCalendar = false
-            calendarDenied = true
-            calendarWriteOnly =
-                EKEventStore.authorizationStatus(for: .event) == .writeOnly
         }
     }
 
@@ -203,33 +197,25 @@ struct GeneralSettingsView: View {
         }
     }
 
-    /// Requests Reminders access the first time the toggle is enabled. If the
-    /// user denies (now or previously), flip the toggle back off so it honestly
-    /// reflects state, and point at the System Settings privacy pane.
+    /// Requests Reminders access the first time the toggle is enabled, via
+    /// `RemindersAccess.enableShowReminders()` (shared with the welcome
+    /// window). If the user denies (now or previously), flip the toggle back
+    /// off so it honestly reflects state, and point at the System Settings
+    /// privacy pane.
     private func handleShowRemindersChange(_ enabled: Bool) {
         guard enabled else {
             remindersDenied = false
             notifyRemindersSettingChanged()
             return
         }
-        switch EKEventStore.authorizationStatus(for: .reminder) {
-        case .fullAccess:
-            remindersDenied = false
-            notifyRemindersSettingChanged()
-        case .notDetermined:
-            Task {
-                if await RemindersAccess.request() {
-                    remindersDenied = false
-                    notifyRemindersSettingChanged()
-                } else {
-                    showReminders = false
-                    remindersDenied = true
-                }
+        Task {
+            switch await RemindersAccess.enableShowReminders() {
+            case .granted:
+                remindersDenied = false
+            case .denied, .writeOnly, .restricted:
+                showReminders = false
+                remindersDenied = true
             }
-        default:
-            // Denied, restricted, or write-only — none of which allow reading.
-            showReminders = false
-            remindersDenied = true
         }
     }
 
