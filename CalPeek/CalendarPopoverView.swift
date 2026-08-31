@@ -305,6 +305,10 @@ struct CalendarPopoverView: View {
                         .frame(maxWidth: .infinity)
                 }
             }
+            // Inside an HStack the grid no longer fills by itself; force it
+            // to take all width right of the gutter so the columns keep the
+            // exact metrics of the no-gutter layout.
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -320,6 +324,8 @@ struct CalendarPopoverView: View {
                     dayCell(for: date)
                 }
             }
+            // See weekdayRow: keeps the day columns at their no-gutter width.
+            .frame(maxWidth: .infinity)
         }
         // Re-identify per month so the transition plays on change.
         .id(monthOffset)
