@@ -11,6 +11,7 @@ enum Preferences {
     static let joinHotKeyEnabledKey = "joinHotKeyEnabled"
     static let showRemindersKey = "showReminders"
     static let showCalendarKey = "showCalendar"
+    static let showWeekNumbersKey = "showWeekNumbers"
     static let monochromeIconKey = "monochromeMenuBarIcon"
     static let hasCompletedWelcomeKey = "hasCompletedWelcome"
     static let todayMarkerColorKey = "todayMarkerColor"
@@ -30,6 +31,7 @@ enum Preferences {
     static let leadWindowMinutesDefault = 60
     static let joinHotKeyEnabledDefault = false
     static let showRemindersDefault = false
+    static let showWeekNumbersDefault = false
     static let monochromeIconDefault = false
     static let hasCompletedWelcomeDefault = false
     /// Installs that granted calendar access before this toggle existed keep
