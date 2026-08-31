@@ -33,10 +33,9 @@ struct CalendarPopoverView: View {
         static let contentSpacing: CGFloat = 12
         /// Wide enough for two digits at the 11 pt weekday-row size.
         static let weekNumberWidth: CGFloat = 18
-        /// Gap on each side of the gutter's vertical separator line.
-        static let weekNumberLineInset: CGFloat = 5
-        /// Dim tone shared by out-of-month day numbers, the week numbers, and
-        /// their separator line.
+        /// Gap between the week numbers and the first day column.
+        static let weekNumberTrailingGap: CGFloat = 11
+        /// Dim tone shared by out-of-month day numbers and the week numbers.
         static let dimmedText = Color.primary.opacity(0.25)
     }
     
@@ -339,35 +338,29 @@ struct CalendarPopoverView: View {
     }
 
     /// Full width the gutter adds ahead of the day columns: the number
-    /// column, the separator line, and the line's side insets.
+    /// column plus its gap to the grid.
     private var weekNumberGutterWidth: CGFloat {
-        Layout.weekNumberWidth + Layout.weekNumberLineInset + 1 + Layout.weekNumberLineInset
+        Layout.weekNumberWidth + Layout.weekNumberTrailingGap
     }
 
-    /// Right-justified week-of-year numbers, one per row, followed by a
-    /// hairline separator spanning the grid's height. Both use the same dim
+    /// Right-justified week-of-year numbers, one per row, in the same dim
     /// tone as out-of-month day numbers so the gutter reads as secondary.
     private var weekNumberGutter: some View {
-        HStack(spacing: Layout.weekNumberLineInset) {
-            VStack(spacing: 0) {
-                ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
-                    Text(verbatim: String(weekNumber(forRow: row)))
-                        .font(.system(size: 11))
-                        .foregroundStyle(Layout.dimmedText)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                        .frame(height: Layout.rowHeight)
-                        // Center against the day numerals, not the full row:
-                        // each cell reserves a dot strip under its digit, so
-                        // the row's optical center sits above its geometric one.
-                        .offset(y: -(Layout.eventDotSize + Layout.eventDotSpacing) / 2)
-                }
+        VStack(spacing: 0) {
+            ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
+                Text(verbatim: String(weekNumber(forRow: row)))
+                    .font(.system(size: 11))
+                    .foregroundStyle(Layout.dimmedText)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(height: Layout.rowHeight)
+                    // Center against the day numerals, not the full row:
+                    // each cell reserves a dot strip under its digit, so
+                    // the row's optical center sits above its geometric one.
+                    .offset(y: -(Layout.eventDotSize + Layout.eventDotSpacing) / 2)
             }
-            .frame(width: Layout.weekNumberWidth)
-            Rectangle()
-                .fill(Layout.dimmedText)
-                .frame(width: 1)
         }
-        .padding(.trailing, Layout.weekNumberLineInset)
+        .frame(width: Layout.weekNumberWidth)
+        .padding(.trailing, Layout.weekNumberTrailingGap)
     }
 
     /// Week-of-year for the given grid row, from the user's calendar so the
