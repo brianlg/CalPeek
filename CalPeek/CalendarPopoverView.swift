@@ -119,7 +119,9 @@ struct CalendarPopoverView: View {
             }
         }
         .padding(Layout.padding)
-        .frame(width: Layout.popoverWidth)
+        // The gutter widens the popover rather than compressing the day
+        // grid, so the month view looks identical either way.
+        .frame(width: Layout.popoverWidth + (showWeekNumbers ? weekNumberGutterWidth : 0))
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
