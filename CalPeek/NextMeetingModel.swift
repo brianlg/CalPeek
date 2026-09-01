@@ -10,7 +10,16 @@ struct NextMeeting {
     let endDate: Date
     let link: MeetingLink
 
+    /// The join pill opens one minute before the start…
+    static let joinLead: TimeInterval = 60
+    /// …and relaxes to the running state two minutes in, once anyone who
+    /// meant to join has had their chance.
+    static let joinLinger: TimeInterval = 120
+    /// The countdown turns red inside the last five minutes.
+    static let urgentThreshold: TimeInterval = 5 * 60
+
     /// "now" once the meeting has started, else "in 12m" / "in 1h 5m".
+    /// The popover banner's phrasing; the menu bar uses the shorter forms.
     func countdownText(at now: Date) -> String {
         let remaining = startDate.timeIntervalSince(now)
         guard remaining > 0 else { return String(localized: "now") }
@@ -23,6 +32,67 @@ struct NextMeeting {
         }
         return String(localized: "in \(minutes)m")
     }
+
+    /// "15m" / "1h 5m" until the start — the bare form for the menu bar,
+    /// where every point of width counts.
+    func shortCountdownText(at now: Date) -> String {
+        Self.shortDuration(startDate.timeIntervalSince(now))
+    }
+
+    /// "12m left" while the meeting is running.
+    func remainingText(at now: Date) -> String {
+        String(localized: "\(Self.shortDuration(endDate.timeIntervalSince(now))) left")
+    }
+
+    /// Where `now` falls on the state ladder for this meeting. Pure so it can
+    /// be tested; the model layers the user's preferences on top by passing
+    /// `leadWindowMinutes` and a pre-truncated `title` (nil when the title is
+    /// switched off — the compact, countdown-only look).
+    func menuBarState(at now: Date, leadWindowMinutes: Int, title: String?) -> NextMeetingMenuBarState {
+        let untilStart = startDate.timeIntervalSince(now)
+        if untilStart <= -Self.joinLinger {
+            return .running(title: title, remaining: remainingText(at: now))
+        }
+        if untilStart <= Self.joinLead {
+            return .joinable(title: title)
+        }
+        if leadWindowMinutes > 0, untilStart > Double(leadWindowMinutes) * 60 {
+            return .hidden
+        }
+        return .countdown(
+            title: title,
+            time: shortCountdownText(at: now),
+            isUrgent: untilStart <= Self.urgentThreshold
+        )
+    }
+
+    /// Ceiled whole minutes as "15m" / "1h 5m", clamped so a meeting seconds
+    /// away reads "1m", not "0m".
+    private static func shortDuration(_ interval: TimeInterval) -> String {
+        let totalMinutes = max(1, Int((interval / 60).rounded(.up)))
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+        if hours > 0 {
+            return String(localized: "\(hours)h \(minutes)m")
+        }
+        return String(localized: "\(minutes)m")
+    }
+}
+
+/// What the status item shows beside the glyph — the state ladder. Color
+/// escalates only twice (red countdown at five minutes, the filled join
+/// pill), so the red stays meaningful when it appears.
+enum NextMeetingMenuBarState: Equatable {
+    /// Feature off, no meeting left today, or outside the lead window:
+    /// glyph (and its badge dots) only.
+    case hidden
+    /// Inside the lead window: "Title · 15m", the time red when urgent.
+    case countdown(title: String?, time: String, isUrgent: Bool)
+    /// Around the start: the whole item fills red as "Join Title", and a
+    /// click joins without opening the popover.
+    case joinable(title: String?)
+    /// In progress: "Title · 12m left", muted.
+    case running(title: String?, remaining: String)
 }
 
 /// App-lifetime bridge to the user's calendars for the "next meeting" feature.
@@ -89,19 +159,15 @@ final class NextMeetingModel {
         timer?.invalidate()
     }
 
-    /// The compact status-item text, or nil when the feature is off (or not
-    /// unlocked), there is no upcoming meeting, or the meeting is outside the
-    /// lead window.
-    var menuBarText: String? {
-        guard Preferences.showNextMeeting, let meeting = nextMeeting else { return nil }
-        let now = Date()
-        let lead = Preferences.leadWindowMinutes
-        if lead > 0, meeting.startDate.timeIntervalSince(now) > Double(lead) * 60 {
-            return nil
-        }
-        let countdown = meeting.countdownText(at: now)
-        guard Preferences.showMeetingTitle else { return countdown }
-        return "\(truncated(meeting.title)) \(countdown)"
+    /// The status item's current rung on the state ladder. `.hidden` when the
+    /// feature is off or there is no upcoming meeting.
+    var menuBarState: NextMeetingMenuBarState {
+        guard Preferences.showNextMeeting, let meeting = nextMeeting else { return .hidden }
+        return meeting.menuBarState(
+            at: Date(),
+            leadWindowMinutes: Preferences.leadWindowMinutes,
+            title: Preferences.showMeetingTitle ? truncated(meeting.title) : nil
+        )
     }
 
     func joinNextMeeting() {
@@ -127,10 +193,22 @@ final class NextMeetingModel {
         guard let meeting = nextMeeting else { return }
 
         let now = Date()
+        let joinEnd = meeting.startDate.addingTimeInterval(NextMeeting.joinLinger)
         let fire: Date
-        if meeting.startDate <= now {
-            // "now" until the meeting ends; the end promotes the next one.
-            fire = meeting.endDate.addingTimeInterval(1)
+        if now >= joinEnd {
+            // Running: "Xm left" ticks at minute boundaries relative to the
+            // end, and the end itself promotes the next candidate.
+            fire = min(
+                Self.nextMinuteBoundary(before: meeting.endDate, after: now),
+                meeting.endDate.addingTimeInterval(1)
+            )
+        } else if now >= meeting.startDate.addingTimeInterval(-NextMeeting.joinLead) {
+            // The join pill is static; nothing changes until it relaxes to
+            // running (or the meeting ends first, for the very short ones).
+            fire = min(
+                joinEnd.addingTimeInterval(0.1),
+                meeting.endDate.addingTimeInterval(1)
+            )
         } else {
             let lead = Preferences.leadWindowMinutes
             let windowEntry = meeting.startDate.addingTimeInterval(-Double(lead) * 60)
@@ -138,16 +216,10 @@ final class NextMeetingModel {
                 // Outside the lead window: nothing shows until it opens.
                 fire = windowEntry.addingTimeInterval(0.5)
             } else {
-                // Counting down: the title ceils to whole minutes, so it
-                // changes the instant `remaining` drops through a multiple of
-                // 60. Fire just past that boundary — a near-zero phase means
-                // a boundary is imminent, not a minute away; skipping it (as
-                // a `: 60` fallback would) leaves the old minute showing for
-                // most of the next one.
-                let remaining = meeting.startDate.timeIntervalSince(now)
-                var toNextMinute = remaining.truncatingRemainder(dividingBy: 60)
-                if toNextMinute < 0.1 { toNextMinute += 60 }
-                fire = now.addingTimeInterval(toNextMinute + 0.1)
+                // Counting down toward the start. The last boundary before
+                // the start lands exactly on the join window's entry, so the
+                // countdown→joinable hop needs no timer of its own.
+                fire = Self.nextMinuteBoundary(before: meeting.startDate, after: now)
             }
         }
 
@@ -159,6 +231,18 @@ final class NextMeetingModel {
         wakeup.tolerance = 5
         RunLoop.main.add(wakeup, forMode: .common)
         timer = wakeup
+    }
+
+    /// The next instant the time-to-`reference` drops through a whole-minute
+    /// boundary, nudged just past it so the ceiled minute text has already
+    /// changed when the timer fires. A near-zero phase means a boundary is
+    /// imminent, not a minute away; skipping it (as a `: 60` fallback would)
+    /// leaves the old minute showing for most of the next one.
+    private static func nextMinuteBoundary(before reference: Date, after now: Date) -> Date {
+        let remaining = reference.timeIntervalSince(now)
+        var toNextMinute = remaining.truncatingRemainder(dividingBy: 60)
+        if toNextMinute < 0.1 { toNextMinute += 60 }
+        return now.addingTimeInterval(toNextMinute + 0.1)
     }
 
     private func computeNextMeeting() -> NextMeeting? {
