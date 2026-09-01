@@ -37,6 +37,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lists them all too. A meeting about to start also takes over the menu
   bar from an earlier call that is still running, so a long meeting
   never hides the next one's Join button.
+- In the day list, each event's color dot and each reminder's checkbox
+  now sit vertically centered in its row instead of hugging the title
+  line.
+- In the day list, a meeting's Join button now stays at the far right of
+  its row, and the open-in-app arrow that appears on hover slides in just
+  to its left. Rows without a Join button keep the arrow at the far right.
 
 ## [1.0] - 2026-08-12
 
