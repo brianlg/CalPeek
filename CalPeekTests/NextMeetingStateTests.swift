@@ -103,6 +103,52 @@ struct NextMeetingStateTests {
         #expect(state(minutesBeforeStart: 0, title: nil) == .joinable(title: nil))
     }
 
+    // MARK: - Overlapping meetings
+
+    private func meeting(
+        _ title: String,
+        startMinutes: Double,
+        durationMinutes: Double = 30
+    ) -> NextMeeting {
+        let start = Self.start.addingTimeInterval(startMinutes * 60)
+        return NextMeeting(
+            title: title,
+            startDate: start,
+            endDate: start.addingTimeInterval(durationMinutes * 60),
+            link: MeetingLink(url: URL(string: "https://zoom.us/j/1")!, provider: .zoom)
+        )
+    }
+
+    /// Simultaneous starts are a sort tie; the extra keys make the winner
+    /// deterministic instead of EventKit's return order.
+    @Test func chronologicalOrderBreaksTiesByDurationThenTitle() {
+        let short = meeting("Standup", startMinutes: 0, durationMinutes: 15)
+        let longA = meeting("All hands", startMinutes: 0)
+        let longB = meeting("Budget", startMinutes: 0)
+        let later = meeting("1:1", startMinutes: 30)
+        let sorted = [later, longB, longA, short].sorted(by: NextMeeting.chronological)
+        #expect(sorted.map(\.title) == ["Standup", "All hands", "Budget", "1:1"])
+    }
+
+    /// A meeting in its join window outranks an earlier one that is merely
+    /// running, so a long call can't shadow the next meeting's pill.
+    @Test func primaryPrefersTheJoinWindowOverARunningMeeting() {
+        let running = meeting("Long call", startMinutes: -30, durationMinutes: 60)
+        let upcoming = meeting("Standup", startMinutes: 0.5)
+        let sorted = [running, upcoming].sorted(by: NextMeeting.chronological)
+        #expect(NextMeeting.primary(of: sorted, at: Self.start)?.title == "Standup")
+        // Outside any join window, chronology rules again.
+        #expect(NextMeeting.primary(of: sorted, at: Self.start.addingTimeInterval(-10 * 60))?.title == "Long call")
+    }
+
+    @Test func joinableSpansTheJoinWindowAndInProgressOnly() {
+        let m = meeting("Standup", startMinutes: 0)
+        #expect(!m.isJoinable(at: Self.start.addingTimeInterval(-90)))
+        #expect(m.isJoinable(at: Self.start.addingTimeInterval(-60)))
+        #expect(m.isJoinable(at: Self.start.addingTimeInterval(20 * 60)))
+        #expect(!m.isJoinable(at: Self.start.addingTimeInterval(30 * 60)))
+    }
+
     // MARK: - Time phrasing
 
     @Test func shortCountdownCeilsAndNeverReadsZero() {

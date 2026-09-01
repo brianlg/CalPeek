@@ -365,8 +365,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showContextMenu()
         } else if case .joinable = nextMeeting.menuBarState {
             // The joinable pill's contract: a click joins immediately, no
-            // popover detour. The context menu (right-click) is unchanged.
-            nextMeeting.joinNextMeeting()
+            // popover detour — unless more than one meeting is joinable
+            // right now, where silently picking one would join the wrong
+            // call as often as not. The chooser lists them all.
+            let joinable = nextMeeting.joinableMeetings
+            if joinable.count > 1 {
+                showJoinChooser(joinable)
+            } else {
+                nextMeeting.joinNextMeeting()
+            }
         } else {
             togglePopover(sender)
         }
@@ -512,14 +519,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         #endif
 
-        if let meeting = nextMeeting.nextMeeting {
-            let joinItem = NSMenuItem(
-                title: String(localized: "Join “\(meeting.title)”"),
-                action: #selector(joinNextMeetingFromMenu),
-                keyEquivalent: ""
-            )
-            joinItem.target = self
-            menu.addItem(joinItem)
+        // With several meetings joinable at once (back-to-backs, an overrun
+        // call plus the next one), the menu is the chooser: one item each.
+        // Otherwise the single primary meeting keeps its one item.
+        let joinable = nextMeeting.joinableMeetings
+        if joinable.count > 1 {
+            joinable.forEach { menu.addItem(joinMenuItem(for: $0)) }
+            menu.addItem(.separator())
+        } else if let meeting = nextMeeting.nextMeeting {
+            menu.addItem(joinMenuItem(for: meeting))
             menu.addItem(.separator())
         }
 
@@ -687,8 +695,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func joinNextMeetingFromMenu() {
-        nextMeeting.joinNextMeeting()
+    /// One "Join “Title”" item, subtitled with the meeting's time range so
+    /// same-named recurring calls stay tellable apart in the chooser.
+    private func joinMenuItem(for meeting: NextMeeting) -> NSMenuItem {
+        let item = NSMenuItem(
+            title: String(localized: "Join “\(meeting.title)”"),
+            action: #selector(joinChosenMeeting(_:)),
+            keyEquivalent: ""
+        )
+        item.subtitle = (meeting.startDate..<meeting.endDate)
+            .formatted(date: .omitted, time: .shortened)
+        item.target = self
+        item.representedObject = meeting.link.url
+        return item
+    }
+
+    /// The pill's ambiguity menu: one join item per currently joinable
+    /// meeting. Shown from the status item the same borrowed way as the
+    /// context menu, then detached so left-clicks keep reaching
+    /// `statusItemClicked(_:)`.
+    private func showJoinChooser(_ meetings: [NextMeeting]) {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        meetings.forEach { menu.addItem(joinMenuItem(for: $0)) }
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc private func joinChosenMeeting(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func openSettings() {

@@ -66,6 +66,38 @@ struct NextMeeting {
         )
     }
 
+    /// Inside the joinable window around the start (and not over): the rung
+    /// that shows the pill, and what makes this meeting the primary one even
+    /// when an earlier meeting is still running.
+    func isInJoinWindow(at now: Date) -> Bool {
+        let untilStart = startDate.timeIntervalSince(now)
+        return untilStart <= Self.joinLead && untilStart > -Self.joinLinger
+            && endDate > now
+    }
+
+    /// Join-chooser membership: in the join window or already in progress.
+    /// Broader than `isInJoinWindow` — a meeting that started twenty minutes
+    /// ago can still be walked into.
+    func isJoinable(at now: Date) -> Bool {
+        startDate.timeIntervalSince(now) <= Self.joinLead && endDate > now
+    }
+
+    /// The meeting the menu bar represents: one in its join window beats an
+    /// earlier meeting that is merely running — otherwise an 1:00–2:00 call
+    /// would shadow the 1:30's countdown pill for its whole duration — and
+    /// with no window open, the chronologically first candidate wins.
+    static func primary(of meetings: [NextMeeting], at now: Date) -> NextMeeting? {
+        meetings.first { $0.isInJoinWindow(at: now) } ?? meetings.first
+    }
+
+    /// Deterministic candidate order: start, then end, then title. Meetings
+    /// that start together are a sort tie, and `sorted` makes no stability
+    /// promise — without the extra keys, which of three 1:00s leads would be
+    /// whatever order EventKit returned them in.
+    static func chronological(_ a: NextMeeting, _ b: NextMeeting) -> Bool {
+        (a.startDate, a.endDate, a.title) < (b.startDate, b.endDate, b.title)
+    }
+
     /// Ceiled whole minutes as "15m" / "1h 5m", clamped so a meeting seconds
     /// away reads "1m", not "0m".
     private static func shortDuration(_ interval: TimeInterval) -> String {
@@ -101,9 +133,24 @@ enum NextMeetingMenuBarState: Equatable {
 /// doesn't front-load a privacy dialog.
 @Observable @MainActor
 final class NextMeetingModel {
-    /// The next event today with a recognizable video-conference link that
-    /// hasn't ended yet (including one currently in progress).
-    private(set) var nextMeeting: NextMeeting?
+    /// Today's remaining events with a recognizable video-conference link
+    /// (including any currently in progress), in `chronological` order.
+    private(set) var meetings: [NextMeeting] = []
+
+    /// The meeting the menu bar, popover banner, and hotkey act on. With
+    /// overlapping meetings this is the `primary` one; the rest stay
+    /// reachable through `joinableMeetings`.
+    var nextMeeting: NextMeeting? {
+        NextMeeting.primary(of: meetings, at: Date())
+    }
+
+    /// Every meeting that could be joined right now — in its join window or
+    /// already running. More than one means the join pill and context menu
+    /// offer a chooser instead of picking silently.
+    var joinableMeetings: [NextMeeting] {
+        let now = Date()
+        return meetings.filter { $0.isJoinable(at: now) }
+    }
 
     /// Fires after every recompute so the AppKit status item can update.
     @ObservationIgnored var onChange: (@MainActor () -> Void)?
@@ -176,7 +223,7 @@ final class NextMeetingModel {
     }
 
     func refresh() {
-        nextMeeting = computeNextMeeting()
+        meetings = computeMeetings()
         scheduleNextTransition()
         onChange?()
     }
@@ -223,7 +270,22 @@ final class NextMeetingModel {
             }
         }
 
-        let wakeup = Timer(fire: fire, interval: 0, repeats: false) { [weak self] _ in
+        // A different meeting entering or leaving its join window moves the
+        // primary; wake at those instants too, or an earlier running meeting
+        // would keep the bar to itself past the moment the next one's pill
+        // is due.
+        var earliest = fire
+        for other in meetings {
+            let boundaries = [
+                other.startDate.addingTimeInterval(-NextMeeting.joinLead),
+                other.startDate.addingTimeInterval(NextMeeting.joinLinger),
+            ]
+            for boundary in boundaries where boundary > now {
+                earliest = min(earliest, boundary.addingTimeInterval(0.1))
+            }
+        }
+
+        let wakeup = Timer(fire: earliest, interval: 0, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.refresh() }
         }
         // A countdown that ticks a few seconds late is invisible at minute
@@ -245,35 +307,33 @@ final class NextMeetingModel {
         return now.addingTimeInterval(toNextMinute + 0.1)
     }
 
-    private func computeNextMeeting() -> NextMeeting? {
-        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return nil }
+    private func computeMeetings() -> [NextMeeting] {
+        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return [] }
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
         store.refreshSourcesIfNecessary()
         let now = Date()
         let calendar = Calendar.current
         guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) else {
-            return nil
+            return []
         }
 
         // The predicate matches events overlapping the window, so a meeting
         // that started before `now` but hasn't ended is still a candidate.
         let predicate = store.predicateForEvents(withStart: now, end: endOfDay, calendars: nil)
-        let candidates = store.events(matching: predicate)
+        return store.events(matching: predicate)
             .filter { !$0.isAllDay && $0.endDate > now }
-            .sorted { $0.startDate < $1.startDate }
-
-        for event in candidates {
-            if let link = MeetingLinkParser.link(in: event) {
-                return NextMeeting(
-                    title: event.title ?? String(localized: "(No Title)"),
-                    startDate: event.startDate,
-                    endDate: event.endDate,
-                    link: link
-                )
+            .compactMap { event in
+                MeetingLinkParser.link(in: event).map { link in
+                    NextMeeting(
+                        title: event.title ?? String(localized: "(No Title)"),
+                        startDate: event.startDate,
+                        endDate: event.endDate,
+                        link: link
+                    )
+                }
             }
-        }
-        return nil
+            .sorted(by: NextMeeting.chronological)
     }
 
     /// Menu bar space is scarce; clamp long titles.

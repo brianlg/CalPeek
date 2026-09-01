@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the calendar. While a meeting is running, the menu bar quietly shows
   how much of it is left ("Title · 12m left"). Turning off Include
   meeting title gives a compact look with just the time.
+- Overlapping meetings are no longer a coin flip. When more than one
+  meeting can be joined right now, clicking the Join button opens a
+  chooser listing each meeting with its time, and the right-click menu
+  lists them all too. A meeting about to start also takes over the menu
+  bar from an earlier call that is still running, so a long meeting
+  never hides the next one's Join button.
 
 ## [1.0] - 2026-08-12
 
