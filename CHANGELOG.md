@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   turn on Launch at Login. Reopen it anytime from Settings > About.
 - A Monochrome option that draws the menu bar icon in the system label
   color instead of the weekday color, for quieter menu bars.
+- A Show week numbers option (Settings > General, off by default) that
+  adds week-of-year numbers along the left of the month view, with the
+  current week highlighted.
 
 ## [1.0] - 2026-08-12
 
