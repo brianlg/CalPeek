@@ -796,7 +796,7 @@ private struct DayEventsPopover: View {
                 mode = .create
             } label: {
                 plusGlyph
-                    .frame(width: 24, height: 24)
+                    .frame(width: 20, height: 20)
                     .background(Circle().fill(Color.primary.opacity(plusHovered ? 0.14 : 0.08)))
                     .contentShape(Circle())
             }
@@ -899,7 +899,7 @@ private struct ItemRow: View {
             Spacer(minLength: 0)
 
             HoverIconButton(
-                systemName: "arrow.up.forward.app",
+                systemName: "arrow.up.right",
                 tint: .secondary,
                 help: openInAppTitle
             ) {
@@ -1072,7 +1072,7 @@ private struct HoverIconButton: View {
             Image(systemName: systemName)
                 .font(.system(size: 11))
                 .foregroundStyle(tint)
-                .frame(width: 20, height: 20)
+                .frame(width: 24, height: 24)
                 // Sits atop the row's own faint hover wash, so it's a step
                 // stronger to read as a distinct control.
                 .background(Circle().fill(Color.primary.opacity(isHovered ? 0.12 : 0)))
