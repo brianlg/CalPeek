@@ -899,7 +899,7 @@ private struct ItemRow: View {
             Spacer(minLength: 0)
 
             HoverIconButton(
-                systemName: "arrow.up.right",
+                systemName: "arrow.up.forward.app",
                 tint: .secondary,
                 help: openInAppTitle
             ) {
