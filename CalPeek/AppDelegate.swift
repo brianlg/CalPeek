@@ -10,9 +10,13 @@ import Sparkle
 
 /// Owns the menu bar status item and the calendar popover.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private var statusItem: NSStatusItem!
     private let popover = NSPopover()
+    /// Claims popover-toggling left mouse-downs on the status item before the
+    /// button cell can track them; see `configureStatusItem` for why. Lives
+    /// for the app's lifetime alongside the status item.
+    private var statusItemMouseDownMonitor: Any?
     /// App-lifetime source of the next joinable meeting, feeding the menu bar
     /// countdown, the context menu's join item, and the popover banner.
     private let nextMeeting = NextMeetingModel()
@@ -114,12 +118,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         button.target = self
         button.action = #selector(statusItemClicked(_:))
         // Receive both mouse buttons so right-click can open the context menu
-        // while left-click continues to toggle the popover.
+        // while left-click joins a joinable meeting.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.toolTip = Self.idleToolTip
         // The glyph image sits left of the (usually empty) countdown title.
         button.imagePosition = .imageLeft
         button.font = NSFont.menuBarFont(ofSize: 0)
+
+        // System menu bar items open on mouse-down, and their highlight chip
+        // stays on for as long as the item's UI is open. The button cell's
+        // click tracking can't express that for a popover: it always clears
+        // the highlight when the click ends, after the action runs, which
+        // blinks the chip off for a frame. So popover-toggling clicks never
+        // reach the cell at all: this monitor claims the mouse-down, toggles
+        // the popover, and drives the chip manually (on at show, off in
+        // `popoverDidClose`). Joinable-pill clicks and right-clicks pass
+        // through untouched and keep the cell's normal momentary press
+        // behavior. Cmd-drag passes through so the item can be rearranged.
+        statusItemMouseDownMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: .leftMouseDown
+        ) { [weak self] event in
+            guard let self,
+                  let button = self.statusItem?.button,
+                  event.window === button.window,
+                  !event.modifierFlags.contains(.command)
+            else { return event }
+            if case .joinable = self.nextMeeting.menuBarState { return event }
+            self.togglePopover(button)
+            return nil
+        }
 
         refreshIcon()
     }
@@ -349,6 +376,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func configurePopover() {
         popover.behavior = .transient // auto-closes when clicking outside
+        popover.delegate = self // to clear the status item highlight on close
         popover.animates = true
         popover.appearance = nil // inherit system light/dark appearance
         // Let SwiftUI drive the popover size so the view's layout is the single
@@ -368,14 +396,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // popover detour — unless more than one meeting is joinable
             // right now, where silently picking one would join the wrong
             // call as often as not. The chooser lists them all.
+            // (Popover-toggling left clicks never reach this action; the
+            // mouse-down monitor in `configureStatusItem` claims them.)
             let joinable = nextMeeting.joinableMeetings
             if joinable.count > 1 {
                 showJoinChooser(joinable)
             } else {
                 nextMeeting.joinNextMeeting()
             }
-        } else {
-            togglePopover(sender)
         }
     }
 
@@ -398,7 +426,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             // Bring the popover's window forward so it can receive key events.
             popover.contentViewController?.view.window?.makeKey()
+            // The chip is fully manual (see `configureStatusItem`): on for
+            // exactly as long as the popover is open, like system items.
+            button.highlight(true)
         }
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        statusItem?.button?.highlight(false)
     }
 
     // MARK: - Build identity
