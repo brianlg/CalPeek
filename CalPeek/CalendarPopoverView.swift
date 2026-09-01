@@ -352,6 +352,17 @@ struct CalendarPopoverView: View {
                 Text(verbatim: String(weekNumber(forRow: row)))
                     .font(.system(size: 11))
                     .foregroundStyle(isCurrentWeek(row: row) ? Color.primary : Layout.dimmedText)
+                    .background {
+                        // Chip behind the current week, in the header
+                        // controls' grey fill. Drawn with negative insets so
+                        // it hugs the digits without affecting layout.
+                        if isCurrentWeek(row: row) {
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(Layout.navChipFill)
+                                .padding(.horizontal, -4)
+                                .padding(.vertical, -2)
+                        }
+                    }
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .frame(height: Layout.rowHeight)
                     // Center against the day numerals, not the full row:
