@@ -242,10 +242,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let image = NSImage(size: size, flipped: false) { rect in
             NSColor.systemRed.setFill()
             let pillRect = rect.insetBy(dx: 0, dy: 0.5)
+            // A rounded rectangle, not a capsule: full rounding crowds the
+            // glyph at the leading edge and reads as a foreign shape next to
+            // the system's own menu bar highlight chips.
+            let cornerRadius: CGFloat = 6
             NSBezierPath(
                 roundedRect: pillRect,
-                xRadius: pillRect.height / 2,
-                yRadius: pillRect.height / 2
+                xRadius: cornerRadius,
+                yRadius: cornerRadius
             ).fill()
             glyph.draw(
                 at: NSPoint(x: leadingPad, y: 0),
