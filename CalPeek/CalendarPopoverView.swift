@@ -31,6 +31,12 @@ struct CalendarPopoverView: View {
         static let navChipSize: CGFloat = 24
         static let navChipFill = Color.primary.opacity(0.08)
         static let contentSpacing: CGFloat = 12
+        /// Wide enough for two digits at the 11 pt weekday-row size.
+        static let weekNumberWidth: CGFloat = 18
+        /// Gap between the week numbers and the first day column.
+        static let weekNumberTrailingGap: CGFloat = 11
+        /// Dim tone shared by out-of-month day numbers and the week numbers.
+        static let dimmedText = Color.primary.opacity(0.25)
     }
     
     // MARK: - State
@@ -55,6 +61,8 @@ struct CalendarPopoverView: View {
     /// changes swap the slide-in grid transition for a plain crossfade.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @AppStorage(Preferences.showWeekNumbersKey)
+    private var showWeekNumbers = Preferences.showWeekNumbersDefault
     @AppStorage(Preferences.todayMarkerColorKey)
     private var todayMarkerRaw = WeekdayColor.auto.rawValue
     @AppStorage(Preferences.todayMarkerCustomColorKey)
@@ -110,7 +118,9 @@ struct CalendarPopoverView: View {
             }
         }
         .padding(Layout.padding)
-        .frame(width: Layout.popoverWidth)
+        // The gutter widens the popover rather than compressing the day
+        // grid, so the month view looks identical either way.
+        .frame(width: Layout.popoverWidth + (showWeekNumbers ? weekNumberGutterWidth : 0))
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
@@ -280,23 +290,41 @@ struct CalendarPopoverView: View {
         let symbols = calendar.veryShortWeekdaySymbols
         let shift = calendar.firstWeekday - 1
         let ordered = Array(symbols[shift...] + symbols[..<shift])
-        return LazyVGrid(columns: columns, spacing: 0) {
-            ForEach(ordered.indices, id: \.self) { index in
-                Text(verbatim: ordered[index])
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.secondary)
-                    .frame(maxWidth: .infinity)
+        return HStack(spacing: 0) {
+            // The week-number gutter has no column heading; a clear spacer
+            // keeps the weekday labels aligned over their day columns.
+            if showWeekNumbers {
+                Color.clear.frame(width: weekNumberGutterWidth)
             }
+            LazyVGrid(columns: columns, spacing: 0) {
+                ForEach(ordered.indices, id: \.self) { index in
+                    Text(verbatim: ordered[index])
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.secondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            // Inside an HStack the grid no longer fills by itself; force it
+            // to take all width right of the gutter so the columns keep the
+            // exact metrics of the no-gutter layout.
+            .frame(maxWidth: .infinity)
         }
     }
 
     // MARK: - Day grid
 
     private var grid: some View {
-        LazyVGrid(columns: columns, spacing: 0) {
-            ForEach(monthDays, id: \.self) { date in
-                dayCell(for: date)
+        HStack(spacing: 0) {
+            if showWeekNumbers {
+                weekNumberGutter
             }
+            LazyVGrid(columns: columns, spacing: 0) {
+                ForEach(monthDays, id: \.self) { date in
+                    dayCell(for: date)
+                }
+            }
+            // See weekdayRow: keeps the day columns at their no-gutter width.
+            .frame(maxWidth: .infinity)
         }
         // Re-identify per month so the transition plays on change.
         .id(monthOffset)
@@ -307,6 +335,62 @@ struct CalendarPopoverView: View {
         // taller than the day-number text they center on): clip the sides
         // tight but give the mask vertical slack.
         .mask(Rectangle().padding(.vertical, -Layout.dayCircleSize / 2))
+    }
+
+    /// Full width the gutter adds ahead of the day columns: the number
+    /// column plus its gap to the grid.
+    private var weekNumberGutterWidth: CGFloat {
+        Layout.weekNumberWidth + Layout.weekNumberTrailingGap
+    }
+
+    /// Right-justified week-of-year numbers, one per row, in the same dim
+    /// tone as out-of-month day numbers so the gutter reads as secondary.
+    /// The current week's number brightens to the in-month day color.
+    private var weekNumberGutter: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
+                Text(verbatim: String(weekNumber(forRow: row)))
+                    .font(.system(size: 11))
+                    .foregroundStyle(isCurrentWeek(row: row) ? Color.primary : Layout.dimmedText)
+                    .background {
+                        // Chip behind the current week, in the header
+                        // controls' grey fill. Drawn with negative insets so
+                        // it hugs the digits without affecting layout.
+                        if isCurrentWeek(row: row) {
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(Layout.navChipFill)
+                                .padding(.horizontal, -4)
+                                .padding(.vertical, -2)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(height: Layout.rowHeight)
+                    // Center against the day numerals, not the full row:
+                    // each cell reserves a dot strip under its digit, so
+                    // the row's optical center sits above its geometric one.
+                    .offset(y: -(Layout.eventDotSize + Layout.eventDotSpacing) / 2)
+            }
+        }
+        .frame(width: Layout.weekNumberWidth)
+        .padding(.trailing, Layout.weekNumberTrailingGap)
+    }
+
+    /// Week-of-year for the given grid row, from the user's calendar so the
+    /// numbering follows their region's week rules (ISO in most of Europe,
+    /// Sunday-start in the US) — matching what Calendar.app shows.
+    private func weekNumber(forRow row: Int) -> Int {
+        let days = monthDays
+        let index = row * Layout.daysPerWeek
+        guard days.indices.contains(index) else { return 0 }
+        return calendar.component(.weekOfYear, from: days[index])
+    }
+
+    /// True when the given grid row is the week containing today.
+    private func isCurrentWeek(row: Int) -> Bool {
+        let days = monthDays
+        let index = row * Layout.daysPerWeek
+        guard days.indices.contains(index) else { return false }
+        return calendar.isDate(days[index], equalTo: Date(), toGranularity: .weekOfYear)
     }
 
     private func dayCell(for date: Date) -> some View {
@@ -322,7 +406,7 @@ struct CalendarPopoverView: View {
                 .font(.system(size: 15, weight: isToday ? .semibold : .regular))
                 // Today's digit sits on the accent fill, so its color derives
                 // from the accent — white on yellow would be unreadable.
-                .foregroundStyle(isToday ? accent.contrastingForeground : (inMonth ? Color.primary : Color.primary.opacity(0.25)))
+                .foregroundStyle(isToday ? accent.contrastingForeground : (inMonth ? Color.primary : Layout.dimmedText))
                 .frame(maxWidth: .infinity)
                 .background {
                     dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)

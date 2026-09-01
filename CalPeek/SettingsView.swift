@@ -23,6 +23,8 @@ struct GeneralSettingsView: View {
     private var showReminders = Preferences.showRemindersDefault
     @AppStorage(Preferences.showCalendarKey)
     private var showCalendar = Preferences.showCalendarDefault
+    @AppStorage(Preferences.showWeekNumbersKey)
+    private var showWeekNumbers = Preferences.showWeekNumbersDefault
 
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     /// True after the user denied Reminders access, so the footer can point
@@ -36,12 +38,12 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
-            // Debug builds deliberately offer no Launch at Login control: a
-            // login item registered by a build in ~/Applications or DerivedData
-            // would relaunch at every boot, and keep doing so after that build
-            // is deleted. AppDelegate also unregisters defensively on launch.
-            #if !DEBUG
             Section(String(localized: "General")) {
+                // Debug builds deliberately offer no Launch at Login control: a
+                // login item registered by a build in ~/Applications or DerivedData
+                // would relaunch at every boot, and keep doing so after that build
+                // is deleted. AppDelegate also unregisters defensively on launch.
+                #if !DEBUG
                 Toggle(String(localized: "Launch at Login"), isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
                         setLaunchAtLogin(newValue)
@@ -53,8 +55,9 @@ struct GeneralSettingsView: View {
                     )) { _ in
                         launchAtLogin = SMAppService.mainApp.status == .enabled
                     }
+                #endif
+                Toggle(String(localized: "Show week numbers"), isOn: $showWeekNumbers)
             }
-            #endif
 
             Section {
                 Toggle(isOn: $showCalendar) {

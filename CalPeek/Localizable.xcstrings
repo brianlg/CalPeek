@@ -92,9 +92,6 @@
     "CalPeek is ready. You can change any of this later in Settings." : {
 
     },
-    "CalPeek" : {
-
-    },
     "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events." : {
 
     },
@@ -389,9 +386,6 @@
     "Settings…" : {
 
     },
-    "Show busy days at a glance, and open any day for the details." : {
-
-    },
     "Show Calendar" : {
 
     },
@@ -401,7 +395,13 @@
     "Show Welcome Guide" : {
 
     },
+    "Show busy days at a glance, and open any day for the details." : {
+
+    },
     "Show next meeting in menu bar" : {
+
+    },
+    "Show week numbers" : {
 
     },
     "Show when starting within" : {
