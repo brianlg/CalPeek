@@ -11,6 +11,22 @@
         }
       }
     },
+    "%@ left" : {
+
+    },
+    "%lldh %lldm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lldh %2$lldm"
+          }
+        }
+      }
+    },
+    "%lldm" : {
+
+    },
     "(No Title)" : {
 
     },
@@ -240,6 +256,9 @@
 
     },
     "Join" : {
+
+    },
+    "Join %@" : {
 
     },
     "Join meeting" : {

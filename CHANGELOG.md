@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   adds week-of-year numbers along the left of the month view, with the
   current week highlighted.
 
+### Changed
+
+- The next-meeting countdown in the menu bar now escalates through clear
+  states as a meeting approaches: a plain "Title · 15m" countdown inside
+  your lead window, the time turning red at five minutes, and, from one
+  minute before the start until two minutes in, the whole item becoming a
+  red Join button that joins the meeting in one click, without opening
+  the calendar. While a meeting is running, the menu bar quietly shows
+  how much of it is left ("Title · 12m left"). Turning off Include
+  meeting title gives a compact look with just the time.
+- Overlapping meetings are no longer a coin flip. When more than one
+  meeting can be joined right now, clicking the Join button opens a
+  chooser listing each meeting with its time, and the right-click menu
+  lists them all too. A meeting about to start also takes over the menu
+  bar from an earlier call that is still running, so a long meeting
+  never hides the next one's Join button.
+
 ## [1.0] - 2026-08-12
 
 ### Added

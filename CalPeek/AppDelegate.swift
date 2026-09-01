@@ -136,6 +136,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // During the join window the whole item becomes the red pill; the
+        // regular glyph returns when the state moves on.
+        if case let .joinable(title) = nextMeeting.menuBarState {
+            assign(joinPillImage(title: title, for: button), to: button)
+            return
+        }
+
         // Match the menu bar's appearance (which may differ from the rest of
         // the app, e.g. with wallpaper-tinted menu bars in macOS 14+) so
         // `.primary` and `.secondary` resolve to the right tone.
@@ -186,11 +193,82 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The rasterized image is all VoiceOver sees; view-side accessibility
         // modifiers don't survive `ImageRenderer`.
         image.accessibilityDescription = view.accessibilityText
+        assign(image, to: button)
+    }
+
+    /// Installs a rendered status-item image, with the Debug marker bar
+    /// prepended in Debug builds.
+    private func assign(_ image: NSImage, to button: NSStatusBarButton) {
         #if DEBUG
         button.image = markedAsDebug(image)
         #else
         button.image = image
         #endif
+    }
+
+    /// The joinable state's image: the glyph and "Join <title>" reversed out
+    /// of a filled red capsule that replaces the whole status item content.
+    /// Rendered as one image (not a styled title) so the fill can sit behind
+    /// glyph and text alike.
+    private func joinPillImage(title: String?, for button: NSStatusBarButton) -> NSImage {
+        // The glyph reversed out of the fill: white text, no badge dots —
+        // they'd be illegible against red, and the pill already says what
+        // matters right now. Forcing the dark scheme resolves `.primary`
+        // (the day number) to white regardless of the menu bar's appearance.
+        let glyphView = MenuBarIconView(date: Date(), weekdayColor: .white)
+            .environment(\.colorScheme, .dark)
+        let renderer = ImageRenderer(content: glyphView)
+        renderer.scale = button.window?.backingScaleFactor
+            ?? NSScreen.main?.backingScaleFactor
+            ?? 2.0
+        let glyph = renderer.nsImage ?? NSImage(size: NSSize(width: 18, height: 22))
+
+        // Title absent (the compact look) leaves a bare "Join".
+        let text = title.map { String(localized: "Join \($0)") } ?? String(localized: "Join")
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .semibold),
+            .foregroundColor: NSColor.white,
+        ]
+        let textSize = (text as NSString).size(withAttributes: attributes)
+
+        let leadingPad: CGFloat = 7
+        let gap: CGFloat = 3
+        let trailingPad: CGFloat = 9
+        let size = NSSize(
+            width: leadingPad + glyph.size.width + gap + ceil(textSize.width) + trailingPad,
+            height: glyph.size.height
+        )
+
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor.systemRed.setFill()
+            let pillRect = rect.insetBy(dx: 0, dy: 0.5)
+            // A rounded rectangle, not a capsule: full rounding crowds the
+            // glyph at the leading edge and reads as a foreign shape next to
+            // the system's own menu bar highlight chips.
+            let cornerRadius: CGFloat = 6
+            NSBezierPath(
+                roundedRect: pillRect,
+                xRadius: cornerRadius,
+                yRadius: cornerRadius
+            ).fill()
+            glyph.draw(
+                at: NSPoint(x: leadingPad, y: 0),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+            (text as NSString).draw(
+                at: NSPoint(
+                    x: leadingPad + glyph.size.width + gap,
+                    y: (rect.height - textSize.height) / 2
+                ),
+                withAttributes: attributes
+            )
+            return true
+        }
+        image.isTemplate = false
+        image.accessibilityDescription = text
+        return image
     }
 
     private func observeDateChanges() {
@@ -285,6 +363,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func statusItemClicked(_ sender: Any?) {
         if NSApp.currentEvent?.type == .rightMouseUp {
             showContextMenu()
+        } else if case .joinable = nextMeeting.menuBarState {
+            // The joinable pill's contract: a click joins immediately, no
+            // popover detour — unless more than one meeting is joinable
+            // right now, where silently picking one would join the wrong
+            // call as often as not. The chooser lists them all.
+            let joinable = nextMeeting.joinableMeetings
+            if joinable.count > 1 {
+                showJoinChooser(joinable)
+            } else {
+                nextMeeting.joinNextMeeting()
+            }
         } else {
             togglePopover(sender)
         }
@@ -430,14 +519,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         #endif
 
-        if let meeting = nextMeeting.nextMeeting {
-            let joinItem = NSMenuItem(
-                title: String(localized: "Join “\(meeting.title)”"),
-                action: #selector(joinNextMeetingFromMenu),
-                keyEquivalent: ""
-            )
-            joinItem.target = self
-            menu.addItem(joinItem)
+        // With several meetings joinable at once (back-to-backs, an overrun
+        // call plus the next one), the menu is the chooser: one item each.
+        // Otherwise the single primary meeting keeps its one item.
+        let joinable = nextMeeting.joinableMeetings
+        if joinable.count > 1 {
+            joinable.forEach { menu.addItem(joinMenuItem(for: $0)) }
+            menu.addItem(.separator())
+        } else if let meeting = nextMeeting.nextMeeting {
+            menu.addItem(joinMenuItem(for: meeting))
             menu.addItem(.separator())
         }
 
@@ -533,19 +623,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Next meeting
 
-    /// Updates the countdown text next to the glyph and (de)registers the
-    /// global join hotkey to match current preferences.
+    /// Renders the current rung of the state ladder next to the glyph and
+    /// (de)registers the global join hotkey to match current preferences.
     private func refreshNextMeetingUI() {
         if let button = statusItem?.button {
-            if let text = nextMeeting.menuBarText {
-                button.title = text
-                button.toolTip = nextMeeting.nextMeeting?.title ?? Self.idleToolTip
-            } else {
-                button.title = ""
+            let fullTitle = nextMeeting.nextMeeting?.title
+            switch nextMeeting.menuBarState {
+            case .hidden:
+                button.attributedTitle = NSAttributedString()
                 button.toolTip = Self.idleToolTip
+            case let .countdown(title, time, isUrgent):
+                button.attributedTitle = Self.statusTitle(
+                    title: title,
+                    time: time,
+                    timeColor: isUrgent ? .systemRed : .labelColor
+                )
+                button.toolTip = fullTitle ?? Self.idleToolTip
+            case .joinable:
+                // The pill image carries everything; see `refreshIcon()`.
+                button.attributedTitle = NSAttributedString()
+                button.toolTip = fullTitle ?? Self.idleToolTip
+            case let .running(title, remaining):
+                button.attributedTitle = Self.statusTitle(
+                    title: title,
+                    time: remaining,
+                    timeColor: .secondaryLabelColor
+                )
+                button.toolTip = fullTitle ?? Self.idleToolTip
             }
         }
+        // The joinable state swaps the glyph for the pill (and back).
+        refreshIcon()
         updateJoinHotKey()
+    }
+
+    /// "Title · 15m" with the separator quieted and the time carrying the
+    /// state's one color. The model truncates the title and the whole time
+    /// phrase is always appended, so the time never clips before the title.
+    private static func statusTitle(
+        title: String?,
+        time: String,
+        timeColor: NSColor
+    ) -> NSAttributedString {
+        let font = NSFont.menuBarFont(ofSize: 0)
+        let result = NSMutableAttributedString()
+        if let title {
+            result.append(NSAttributedString(string: title, attributes: [
+                .font: font,
+                .foregroundColor: NSColor.labelColor,
+            ]))
+            result.append(NSAttributedString(string: " · ", attributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor,
+            ]))
+        }
+        result.append(NSAttributedString(string: time, attributes: [
+            .font: font,
+            .foregroundColor: timeColor,
+        ]))
+        return result
     }
 
     private func updateJoinHotKey() {
@@ -559,8 +695,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func joinNextMeetingFromMenu() {
-        nextMeeting.joinNextMeeting()
+    /// One "Join “Title”" item, subtitled with the meeting's time range so
+    /// same-named recurring calls stay tellable apart in the chooser.
+    private func joinMenuItem(for meeting: NextMeeting) -> NSMenuItem {
+        let item = NSMenuItem(
+            title: String(localized: "Join “\(meeting.title)”"),
+            action: #selector(joinChosenMeeting(_:)),
+            keyEquivalent: ""
+        )
+        item.subtitle = (meeting.startDate..<meeting.endDate)
+            .formatted(date: .omitted, time: .shortened)
+        item.target = self
+        item.representedObject = meeting.link.url
+        return item
+    }
+
+    /// The pill's ambiguity menu: one join item per currently joinable
+    /// meeting. Shown from the status item the same borrowed way as the
+    /// context menu, then detached so left-clicks keep reaching
+    /// `statusItemClicked(_:)`.
+    private func showJoinChooser(_ meetings: [NextMeeting]) {
+        let menu = NSMenu()
+        menu.autoenablesItems = false
+        meetings.forEach { menu.addItem(joinMenuItem(for: $0)) }
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc private func joinChosenMeeting(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+        NSWorkspace.shared.open(url)
     }
 
     @objc private func openSettings() {
