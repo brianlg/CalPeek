@@ -345,12 +345,13 @@ struct CalendarPopoverView: View {
 
     /// Right-justified week-of-year numbers, one per row, in the same dim
     /// tone as out-of-month day numbers so the gutter reads as secondary.
+    /// The current week's number brightens to the in-month day color.
     private var weekNumberGutter: some View {
         VStack(spacing: 0) {
             ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
                 Text(verbatim: String(weekNumber(forRow: row)))
                     .font(.system(size: 11))
-                    .foregroundStyle(Layout.dimmedText)
+                    .foregroundStyle(isCurrentWeek(row: row) ? Color.primary : Layout.dimmedText)
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .frame(height: Layout.rowHeight)
                     // Center against the day numerals, not the full row:
@@ -371,6 +372,14 @@ struct CalendarPopoverView: View {
         let index = row * Layout.daysPerWeek
         guard days.indices.contains(index) else { return 0 }
         return calendar.component(.weekOfYear, from: days[index])
+    }
+
+    /// True when the given grid row is the week containing today.
+    private func isCurrentWeek(row: Int) -> Bool {
+        let days = monthDays
+        let index = row * Layout.daysPerWeek
+        guard days.indices.contains(index) else { return false }
+        return calendar.isDate(days[index], equalTo: Date(), toGranularity: .weekOfYear)
     }
 
     private func dayCell(for date: Date) -> some View {
