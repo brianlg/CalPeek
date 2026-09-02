@@ -115,9 +115,13 @@ struct CalendarPopoverView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
             if let model = nextMeetingModel, let meeting = model.nextMeeting {
-                NextMeetingBanner(meeting: meeting, accent: accent) {
-                    model.joinNextMeeting()
-                }
+                NextMeetingBanner(
+                    meeting: meeting,
+                    alternatives: model.joinableMeetings,
+                    accent: accent,
+                    join: { model.joinNextMeeting() },
+                    choose: { model.choose($0) }
+                )
             }
             header
             weekdayRow
@@ -2370,10 +2374,15 @@ private func formFooter(
 
 /// Banner pinned above the month header showing the next joinable meeting,
 /// with a one-click Join button. The countdown re-renders each minute.
+/// When several meetings are joinable at once the button grows a chevron
+/// whose menu picks which one the banner (and the menu bar) is about.
 private struct NextMeetingBanner: View {
     let meeting: NextMeeting
+    /// Every currently joinable meeting; more than one enables the chooser.
+    let alternatives: [NextMeeting]
     let accent: Color
     let join: () -> Void
+    let choose: (NextMeeting) -> Void
 
     var body: some View {
         HStack(spacing: 8) {
@@ -2394,8 +2403,7 @@ private struct NextMeetingBanner: View {
 
             Spacer(minLength: 8)
 
-            Button(String(localized: "Join"), action: join)
-                .buttonStyle(.borderedProminent)
+            joinControl
                 .controlSize(.small)
                 .tint(accent)
         }
@@ -2403,6 +2411,52 @@ private struct NextMeetingBanner: View {
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(.quaternary.opacity(0.5))
+        )
+    }
+
+    /// A plain Join button, or the split form once there is something to
+    /// choose between: `Menu` with a primary action, which macOS draws as
+    /// one chip with a divider and a chevron. The chip takes the system's
+    /// bordered look rather than the prominent fill (the style is not
+    /// honored on macOS), which is the standard rendering of this control.
+    /// Picking an item only changes which meeting is current; Join is
+    /// still the single way to join.
+    @ViewBuilder
+    private var joinControl: some View {
+        if alternatives.count > 1 {
+            Menu {
+                Picker(selection: chosenID) {
+                    ForEach(alternatives) { candidate in
+                        // Menu items are one line on macOS (a VStack
+                        // collapses to its first Text), so the time range
+                        // rides along after the title, as in the menu bar's
+                        // chooser, keeping same-named calls tellable apart.
+                        Text(verbatim: "\(candidate.title)  \((candidate.startDate..<candidate.endDate).formatted(date: .omitted, time: .shortened))")
+                            .tag(candidate.id)
+                    }
+                } label: {
+                    EmptyView()
+                }
+                .pickerStyle(.inline)
+            } label: {
+                Text("Join")
+            } primaryAction: {
+                join()
+            }
+            .menuStyle(.button)
+            .help(String(localized: "Choose which meeting to join"))
+        } else {
+            Button(String(localized: "Join"), action: join)
+                .buttonStyle(.borderedProminent)
+        }
+    }
+
+    private var chosenID: Binding<NextMeeting.ID> {
+        Binding(
+            get: { meeting.id },
+            set: { id in
+                if let picked = alternatives.first(where: { $0.id == id }) { choose(picked) }
+            }
         )
     }
 }
