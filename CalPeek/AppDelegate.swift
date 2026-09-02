@@ -559,7 +559,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // Otherwise the single primary meeting keeps its one item.
         let joinable = nextMeeting.joinableMeetings
         if joinable.count > 1 {
-            joinable.forEach { menu.addItem(joinMenuItem(for: $0)) }
+            addJoinItems(joinable, to: menu)
             menu.addItem(.separator())
         } else if let meeting = nextMeeting.nextMeeting {
             menu.addItem(joinMenuItem(for: meeting))
@@ -730,11 +730,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    /// One "Join “Title”" item, subtitled with the meeting's time range so
+    /// One "Join Title" item, subtitled with the meeting's time range so
     /// same-named recurring calls stay tellable apart in the chooser.
     private func joinMenuItem(for meeting: NextMeeting) -> NSMenuItem {
         let item = NSMenuItem(
-            title: String(localized: "Join “\(meeting.title)”"),
+            title: String(localized: "Join \(meeting.title)"),
             action: #selector(joinChosenMeeting(_:)),
             keyEquivalent: ""
         )
@@ -745,6 +745,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         return item
     }
 
+    /// Adds one join item per meeting, separated so each title-plus-time
+    /// pair reads as its own entry rather than four lines of similar text.
+    private func addJoinItems(_ meetings: [NextMeeting], to menu: NSMenu) {
+        for (index, meeting) in meetings.enumerated() {
+            if index > 0 { menu.addItem(.separator()) }
+            menu.addItem(joinMenuItem(for: meeting))
+        }
+    }
+
     /// The pill's ambiguity menu: one join item per currently joinable
     /// meeting. Shown from the status item the same borrowed way as the
     /// context menu, then detached so left-clicks keep reaching
@@ -752,7 +761,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func showJoinChooser(_ meetings: [NextMeeting]) {
         let menu = NSMenu()
         menu.autoenablesItems = false
-        meetings.forEach { menu.addItem(joinMenuItem(for: $0)) }
+        addJoinItems(meetings, to: menu)
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil

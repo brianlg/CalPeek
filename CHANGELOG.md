@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- When several meetings can be joined at once, the chooser menu separates
+  each meeting with a divider and drops the quotation marks around meeting
+  names.
 - The menu bar icon now behaves like system menu bar items: the calendar
   opens on press, and the icon stays highlighted the whole time it is
   open, with no flicker in between.
