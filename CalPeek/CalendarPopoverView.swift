@@ -796,7 +796,7 @@ private struct DayEventsPopover: View {
                 mode = .create
             } label: {
                 plusGlyph
-                    .frame(width: 24, height: 24)
+                    .frame(width: 20, height: 20)
                     .background(Circle().fill(Color.primary.opacity(plusHovered ? 0.14 : 0.08)))
                     .contentShape(Circle())
             }
@@ -859,56 +859,44 @@ private struct ItemRow: View {
     }
 
     var body: some View {
-        // The join and open buttons sit outside the leading content so they
-        // center against the full row height. The content aligns on the first
-        // text baseline: the 12 pt glyph next to 13 pt title text would sit
-        // visibly high if their boxes were merely top-aligned, and a symbol
-        // on the title's baseline is optically centered with the first line.
+        // Everything centers against the full row height, so the glyph sits
+        // at the vertical middle of a two-line row rather than hugging the
+        // title. Trailing order is open-in-app then join: join is the row's
+        // primary action, so it holds the rightmost slot whenever present,
+        // and open-in-app (hover-only) slides in beside it.
         HStack(spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                switch item.kind {
-                case .event:
-                    // Same glyph metrics as the reminder checkbox below so the
-                    // two dot styles line up in a mixed list.
-                    Image(systemName: "circle.fill")
+            switch item.kind {
+            case .event:
+                // Same glyph metrics as the reminder checkbox below so the
+                // two dot styles line up in a mixed list.
+                Image(systemName: "circle.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(tint)
+            case .reminder(let isCompleted, let reminderID):
+                Button {
+                    model.setReminderCompleted(reminderID, !isCompleted)
+                } label: {
+                    Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
                         .font(.system(size: 12))
                         .foregroundStyle(tint)
-                case .reminder(let isCompleted, let reminderID):
-                    Button {
-                        model.setReminderCompleted(reminderID, !isCompleted)
-                    } label: {
-                        Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
-                            .font(.system(size: 12))
-                            .foregroundStyle(tint)
-                    }
-                    .buttonStyle(.plain)
-                    .help(isCompleted
-                        ? String(localized: "Mark reminder incomplete")
-                        : String(localized: "Mark reminder complete"))
                 }
-
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(verbatim: item.title)
-                        .font(.system(size: 13))
-                        .foregroundStyle(isCompletedReminder ? .secondary : .primary)
-                        .lineLimit(2)
-                    Text(verbatim: item.timeText)
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer(minLength: 0)
+                .buttonStyle(.plain)
+                .help(isCompleted
+                    ? String(localized: "Mark reminder incomplete")
+                    : String(localized: "Mark reminder complete"))
             }
 
-            if let url = item.joinURL {
-                HoverIconButton(
-                    systemName: "video.fill",
-                    tint: accent,
-                    help: String(localized: "Join meeting")
-                ) {
-                    NSWorkspace.shared.open(url)
-                }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: item.title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isCompletedReminder ? .secondary : .primary)
+                    .lineLimit(2)
+                Text(verbatim: item.timeText)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
             }
+
+            Spacer(minLength: 0)
 
             HoverIconButton(
                 systemName: "arrow.up.forward.app",
@@ -920,6 +908,16 @@ private struct ItemRow: View {
             // Fades rather than inserts so revealing it never reflows
             // the row.
             .opacity(isHovered ? 1 : 0)
+
+            if let url = item.joinURL {
+                HoverIconButton(
+                    systemName: "video.fill",
+                    tint: accent,
+                    help: String(localized: "Join meeting")
+                ) {
+                    NSWorkspace.shared.open(url)
+                }
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -1074,7 +1072,7 @@ private struct HoverIconButton: View {
             Image(systemName: systemName)
                 .font(.system(size: 11))
                 .foregroundStyle(tint)
-                .frame(width: 20, height: 20)
+                .frame(width: 24, height: 24)
                 // Sits atop the row's own faint hover wash, so it's a step
                 // stronger to read as a distinct control.
                 .background(Circle().fill(Color.primary.opacity(isHovered ? 0.12 : 0)))
