@@ -382,8 +382,8 @@ struct CalendarPopoverView: View {
         .padding(.trailing, Layout.weekNumberTrailingGap)
     }
 
-    /// The week number with its chip. Precedence: selected (system
-    /// selection color, like a selected row in Calendar.app's sidebar) over
+    /// The week number with its chip. Precedence: selected (the user's
+    /// accent color at full strength, like a selected menu item) over
     /// current week or hovered (the header controls' grey fill) over plain
     /// dim text. The chip is drawn with negative insets so it hugs the digits
     /// without affecting layout, and every state shares one text frame so
@@ -401,7 +401,7 @@ struct CalendarPopoverView: View {
                 if isChipped {
                     RoundedRectangle(cornerRadius: 5, style: .continuous)
                         .fill(isSelected
-                              ? Color(nsColor: .selectedContentBackgroundColor)
+                              ? Color(nsColor: .controlAccentColor)
                               : Layout.navChipFill)
                         .padding(.horizontal, -4)
                         .padding(.vertical, -2)
