@@ -2444,6 +2444,11 @@ private struct NextMeetingBanner: View {
                 join()
             }
             .menuStyle(.button)
+            // The menu's contents are built once and reused between opens,
+            // which leaves the picker's checkmark on the previous pick even
+            // though the banner already shows the new one; keying the menu
+            // on the current meeting rebuilds it after each choice.
+            .id(meeting.id)
             .help(String(localized: "Choose which meeting to join"))
         } else {
             Button(String(localized: "Join"), action: join)
