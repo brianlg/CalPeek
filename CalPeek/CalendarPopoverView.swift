@@ -37,6 +37,10 @@ struct CalendarPopoverView: View {
         static let weekNumberTrailingGap: CGFloat = 11
         /// Dim tone shared by out-of-month day numbers and the week numbers.
         static let dimmedText = Color.primary.opacity(0.25)
+        /// How far the hovered/selected week wash extends past the content
+        /// margin on the left, so the week chip has air on that side while
+        /// its own edge stays on the margin with the month title.
+        static let weekRowWashLeadingOverhang: CGFloat = 8
     }
     
     // MARK: - State
@@ -56,6 +60,11 @@ struct CalendarPopoverView: View {
     @State private var selectedDate: Date?
     /// The day currently under the pointer, for the hover highlight.
     @State private var hoveredDate: Date?
+    /// Grid row of the week-number chip under the pointer, for the row wash.
+    @State private var hoveredWeekRow: Int?
+    /// Grid row whose week number was clicked; its row stays washed and the
+    /// chip takes the selection color until clicked again or the month moves.
+    @State private var selectedWeekRow: Int?
 
     /// Honors the system Reduce Motion setting (HIG requirement): month
     /// changes swap the slide-in grid transition for a plain crossfade.
@@ -139,12 +148,16 @@ struct CalendarPopoverView: View {
             monthOffset = 0
             selectedDate = nil
             hoveredDate = nil
+            selectedWeekRow = nil
+            hoveredWeekRow = nil
             isFocused = true
             events.load(days: monthDays, calendar: calendar)
         }
         .onChange(of: monthOffset) {
             selectedDate = nil
             hoveredDate = nil
+            selectedWeekRow = nil
+            hoveredWeekRow = nil
             events.load(days: monthDays, calendar: calendar)
         }
         // A popover left open across midnight (or restored on wake) would keep
@@ -335,6 +348,11 @@ struct CalendarPopoverView: View {
         // taller than the day-number text they center on): clip the sides
         // tight but give the mask vertical slack.
         .mask(Rectangle().padding(.vertical, -Layout.dayCircleSize / 2))
+        // The washes sit outside the slide mask: they belong to the row, not
+        // the month (selection resets on month change), and they reach into
+        // the leading margin so the chip gets air on its left, which the
+        // mask would otherwise clip.
+        .background { weekRowWashes.padding(.leading, -Layout.weekRowWashLeadingOverhang) }
     }
 
     /// Full width the gutter adds ahead of the day columns: the number
@@ -345,34 +363,88 @@ struct CalendarPopoverView: View {
 
     /// Right-justified week-of-year numbers, one per row, in the same dim
     /// tone as out-of-month day numbers so the gutter reads as secondary.
-    /// The current week's number brightens to the in-month day color.
+    /// The current week's number brightens on a grey chip; hovering any
+    /// number gives it the same chip, and clicking one selects the week.
     private var weekNumberGutter: some View {
         VStack(spacing: 0) {
             ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
-                Text(verbatim: String(weekNumber(forRow: row)))
-                    .font(.system(size: 11))
-                    .foregroundStyle(isCurrentWeek(row: row) ? Color.primary : Layout.dimmedText)
-                    .background {
-                        // Chip behind the current week, in the header
-                        // controls' grey fill. Drawn with negative insets so
-                        // it hugs the digits without affecting layout.
-                        if isCurrentWeek(row: row) {
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(Layout.navChipFill)
-                                .padding(.horizontal, -4)
-                                .padding(.vertical, -2)
-                        }
-                    }
+                weekNumberChip(row: row)
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .frame(height: Layout.rowHeight)
                     // Center against the day numerals, not the full row:
                     // each cell reserves a dot strip under its digit, so
                     // the row's optical center sits above its geometric one.
                     .offset(y: -(Layout.eventDotSize + Layout.eventDotSpacing) / 2)
+                    .contentShape(Rectangle())
+                    .onTapGesture { toggleWeekSelection(row) }
+                    .onHover { hovering in
+                        if hovering {
+                            hoveredWeekRow = row
+                        } else if hoveredWeekRow == row {
+                            hoveredWeekRow = nil
+                        }
+                    }
             }
         }
         .frame(width: Layout.weekNumberWidth)
         .padding(.trailing, Layout.weekNumberTrailingGap)
+    }
+
+    /// The week number with its chip. Precedence: selected (the user's
+    /// accent color at full strength, like a selected menu item) over
+    /// current week or hovered (the header controls' grey fill) over plain
+    /// dim text. The chip is drawn with negative insets so it hugs the digits
+    /// without affecting layout, and every state shares one text frame so
+    /// they swap without shifting the column.
+    private func weekNumberChip(row: Int) -> some View {
+        let isSelected = selectedWeekRow == row
+        let isChipped = isSelected || isCurrentWeek(row: row) || hoveredWeekRow == row
+        let text: Color = isSelected
+            ? Color(nsColor: .alternateSelectedControlTextColor)
+            : (isChipped ? Color.primary : Layout.dimmedText)
+        return Text(verbatim: String(weekNumber(forRow: row)))
+            .font(.system(size: 11))
+            .foregroundStyle(text)
+            .background {
+                if isChipped {
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(isSelected
+                              ? Color(nsColor: .controlAccentColor)
+                              : Layout.navChipFill)
+                        .padding(.horizontal, -4)
+                        .padding(.vertical, -2)
+                }
+            }
+            .animation(.easeOut(duration: 0.12), value: isChipped)
+            .animation(.easeOut(duration: 0.12), value: isSelected)
+    }
+
+    /// Faint wash across the hovered and selected week rows, spanning the
+    /// gutter and all seven day columns. Sits behind the grid so the day
+    /// highlights and dots draw on top of it.
+    private var weekRowWashes: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
+                let washed = showWeekNumbers && (selectedWeekRow == row || hoveredWeekRow == row)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(washed ? Layout.navChipFill : Color.clear)
+                    .frame(height: Layout.rowHeight)
+                    .animation(.easeOut(duration: 0.12), value: washed)
+            }
+        }
+        // Every day element (digits, today/selection circles, the week
+        // chip) is centered on the digit, which sits above the row's
+        // geometric center because each cell reserves a dot strip below it.
+        // Anchor the wash to the same optical center so it frames the
+        // circles evenly instead of exposing the offset.
+        .offset(y: -(Layout.eventDotSize + Layout.eventDotSpacing) / 2)
+    }
+
+    /// Selecting a week is exclusive with selecting a day: whichever the
+    /// user clicks last wins, so the grid never shows two selections.
+    private func toggleWeekSelection(_ row: Int) {
+        selectedDate = nil
+        selectedWeekRow = selectedWeekRow == row ? nil : row
     }
 
     /// Week-of-year for the given grid row, from the user's calendar so the
@@ -481,6 +553,7 @@ struct CalendarPopoverView: View {
     // MARK: - Day selection
 
     private func toggleSelection(_ date: Date) {
+        selectedWeekRow = nil
         selectedDate = isSameDay(selectedDate, date) ? nil : date
     }
 

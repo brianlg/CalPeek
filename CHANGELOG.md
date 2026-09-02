@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   color instead of the weekday color, for quieter menu bars.
 - A Show week numbers option (Settings > General, off by default) that
   adds week-of-year numbers along the left of the month view, with the
-  current week highlighted.
+  current week highlighted. Hover a week number to light up its row, and
+  click it to keep that week selected; click again to clear it.
 
 ### Changed
 
