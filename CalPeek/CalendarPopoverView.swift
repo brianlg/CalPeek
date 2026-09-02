@@ -424,6 +424,12 @@ struct CalendarPopoverView: View {
                     .animation(.easeOut(duration: 0.12), value: washed)
             }
         }
+        // Every day element (digits, today/selection circles, the week
+        // chip) is centered on the digit, which sits above the row's
+        // geometric center because each cell reserves a dot strip below it.
+        // Anchor the wash to the same optical center so it frames the
+        // circles evenly instead of exposing the offset.
+        .offset(y: -(Layout.eventDotSize + Layout.eventDotSpacing) / 2)
     }
 
     /// Selecting a week is exclusive with selecting a day: whichever the
