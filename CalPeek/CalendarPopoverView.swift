@@ -37,6 +37,10 @@ struct CalendarPopoverView: View {
         static let weekNumberTrailingGap: CGFloat = 11
         /// Dim tone shared by out-of-month day numbers and the week numbers.
         static let dimmedText = Color.primary.opacity(0.25)
+        /// How far the hovered/selected week wash extends past the content
+        /// margin on the left, so the week chip has air on that side while
+        /// its own edge stays on the margin with the month title.
+        static let weekRowWashLeadingOverhang: CGFloat = 8
     }
     
     // MARK: - State
@@ -335,7 +339,6 @@ struct CalendarPopoverView: View {
             // See weekdayRow: keeps the day columns at their no-gutter width.
             .frame(maxWidth: .infinity)
         }
-        .background { weekRowWashes }
         // Re-identify per month so the transition plays on change.
         .id(monthOffset)
         .transition(monthTransition)
@@ -345,6 +348,11 @@ struct CalendarPopoverView: View {
         // taller than the day-number text they center on): clip the sides
         // tight but give the mask vertical slack.
         .mask(Rectangle().padding(.vertical, -Layout.dayCircleSize / 2))
+        // The washes sit outside the slide mask: they belong to the row, not
+        // the month (selection resets on month change), and they reach into
+        // the leading margin so the chip gets air on its left, which the
+        // mask would otherwise clip.
+        .background { weekRowWashes.padding(.leading, -Layout.weekRowWashLeadingOverhang) }
     }
 
     /// Full width the gutter adds ahead of the day columns: the number
