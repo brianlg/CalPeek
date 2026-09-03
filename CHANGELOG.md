@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- In the day list, events now show a calendar glyph inside their colored
+  dot, and reminder rings are drawn thicker, matching the Calendar app on
+  iOS and Mac.
 - Clicking the red Join pill in the menu bar now opens a menu instead of
   joining immediately: one Join item per meeting that can be joined right
   now, plus Show CalPeek to open the calendar without joining anything.

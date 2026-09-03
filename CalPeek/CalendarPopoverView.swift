@@ -935,6 +935,11 @@ private struct ItemRow: View {
         case span, confirm
     }
 
+    /// Shared metrics for the leading glyph so the event disc and the
+    /// reminder ring render in the same SF Symbols enclosure.
+    private static let glyphSize: CGFloat = 14
+    private static let glyphWeight: Font.Weight = .bold
+
     var body: some View {
         // Everything centers against the full row height, so the glyph sits
         // at the vertical middle of a two-line row rather than hugging the
@@ -944,17 +949,26 @@ private struct ItemRow: View {
         HStack(spacing: 8) {
             switch item.kind {
             case .event:
-                // Same glyph metrics as the reminder checkbox below so the
-                // two dot styles line up in a mixed list.
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 12))
-                    .foregroundStyle(tint)
+                // iOS Calendar's list glyph: a filled disc with a calendar
+                // cut out of it. Palette rendering paints the cutout white
+                // and the disc in the calendar's color. Same symbol size and
+                // weight as the reminder checkbox below so the two glyphs
+                // share an enclosure and line up in a mixed list.
+                Image(systemName: "calendar.circle.fill")
+                    .font(.system(size: Self.glyphSize, weight: Self.glyphWeight))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, tint)
             case .reminder(let isCompleted, let reminderID):
                 Button {
                     model.setReminderCompleted(reminderID, !isCompleted)
                 } label: {
+                    // Reminders' ring is not a public control; the closest
+                    // first-party primitive is the `circle` symbol, whose
+                    // stroke thickens with symbol weight. Bold brings it to
+                    // the ~1.5pt ring Calendar and Reminders draw at this
+                    // size, versus the hairline the regular weight gives.
                     Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
-                        .font(.system(size: 12))
+                        .font(.system(size: Self.glyphSize, weight: Self.glyphWeight))
                         .foregroundStyle(tint)
                 }
                 .buttonStyle(.plain)
