@@ -983,10 +983,14 @@ private struct ItemRow: View {
                     : String(localized: "Mark reminder complete"))
             }
 
-            Text(verbatim: item.title)
-                .font(.system(size: 13))
-                .foregroundStyle(isCompletedReminder ? .secondary : .primary)
-                .lineLimit(1)
+            // An AppKit label rather than Text so a truncated title reveals
+            // its full text on hover, the system's expansion tooltip, the
+            // way the Calendar app's list does. It appears only when the
+            // title is actually cut off, so untruncated rows stay quiet.
+            TruncatingLabel(
+                text: item.title,
+                color: isCompletedReminder ? .secondaryLabelColor : .labelColor
+            )
 
             HoverIconButton(
                 systemName: "arrow.up.forward.app",
@@ -1153,6 +1157,47 @@ private struct ItemRow: View {
     private var isCompletedReminder: Bool {
         if case .reminder(let isCompleted, _) = item.kind { return isCompleted }
         return false
+    }
+}
+
+/// Single-line 13 pt label that truncates with an ellipsis and shows the
+/// full text as an expansion tooltip when, and only when, it is truncated —
+/// `NSTextField.allowsExpansionToolTips`, which SwiftUI's `Text` does not
+/// expose on macOS. Clicks pass through to whatever SwiftUI gesture sits
+/// beneath, so it can carry a row's title without eating its tap.
+private struct TruncatingLabel: NSViewRepresentable {
+    let text: String
+    let color: NSColor
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = PassthroughTextField(labelWithString: text)
+        field.font = .systemFont(ofSize: 13)
+        field.lineBreakMode = .byTruncatingTail
+        field.maximumNumberOfLines = 1
+        field.allowsExpansionToolTips = true
+        // Yield to the row's trailing content (time or Join) instead of
+        // pushing it off the edge; the label is what truncates.
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        field.stringValue = text
+        field.textColor = color
+    }
+
+    /// Natural width, capped at what the row offers: a short title hugs its
+    /// text so the open-in button follows it, and a long one truncates
+    /// instead of taking the whole row (a representable otherwise fills its
+    /// proposal).
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView field: NSTextField, context: Context) -> CGSize? {
+        let natural = field.intrinsicContentSize
+        return CGSize(width: min(natural.width, proposal.width ?? natural.width), height: natural.height)
+    }
+
+    /// Invisible to hit testing so the row's tap gesture sees the click.
+    private final class PassthroughTextField: NSTextField {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }
 
