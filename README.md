@@ -21,7 +21,7 @@ your next meeting. Free and open source.</p>
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/day-dark.png">
-<img src="docs/images/day-light.png" width="393" alt="CalPeek's popover showing the next meeting with a Join button, an August month grid with event dots, and a day agenda listing events and reminders">
+<img src="docs/images/day-light.png" width="422" alt="CalPeek's popover showing the next meeting with a Join button, a month grid with event dots, and a day agenda listing events and reminders">
 </picture>
 
 </td>
@@ -32,7 +32,7 @@ your next meeting. Free and open source.</p>
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/day-dark.png">
-<img src="docs/images/day-light.png" width="373" align="right" alt="CalPeek&apos;s popover with the August grid open and a day panel listing Team standup, Design review, Lunch with Sam and Portfolio review with their times">
+<img src="docs/images/day-light.png" width="422" align="right" alt="CalPeek&apos;s popover with the month grid open and a day panel listing Team standup, Lunch with Sam, Design review, a Submit timesheet reminder and Portfolio review with their times">
 </picture>
 
 The menu bar glyph shows the weekday and the day of the month, and it stays
@@ -51,7 +51,7 @@ leaving the popover.
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/join-dark.png">
-<img src="docs/images/join-light.png" width="362" align="right" alt="CalPeek&apos;s popover with the next meeting pinned at the top, showing a countdown and a Join button">
+<img src="docs/images/join-light.png" width="355" align="right" alt="CalPeek&apos;s popover with the next meeting pinned at the top, showing a countdown and a Join button">
 </picture>
 
 CalPeek finds the video link in your next meeting and puts a Join button at
@@ -63,11 +63,27 @@ and a global hotkey joins it without opening anything.
 
 <br clear="all">
 
+## When two calls collide
+
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/images/chooser-dark.png">
+<img src="docs/images/chooser-light.png" width="355" align="right" alt="CalPeek&apos;s popover with a meeting running and the Join button carrying a chevron for choosing between overlapping calls">
+</picture>
+
+Double-booked, or still in one call while the next one starts? The Join button
+grows a chevron listing every meeting you could walk into right now, with the
+one you are in already checked.
+
+Pick another and the banner, the menu bar, and the join shortcut all follow it,
+so the hotkey takes you to the call you actually meant.
+
+<br clear="all">
+
 ## Create in seconds
 
 <picture>
 <source media="(prefers-color-scheme: dark)" srcset="docs/images/create-dark.png">
-<img src="docs/images/create-light.png" width="360" align="right" alt="CalPeek&apos;s create sheet with Event and Reminder tabs, a title reading Coffee with Dana, start and end times, repeat, and alert fields">
+<img src="docs/images/create-light.png" width="422" align="right" alt="CalPeek&apos;s create sheet with Event and Reminder tabs, a title reading Coffee with Dana, start and end times, repeat, and alert fields">
 </picture>
 
 Pick a day, hit +, type. Events and reminders both, with times, repeat rules,
