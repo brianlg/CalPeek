@@ -392,18 +392,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         if NSApp.currentEvent?.type == .rightMouseUp {
             showContextMenu()
         } else if case .joinable = nextMeeting.menuBarState {
-            // The joinable pill's contract: a click joins immediately, no
-            // popover detour — unless more than one meeting is joinable
-            // right now, where silently picking one would join the wrong
-            // call as often as not. The chooser lists them all.
-            // (Popover-toggling left clicks never reach this action; the
-            // mouse-down monitor in `configureStatusItem` claims them.)
-            let joinable = nextMeeting.joinableMeetings
-            if joinable.count > 1 {
-                showJoinChooser(joinable)
-            } else {
-                nextMeeting.joinNextMeeting()
-            }
+            // The joinable pill always opens its menu, one meeting or five:
+            // a join item per joinable meeting plus a way into the popover,
+            // so the pill never forces a join on someone who only wanted
+            // the calendar. One rule the user can trust beats a click that
+            // sometimes joins and sometimes asks; the hotkey remains the
+            // one-keystroke join. (Popover-toggling left clicks never reach
+            // this action; the mouse-down monitor in `configureStatusItem`
+            // claims them.)
+            showJoinChooser(nextMeeting.joinableMeetings)
         }
     }
 
@@ -741,7 +738,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         item.subtitle = (meeting.startDate..<meeting.endDate)
             .formatted(date: .omitted, time: .shortened)
         item.target = self
-        item.representedObject = meeting.link.url
+        item.representedObject = meeting.id
         return item
     }
 
@@ -754,22 +751,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    /// The pill's ambiguity menu: one join item per currently joinable
-    /// meeting. Shown from the status item the same borrowed way as the
-    /// context menu, then detached so left-clicks keep reaching
+    /// The pill's menu: one join item per currently joinable meeting, then
+    /// "Show CalPeek" for the popover the pill otherwise stands in front
+    /// of. Shown from the status item the same borrowed way as the context
+    /// menu, then detached so left-clicks keep reaching
     /// `statusItemClicked(_:)`.
     private func showJoinChooser(_ meetings: [NextMeeting]) {
         let menu = NSMenu()
         menu.autoenablesItems = false
         addJoinItems(meetings, to: menu)
+        menu.addItem(.separator())
+        let show = NSMenuItem(
+            title: String(localized: "Show CalPeek"),
+            action: #selector(showPopoverFromMenu),
+            keyEquivalent: ""
+        )
+        show.target = self
+        menu.addItem(show)
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
     }
 
+    /// Joining from a menu also makes that meeting the current one, so the
+    /// banner and the menu bar follow the user's pick instead of the model's.
     @objc private func joinChosenMeeting(_ sender: NSMenuItem) {
-        guard let url = sender.representedObject as? URL else { return }
-        NSWorkspace.shared.open(url)
+        guard let id = sender.representedObject as? NextMeeting.ID else { return }
+        nextMeeting.join(id: id)
+    }
+
+    /// The menu has already closed by the time its action runs, so showing
+    /// the popover here is the same as a plain glyph click.
+    @objc private func showPopoverFromMenu() {
+        guard !popover.isShown else { return }
+        togglePopover(statusItem.button)
     }
 
     @objc private func openSettings() {

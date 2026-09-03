@@ -4,11 +4,18 @@ import Foundation
 
 /// The next joinable meeting: what the menu bar countdown, context menu, and
 /// popover banner all render from.
-struct NextMeeting {
+struct NextMeeting: Identifiable {
     let title: String
     let startDate: Date
     let endDate: Date
     let link: MeetingLink
+
+    /// Stable across refreshes so a user's chooser pick survives the next
+    /// EventKit recompute. Two meetings agreeing on all four fields are
+    /// indistinguishable to the user anyway.
+    var id: String {
+        "\(title)|\(startDate.timeIntervalSinceReferenceDate)|\(endDate.timeIntervalSinceReferenceDate)|\(link.url.absoluteString)"
+    }
 
     /// The join pill opens one minute before the start…
     static let joinLead: TimeInterval = 60
@@ -138,10 +145,28 @@ final class NextMeetingModel {
     private(set) var meetings: [NextMeeting] = []
 
     /// The meeting the menu bar, popover banner, and hotkey act on. With
-    /// overlapping meetings this is the `primary` one; the rest stay
-    /// reachable through `joinableMeetings`.
+    /// overlapping meetings this is the one the user picked in a
+    /// chooser (banner chevron or menu bar pill) while that pick is still
+    /// joinable, else the `primary` one;
+    /// the rest stay reachable through `joinableMeetings`.
     var nextMeeting: NextMeeting? {
-        NextMeeting.primary(of: meetings, at: Date())
+        let now = Date()
+        if let chosen = meetings.first(where: { $0.id == chosenMeetingID }), chosen.isJoinable(at: now) {
+            return chosen
+        }
+        return NextMeeting.primary(of: meetings, at: now)
+    }
+
+    /// The banner chooser's pick among overlapping meetings. Cleared once
+    /// that meeting drops out of the candidate list, so a stale pick can't
+    /// resurface on a same-named call later in the day.
+    private(set) var chosenMeetingID: NextMeeting.ID?
+
+    /// Makes `meeting` the one the banner, menu bar, and hotkey act on.
+    func choose(_ meeting: NextMeeting) {
+        chosenMeetingID = meeting.id
+        scheduleNextTransition()
+        onChange?()
     }
 
     /// Every meeting that could be joined right now — in its join window or
@@ -222,8 +247,19 @@ final class NextMeetingModel {
         NSWorkspace.shared.open(meeting.link.url)
     }
 
+    /// Joins the meeting with `id` and makes it the current one, so the
+    /// banner and menu bar reflect the call the user is actually in.
+    func join(id: NextMeeting.ID) {
+        guard let meeting = meetings.first(where: { $0.id == id }) else { return }
+        choose(meeting)
+        NSWorkspace.shared.open(meeting.link.url)
+    }
+
     func refresh() {
         meetings = computeMeetings()
+        if !meetings.contains(where: { $0.id == chosenMeetingID }) {
+            chosenMeetingID = nil
+        }
         scheduleNextTransition()
         onChange?()
     }

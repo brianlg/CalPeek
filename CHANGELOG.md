@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Clicking the red Join pill in the menu bar now opens a menu instead of
+  joining immediately: one Join item per meeting that can be joined right
+  now, plus Show CalPeek to open the calendar without joining anything.
+  The join hotkey is still the one-keystroke way in.
+- When several meetings can be joined at once, the Join button in the
+  calendar's next-meeting banner gains a chevron. Its menu lists the
+  meetings with their times; picking one makes it the meeting shown in the
+  banner and in the menu bar, and Join joins that one.
 - When several meetings can be joined at once, the chooser menu separates
   each meeting with a divider and drops the quotation marks around meeting
   names.
