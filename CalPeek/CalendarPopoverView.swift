@@ -792,7 +792,7 @@ private struct DayEventsPopover: View {
     }
 
     private enum Layout {
-        static let width: CGFloat = 240
+        static let width: CGFloat = 280
         static let formWidth: CGFloat = 280
         static let maxListHeight: CGFloat = 240
     }
@@ -860,6 +860,12 @@ private struct DayEventsPopover: View {
             // refitting the list. Sizing it to the measured row stack keeps
             // NSPopover's contentSize tracking the real list height.
             .frame(height: listHeight > 0 ? min(listHeight, Layout.maxListHeight) : nil)
+            // The rows carry their own inset for the hover highlight, so
+            // the list hangs out past the popover's padding by most of it;
+            // the glyphs then sit just inside the header's leading edge and
+            // the times just inside the "+", as menu rows do, instead of
+            // the two insets adding up.
+            .padding(.horizontal, -6)
         }
     }
 
@@ -935,26 +941,40 @@ private struct ItemRow: View {
         case span, confirm
     }
 
+    /// Shared metrics for the leading glyph so the event disc and the
+    /// reminder ring render in the same SF Symbols enclosure.
+    private static let glyphSize: CGFloat = 16
+    private static let glyphWeight: Font.Weight = .bold
+
     var body: some View {
-        // Everything centers against the full row height, so the glyph sits
-        // at the vertical middle of a two-line row rather than hugging the
-        // title. Trailing order is open-in-app then join: join is the row's
-        // primary action, so it holds the rightmost slot whenever present,
-        // and open-in-app (hover-only) slides in beside it.
-        HStack(spacing: 8) {
+        // Laid out like the Calendar app's list on iOS: glyph, title, and
+        // the time flush right — or, while the meeting can be joined, a
+        // Join button in the time's place. Open-in-app rides just after
+        // the title so it reads as the title's accessory, not the row's.
+        HStack(spacing: 6) {
             switch item.kind {
             case .event:
-                // Same glyph metrics as the reminder checkbox below so the
-                // two dot styles line up in a mixed list.
-                Image(systemName: "circle.fill")
-                    .font(.system(size: 12))
+                // iOS Calendar's list glyph: a filled disc with the calendar
+                // cut out of it. In the default monochrome rendering the
+                // cutout is transparent, so the popover background shows
+                // through — legible on any calendar color in either theme
+                // without picking a foreground. Same symbol size and weight
+                // as the reminder checkbox below so the two glyphs share an
+                // enclosure and line up in a mixed list.
+                Image(systemName: "calendar.circle.fill")
+                    .font(.system(size: Self.glyphSize, weight: Self.glyphWeight))
                     .foregroundStyle(tint)
             case .reminder(let isCompleted, let reminderID):
                 Button {
                     model.setReminderCompleted(reminderID, !isCompleted)
                 } label: {
+                    // Reminders' ring is not a public control; the closest
+                    // first-party primitive is the `circle` symbol, whose
+                    // stroke thickens with symbol weight. Bold brings it to
+                    // the ~1.5pt ring Calendar and Reminders draw at this
+                    // size, versus the hairline the regular weight gives.
                     Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
-                        .font(.system(size: 12))
+                        .font(.system(size: Self.glyphSize, weight: Self.glyphWeight))
                         .foregroundStyle(tint)
                 }
                 .buttonStyle(.plain)
@@ -963,17 +983,14 @@ private struct ItemRow: View {
                     : String(localized: "Mark reminder complete"))
             }
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: item.title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(isCompletedReminder ? .secondary : .primary)
-                    .lineLimit(2)
-                Text(verbatim: item.timeText)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 0)
+            // An AppKit label rather than Text so a truncated title reveals
+            // its full text on hover, the system's expansion tooltip, the
+            // way the Calendar app's list does. It appears only when the
+            // title is actually cut off, so untruncated rows stay quiet.
+            TruncatingLabel(
+                text: item.title,
+                color: isCompletedReminder ? .secondaryLabelColor : .labelColor
+            )
 
             HoverIconButton(
                 systemName: "arrow.up.forward.app",
@@ -986,17 +1003,28 @@ private struct ItemRow: View {
             // the row.
             .opacity(isHovered ? 1 : 0)
 
-            if let url = item.joinURL {
-                HoverIconButton(
-                    systemName: "video.fill",
-                    tint: accent,
-                    help: String(localized: "Join meeting")
-                ) {
-                    NSWorkspace.shared.open(url)
+            Spacer(minLength: 0)
+
+            // Re-evaluates each minute so a row flips to Join as its
+            // meeting's window opens, and back once the meeting ends.
+            TimelineView(.everyMinute) { context in
+                if let url = item.joinURL, let end = item.endDate,
+                   NextMeeting.isJoinable(start: item.sortDate, end: end, at: context.date) {
+                    Button(String(localized: "Join")) {
+                        NSWorkspace.shared.open(url)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .tint(accent)
+                    .help(String(localized: "Join meeting"))
+                } else {
+                    Text(verbatim: item.timeText)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
                 }
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 8)
         .padding(.vertical, 7)
         // Rounded hover highlight, like menu items in Control Center.
         .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(isHovered ? 0.08 : 0)))
@@ -1058,10 +1086,13 @@ private struct ItemRow: View {
     private func openInApp() {
         switch item.kind {
         case .event:
-            // Sandbox-safe plain activation: Calendar has no deep
-            // link to a date or event, and AppleScript navigation
-            // would need an Apple-events entitlement the App Store
-            // doesn't allow. In-popover editing covers the rest.
+            // Plain activation, by decision: Calendar has no deep link
+            // to a date or event (its `ical` scheme with a UID just opens
+            // the app), and its `view calendar at date` AppleScript would
+            // need a temporary-exception Apple Events entitlement plus a
+            // consent prompt on first use. Not worth the App Review
+            // exposure for a jump to the day; in-popover editing covers
+            // the rest.
             if let app = NSWorkspace.shared.urlForApplication(
                 withBundleIdentifier: "com.apple.iCal"
             ) {
@@ -1129,6 +1160,47 @@ private struct ItemRow: View {
     private var isCompletedReminder: Bool {
         if case .reminder(let isCompleted, _) = item.kind { return isCompleted }
         return false
+    }
+}
+
+/// Single-line 13 pt label that truncates with an ellipsis and shows the
+/// full text as an expansion tooltip when, and only when, it is truncated —
+/// `NSTextField.allowsExpansionToolTips`, which SwiftUI's `Text` does not
+/// expose on macOS. Clicks pass through to whatever SwiftUI gesture sits
+/// beneath, so it can carry a row's title without eating its tap.
+private struct TruncatingLabel: NSViewRepresentable {
+    let text: String
+    let color: NSColor
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = PassthroughTextField(labelWithString: text)
+        field.font = .systemFont(ofSize: 13)
+        field.lineBreakMode = .byTruncatingTail
+        field.maximumNumberOfLines = 1
+        field.allowsExpansionToolTips = true
+        // Yield to the row's trailing content (time or Join) instead of
+        // pushing it off the edge; the label is what truncates.
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        field.stringValue = text
+        field.textColor = color
+    }
+
+    /// Natural width, capped at what the row offers: a short title hugs its
+    /// text so the open-in button follows it, and a long one truncates
+    /// instead of taking the whole row (a representable otherwise fills its
+    /// proposal).
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView field: NSTextField, context: Context) -> CGSize? {
+        let natural = field.intrinsicContentSize
+        return CGSize(width: min(natural.width, proposal.width ?? natural.width), height: natural.height)
+    }
+
+    /// Invisible to hit testing so the row's tap gesture sees the click.
+    private final class PassthroughTextField: NSTextField {
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
     }
 }
 

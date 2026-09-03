@@ -86,7 +86,13 @@ struct NextMeeting: Identifiable {
     /// Broader than `isInJoinWindow` — a meeting that started twenty minutes
     /// ago can still be walked into.
     func isJoinable(at now: Date) -> Bool {
-        startDate.timeIntervalSince(now) <= Self.joinLead && endDate > now
+        Self.isJoinable(start: startDate, end: endDate, at: now)
+    }
+
+    /// The same window, for callers that only have dates — the day list's
+    /// rows decide their Join button by this so they agree with the banner.
+    static func isJoinable(start: Date, end: Date, at now: Date) -> Bool {
+        start.timeIntervalSince(now) <= Self.joinLead && end > now
     }
 
     /// The meeting the menu bar represents: one in its join window beats an
