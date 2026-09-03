@@ -1086,10 +1086,13 @@ private struct ItemRow: View {
     private func openInApp() {
         switch item.kind {
         case .event:
-            // Sandbox-safe plain activation: Calendar has no deep
-            // link to a date or event, and AppleScript navigation
-            // would need an Apple-events entitlement the App Store
-            // doesn't allow. In-popover editing covers the rest.
+            // Plain activation, by decision: Calendar has no deep link
+            // to a date or event (its `ical` scheme with a UID just opens
+            // the app), and its `view calendar at date` AppleScript would
+            // need a temporary-exception Apple Events entitlement plus a
+            // consent prompt on first use. Not worth the App Review
+            // exposure for a jump to the day; in-popover editing covers
+            // the rest.
             if let app = NSWorkspace.shared.urlForApplication(
                 withBundleIdentifier: "com.apple.iCal"
             ) {
