@@ -792,7 +792,7 @@ private struct DayEventsPopover: View {
     }
 
     private enum Layout {
-        static let width: CGFloat = 240
+        static let width: CGFloat = 280
         static let formWidth: CGFloat = 280
         static let maxListHeight: CGFloat = 240
     }
@@ -860,6 +860,12 @@ private struct DayEventsPopover: View {
             // refitting the list. Sizing it to the measured row stack keeps
             // NSPopover's contentSize tracking the real list height.
             .frame(height: listHeight > 0 ? min(listHeight, Layout.maxListHeight) : nil)
+            // The rows carry their own inset for the hover highlight, so
+            // the list hangs out past the popover's padding by most of it;
+            // the glyphs then sit just inside the header's leading edge and
+            // the times just inside the "+", as menu rows do, instead of
+            // the two insets adding up.
+            .padding(.horizontal, -6)
         }
     }
 
@@ -937,27 +943,27 @@ private struct ItemRow: View {
 
     /// Shared metrics for the leading glyph so the event disc and the
     /// reminder ring render in the same SF Symbols enclosure.
-    private static let glyphSize: CGFloat = 14
+    private static let glyphSize: CGFloat = 16
     private static let glyphWeight: Font.Weight = .bold
 
     var body: some View {
-        // Everything centers against the full row height, so the glyph sits
-        // at the vertical middle of a two-line row rather than hugging the
-        // title. Trailing order is open-in-app then join: join is the row's
-        // primary action, so it holds the rightmost slot whenever present,
-        // and open-in-app (hover-only) slides in beside it.
-        HStack(spacing: 8) {
+        // Laid out like the Calendar app's list on iOS: glyph, title, and
+        // the time flush right — or, while the meeting can be joined, a
+        // Join button in the time's place. Open-in-app rides just after
+        // the title so it reads as the title's accessory, not the row's.
+        HStack(spacing: 6) {
             switch item.kind {
             case .event:
-                // iOS Calendar's list glyph: a filled disc with a calendar
-                // cut out of it. Palette rendering paints the cutout white
-                // and the disc in the calendar's color. Same symbol size and
-                // weight as the reminder checkbox below so the two glyphs
-                // share an enclosure and line up in a mixed list.
+                // iOS Calendar's list glyph: a filled disc with the calendar
+                // cut out of it. In the default monochrome rendering the
+                // cutout is transparent, so the popover background shows
+                // through — legible on any calendar color in either theme
+                // without picking a foreground. Same symbol size and weight
+                // as the reminder checkbox below so the two glyphs share an
+                // enclosure and line up in a mixed list.
                 Image(systemName: "calendar.circle.fill")
                     .font(.system(size: Self.glyphSize, weight: Self.glyphWeight))
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, tint)
+                    .foregroundStyle(tint)
             case .reminder(let isCompleted, let reminderID):
                 Button {
                     model.setReminderCompleted(reminderID, !isCompleted)
@@ -977,17 +983,10 @@ private struct ItemRow: View {
                     : String(localized: "Mark reminder complete"))
             }
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(verbatim: item.title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(isCompletedReminder ? .secondary : .primary)
-                    .lineLimit(2)
-                Text(verbatim: item.timeText)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 0)
+            Text(verbatim: item.title)
+                .font(.system(size: 13))
+                .foregroundStyle(isCompletedReminder ? .secondary : .primary)
+                .lineLimit(1)
 
             HoverIconButton(
                 systemName: "arrow.up.forward.app",
@@ -1000,17 +999,28 @@ private struct ItemRow: View {
             // the row.
             .opacity(isHovered ? 1 : 0)
 
-            if let url = item.joinURL {
-                HoverIconButton(
-                    systemName: "video.fill",
-                    tint: accent,
-                    help: String(localized: "Join meeting")
-                ) {
-                    NSWorkspace.shared.open(url)
+            Spacer(minLength: 0)
+
+            // Re-evaluates each minute so a row flips to Join as its
+            // meeting's window opens, and back once the meeting ends.
+            TimelineView(.everyMinute) { context in
+                if let url = item.joinURL, let end = item.endDate,
+                   NextMeeting.isJoinable(start: item.sortDate, end: end, at: context.date) {
+                    Button(String(localized: "Join")) {
+                        NSWorkspace.shared.open(url)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .tint(accent)
+                    .help(String(localized: "Join meeting"))
+                } else {
+                    Text(verbatim: item.timeText)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
                 }
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 8)
         .padding(.vertical, 7)
         // Rounded hover highlight, like menu items in Control Center.
         .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(isHovered ? 0.08 : 0)))

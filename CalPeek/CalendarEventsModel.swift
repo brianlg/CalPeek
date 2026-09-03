@@ -33,6 +33,9 @@ struct DayItem: Identifiable, Sendable, Equatable {
     let sortsAsAllDay: Bool
     /// Event start or reminder due time, for ordering timed items.
     let sortDate: Date
+    /// Event end, which with `sortDate` decides whether the row shows Join.
+    /// Nil for reminders, which have no join window.
+    let endDate: Date?
 }
 
 /// Bridge to the user's calendars and reminders. Tracks which days in the
@@ -326,7 +329,8 @@ final class CalendarEventsModel {
                 isEditable: event.calendar.allowsContentModifications,
                 kind: .event,
                 sortsAsAllDay: event.isAllDay,
-                sortDate: event.startDate
+                sortDate: event.startDate,
+                endDate: event.endDate
             )
         }
     }
@@ -353,7 +357,8 @@ final class CalendarEventsModel {
                     isEditable: snapshot.isEditable,
                     kind: .reminder(isCompleted: snapshot.isCompleted, reminderID: snapshot.id),
                     sortsAsAllDay: !snapshot.hasDueTime,
-                    sortDate: snapshot.dueDate
+                    sortDate: snapshot.dueDate,
+                    endDate: nil
                 )
             }
     }
