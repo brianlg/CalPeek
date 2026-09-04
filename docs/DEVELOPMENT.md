@@ -49,6 +49,25 @@ Release's identity is fixed: its bundle ID, entitlements, signing, and
 version numbering must not change. A TestFlight build uses that **same**
 bundle ID and the same Release configuration — never a suffixed one.
 
+### One release copy per Mac
+
+macOS identifies an app by bundle ID, not by path, and every Release-flavored
+copy — App Store install, GitHub download, an export left under `build/`, a
+Release product in DerivedData — shares `com.briangibson.calpeek`. With two
+or more on disk, Launch Services, the Login Items entry, and TCC pick between
+them unpredictably, and it stops being clear which build is running. Keep
+exactly one, in `/Applications` (the App Store copy is the useful one to
+keep: TestFlight installs replace it in place, which doubles as an upgrade
+test). Debug builds never collide; day-to-day work happens there.
+
+```sh
+Scripts/tidy-release-copies.sh          # list every copy and what's running
+Scripts/tidy-release-copies.sh --clean  # quit and trash the strays
+```
+
+Xcode archives are exempt: they are the record of what shipped. Two copies
+inside `/Applications` are reported but left for you to choose between.
+
 ### Installing a dev build
 
 ```sh
