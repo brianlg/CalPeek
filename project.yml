@@ -6,7 +6,7 @@ options:
   createIntermediateGroups: true
 settings:
   base:
-    MARKETING_VERSION: "1.0"
+    MARKETING_VERSION: "1.1"
     # Set by Scripts/bump-build.sh to the repository's commit count — don't
     # edit by hand. Deriving it keeps both channels on the same number for the
     # same code, and keeps it monotonic, which is what Sparkle needs: it
