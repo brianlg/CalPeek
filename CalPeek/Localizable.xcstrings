@@ -63,7 +63,7 @@
     "Access is restricted on this Mac." : {
 
     },
-    "Adds the event name to the menu bar, shortened if it's long." : {
+    "Add the event name to the menu bar." : {
 
     },
     "Alert" : {
@@ -438,7 +438,7 @@
     "Show week numbers" : {
 
     },
-    "Shows a countdown to your next meeting next to the date." : {
+    "Shows a countdown to your next meeting." : {
 
     },
     "Starts" : {

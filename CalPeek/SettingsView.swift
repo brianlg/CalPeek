@@ -104,13 +104,13 @@ struct GeneralSettingsView: View {
                     Toggle(isOn: $showNextMeeting) {
                         rowLabel(
                             "Show in menu bar",
-                            help: "Shows a countdown to your next meeting next to the date."
+                            help: "Shows a countdown to your next meeting."
                         )
                     }
                     Toggle(isOn: $showMeetingTitle) {
                         rowLabel(
                             "Include meeting title",
-                            help: "Adds the event name to the menu bar, shortened if it's long."
+                            help: "Add the event name to the menu bar."
                         )
                     }
                     .disabled(!showNextMeeting)
