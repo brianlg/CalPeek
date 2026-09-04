@@ -114,7 +114,7 @@ struct CalendarPopoverView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
-            if let model = nextMeetingModel, let meeting = model.nextMeeting {
+            if let model = nextMeetingModel, let meeting = model.bannerMeeting {
                 NextMeetingBanner(
                     meeting: meeting,
                     alternatives: model.joinableMeetings,

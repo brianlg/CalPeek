@@ -86,17 +86,19 @@ struct GeneralSettingsView: View {
 
             Section {
                 Group {
-                    Toggle(String(localized: "Show next meeting in menu bar"), isOn: $showNextMeeting)
-                    Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
-                        .disabled(!showNextMeeting)
-                    Picker(String(localized: "Show when starting within"), selection: $leadWindowMinutes) {
+                    // The lead window governs the whole feature — the
+                    // popover banner as much as the menu bar — so it leads
+                    // the group and stays enabled when the menu bar is off.
+                    Picker(String(localized: "Show upcoming meeting within"), selection: $leadWindowMinutes) {
                         Text("10 minutes").tag(10)
                         Text("30 minutes").tag(30)
                         Text("1 hour").tag(60)
                         Text("4 hours").tag(240)
                         Text("Any time today").tag(0)
                     }
-                    .disabled(!showNextMeeting)
+                    Toggle(String(localized: "Show in menu bar"), isOn: $showNextMeeting)
+                    Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
+                        .disabled(!showNextMeeting)
                     Toggle(String(localized: "Join next meeting with ⌥⌘J"), isOn: $joinHotKeyEnabled)
                 }
                 // The next-meeting feature reads from the calendar, so it has

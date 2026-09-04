@@ -423,13 +423,13 @@
     "Show busy days at a glance, and open any day for the details." : {
 
     },
-    "Show next meeting in menu bar" : {
+    "Show in menu bar" : {
+
+    },
+    "Show upcoming meeting within" : {
 
     },
     "Show week numbers" : {
-
-    },
-    "Show when starting within" : {
 
     },
     "Starts" : {
