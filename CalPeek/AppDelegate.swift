@@ -553,12 +553,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // With several meetings joinable at once (back-to-backs, an overrun
         // call plus the next one), the menu is the chooser: one item each.
-        // Otherwise the single primary meeting keeps its one item.
+        // Otherwise the single primary meeting keeps its one item, once it
+        // is inside the lead window, like the popover banner.
         let joinable = nextMeeting.joinableMeetings
         if joinable.count > 1 {
             addJoinItems(joinable, to: menu)
             menu.addItem(.separator())
-        } else if let meeting = nextMeeting.nextMeeting {
+        } else if let meeting = nextMeeting.upcomingMeeting {
             menu.addItem(joinMenuItem(for: meeting))
             menu.addItem(.separator())
         }

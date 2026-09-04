@@ -9,8 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The next-meeting banner at the top of the calendar now follows the same
-  lead window as the menu bar, so a call that is hours away no longer sits
+- The next-meeting banner at the top of the calendar and the Join item in
+  the menu bar icon's right-click menu now follow the same lead window as
+  the menu bar countdown, so a call that is hours away no longer sits
   above the month view all day. The setting is renamed Show upcoming
   meeting within, leads the Next Meeting group in Settings, and works
   whether or not the menu bar countdown is on. Choose Any time today to

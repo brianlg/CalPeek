@@ -173,11 +173,12 @@ final class NextMeetingModel {
         return NextMeeting.primary(of: meetings, at: now)
     }
 
-    /// What the popover banner shows: `nextMeeting`, but only once it is
-    /// inside the lead window. The hotkey and context menu keep acting on
-    /// `nextMeeting` all day, since asking to join is explicit; the banner
-    /// is unbidden and shouldn't announce a call that is hours away.
-    var bannerMeeting: NextMeeting? {
+    /// What the popover banner and the context menu's Join item show:
+    /// `nextMeeting`, but only once it is inside the lead window. Those
+    /// surfaces are unbidden and shouldn't announce a call that is hours
+    /// away; the hotkey keeps acting on `nextMeeting` all day, since a
+    /// deliberate keystroke is a request to join whatever is next.
+    var upcomingMeeting: NextMeeting? {
         guard let meeting = nextMeeting,
               meeting.isWithinLeadWindow(at: Date(), leadWindowMinutes: Preferences.leadWindowMinutes)
         else { return nil }
