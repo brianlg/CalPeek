@@ -63,6 +63,9 @@
     "Access is restricted on this Mac." : {
 
     },
+    "Add the event name to the menu bar." : {
+
+    },
     "Alert" : {
 
     },
@@ -106,9 +109,6 @@
 
     },
     "CalPeek is ready. You can change any of this later in Settings." : {
-
-    },
-    "CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events." : {
 
     },
     "CalPeek needs full calendar access to show events." : {
@@ -249,6 +249,9 @@
     "Green" : {
 
     },
+    "How far ahead CalPeek starts showing your next meeting." : {
+
+    },
     "Include meeting title" : {
 
     },
@@ -342,6 +345,9 @@
     "Open in Reminders" : {
 
     },
+    "Opens the video link for your next meeting from anywhere. CalPeek finds links from Zoom, Google Meet, Teams, Webex, and most other services." : {
+
+    },
     "Orange" : {
 
     },
@@ -423,13 +429,16 @@
     "Show busy days at a glance, and open any day for the details." : {
 
     },
-    "Show next meeting in menu bar" : {
+    "Show in menu bar" : {
+
+    },
+    "Show upcoming meeting within" : {
 
     },
     "Show week numbers" : {
 
     },
-    "Show when starting within" : {
+    "Shows a countdown to your next meeting." : {
 
     },
     "Starts" : {

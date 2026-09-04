@@ -61,7 +61,7 @@ struct GeneralSettingsView: View {
 
             Section {
                 Toggle(isOn: $showCalendar) {
-                    toggleLabel(
+                    rowLabel(
                         "Show Calendar",
                         help: "We'll ask for Calendar access so you can see your events in the app. Tap one to check the details."
                     )
@@ -70,7 +70,7 @@ struct GeneralSettingsView: View {
                     handleShowCalendarChange(enabled)
                 }
                 Toggle(isOn: $showReminders) {
-                    toggleLabel(
+                    rowLabel(
                         "Show Reminders",
                         help: "We'll ask for Reminders access to show your date-specific reminders alongside your events, and you can check them off without leaving the app."
                     )
@@ -86,28 +86,46 @@ struct GeneralSettingsView: View {
 
             Section {
                 Group {
-                    Toggle(String(localized: "Show next meeting in menu bar"), isOn: $showNextMeeting)
-                    Toggle(String(localized: "Include meeting title"), isOn: $showMeetingTitle)
-                        .disabled(!showNextMeeting)
-                    Picker(String(localized: "Show when starting within"), selection: $leadWindowMinutes) {
+                    // The lead window governs the whole feature — the
+                    // popover banner as much as the menu bar — so it leads
+                    // the group and stays enabled when the menu bar is off.
+                    Picker(selection: $leadWindowMinutes) {
                         Text("10 minutes").tag(10)
                         Text("30 minutes").tag(30)
                         Text("1 hour").tag(60)
                         Text("4 hours").tag(240)
                         Text("Any time today").tag(0)
+                    } label: {
+                        rowLabel(
+                            "Show upcoming meeting within",
+                            help: "How far ahead CalPeek starts showing your next meeting."
+                        )
+                    }
+                    Toggle(isOn: $showNextMeeting) {
+                        rowLabel(
+                            "Show in menu bar",
+                            help: "Shows a countdown to your next meeting."
+                        )
+                    }
+                    Toggle(isOn: $showMeetingTitle) {
+                        rowLabel(
+                            "Include meeting title",
+                            help: "Add the event name to the menu bar."
+                        )
                     }
                     .disabled(!showNextMeeting)
-                    Toggle(String(localized: "Join next meeting with ⌥⌘J"), isOn: $joinHotKeyEnabled)
+                    Toggle(isOn: $joinHotKeyEnabled) {
+                        rowLabel(
+                            "Join next meeting with ⌥⌘J",
+                            help: "Opens the video link for your next meeting from anywhere. CalPeek finds links from Zoom, Google Meet, Teams, Webex, and most other services."
+                        )
+                    }
                 }
                 // The next-meeting feature reads from the calendar, so it has
                 // nothing to show until Show Calendar is on.
                 .disabled(!showCalendar)
             } header: {
                 Text("Next Meeting")
-            } footer: {
-                Text("CalPeek looks for Zoom, Google Meet, Teams, Webex, and other video links in today's events.")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -151,7 +169,7 @@ struct GeneralSettingsView: View {
 
     /// Toggle label with a caption underneath, matching the System Settings
     /// title-and-description row style.
-    private func toggleLabel(_ title: LocalizedStringKey, help: LocalizedStringKey) -> some View {
+    private func rowLabel(_ title: LocalizedStringKey, help: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
             Text(help)

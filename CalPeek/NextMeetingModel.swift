@@ -63,7 +63,7 @@ struct NextMeeting: Identifiable {
         if untilStart <= Self.joinLead {
             return .joinable(title: title)
         }
-        if leadWindowMinutes > 0, untilStart > Double(leadWindowMinutes) * 60 {
+        guard isWithinLeadWindow(at: now, leadWindowMinutes: leadWindowMinutes) else {
             return .hidden
         }
         return .countdown(
@@ -71,6 +71,16 @@ struct NextMeeting: Identifiable {
             time: shortCountdownText(at: now),
             isUrgent: untilStart <= Self.urgentThreshold
         )
+    }
+
+    /// Whether the meeting is close enough to announce: running, or starting
+    /// within the user's lead window (0 meaning any time today). The banner
+    /// and the menu bar agree on this so the one "Show upcoming meeting
+    /// within" setting means the same thing on both surfaces.
+    func isWithinLeadWindow(at now: Date, leadWindowMinutes: Int) -> Bool {
+        let untilStart = startDate.timeIntervalSince(now)
+        guard leadWindowMinutes > 0 else { return true }
+        return untilStart <= Double(leadWindowMinutes) * 60
     }
 
     /// Inside the joinable window around the start (and not over): the rung
@@ -161,6 +171,18 @@ final class NextMeetingModel {
             return chosen
         }
         return NextMeeting.primary(of: meetings, at: now)
+    }
+
+    /// What the popover banner and the context menu's Join item show:
+    /// `nextMeeting`, but only once it is inside the lead window. Those
+    /// surfaces are unbidden and shouldn't announce a call that is hours
+    /// away; the hotkey keeps acting on `nextMeeting` all day, since a
+    /// deliberate keystroke is a request to join whatever is next.
+    var upcomingMeeting: NextMeeting? {
+        guard let meeting = nextMeeting,
+              meeting.isWithinLeadWindow(at: Date(), leadWindowMinutes: Preferences.leadWindowMinutes)
+        else { return nil }
+        return meeting
     }
 
     /// The banner chooser's pick among overlapping meetings. Cleared once

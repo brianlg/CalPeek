@@ -32,6 +32,19 @@ struct NextMeetingStateTests {
         )
     }
 
+    // MARK: - Lead window (shared by the banner and the menu bar)
+
+    @Test func leadWindowAdmitsRunningAndImminentMeetings() {
+        let m = meeting()
+        #expect(!m.isWithinLeadWindow(at: Self.start.addingTimeInterval(-61 * 60), leadWindowMinutes: 60))
+        #expect(m.isWithinLeadWindow(at: Self.start.addingTimeInterval(-60 * 60), leadWindowMinutes: 60))
+        #expect(m.isWithinLeadWindow(at: Self.start.addingTimeInterval(10 * 60), leadWindowMinutes: 10))
+    }
+
+    @Test func aZeroLeadWindowAdmitsAnyMeetingToday() {
+        #expect(meeting().isWithinLeadWindow(at: Self.start.addingTimeInterval(-8 * 3600), leadWindowMinutes: 0))
+    }
+
     // MARK: - Ladder thresholds
 
     @Test func hiddenOutsideTheLeadWindow() {
