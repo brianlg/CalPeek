@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   meeting within, leads the Next Meeting group in Settings, and works
   whether or not the menu bar countdown is on. Choose Any time today to
   keep the banner up all day as before.
+- Each Next Meeting setting now carries a line explaining what it does,
+  matching the Permissions section.
 
 ## [1.1] - 2026-09-04
 
