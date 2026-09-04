@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1] - 2026-09-04
+
 ### Added
 
 - A welcome guide on first launch that introduces the app, offers Calendar
@@ -72,5 +74,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   glyph, event dots, day agendas, reminders with check-off, next-meeting
   countdown with a global join hotkey, color themes, and Launch at Login.
 
-[Unreleased]: https://github.com/brianlg/CalPeek/compare/v1.0...HEAD
+[Unreleased]: https://github.com/brianlg/CalPeek/compare/v1.1...HEAD
+[1.1]: https://github.com/brianlg/CalPeek/releases/tag/v1.1
 [1.0]: https://github.com/brianlg/CalPeek/releases/tag/v1.0
