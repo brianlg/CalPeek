@@ -11,7 +11,7 @@ settings:
     # edit by hand. Deriving it keeps both channels on the same number for the
     # same code, and keeps it monotonic, which is what Sparkle needs: it
     # compares CFBundleVersion to decide an update exists.
-    CURRENT_PROJECT_VERSION: "186"
+    CURRENT_PROJECT_VERSION: "209"
     SWIFT_VERSION: "6.0"
     # Extract localizable strings at compile time, not just the ones Xcode's
     # syntactic parser can see on a SwiftUI initializer. Without it, every
