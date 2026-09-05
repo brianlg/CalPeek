@@ -535,6 +535,9 @@
     "has events today" : {
 
     },
+    "in %@" : {
+
+    },
     "in %lldh %lldm" : {
       "localizations" : {
         "en" : {
