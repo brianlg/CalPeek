@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hover. Rows sit closer to the list's edges, and the list is a little
   wider to make room. Resting the pointer on a title that has been cut
   short shows the whole title, as in the Calendar app.
+- The menu bar reads "Portfolio review in 15m" again, and "Portfolio
+  review 12m left" once the meeting is running, without the dot that used
+  to separate the two. The time left is drawn a shade lighter than the
+  title so it stands apart without fading into the bar.
+- The agenda dots beside the menu bar day number sit a little further to
+  the right.
 - Clicking the red Join pill in the menu bar now opens a menu instead of
   joining immediately: one Join item per meeting that can be joined right
   now, plus Show CalPeek to open the calendar without joining anything.

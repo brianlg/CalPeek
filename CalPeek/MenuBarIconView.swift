@@ -22,7 +22,7 @@ struct MenuBarIconView: View {
         /// and aren't clipped by the rasterized image bounds. Must cover the
         /// dot plus `trailingGap`, which shifts the dot back into this space —
         /// too small and the dots collide with the day number.
-        static let inset: CGFloat = 10
+        static let inset: CGFloat = 12
         /// Holds the dots off the image's trailing edge, where the status
         /// item's countdown title begins. Without it the title butts up
         /// against the badge and the two read as one crowded blob.

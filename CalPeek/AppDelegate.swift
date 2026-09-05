@@ -668,7 +668,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             case let .countdown(title, time, isUrgent):
                 button.attributedTitle = Self.statusTitle(
                     title: title,
-                    time: time,
+                    time: String(localized: "in \(time)"),
                     timeColor: isUrgent ? .systemRed : .labelColor
                 )
                 button.toolTip = fullTitle ?? Self.idleToolTip
@@ -680,7 +680,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 button.attributedTitle = Self.statusTitle(
                     title: title,
                     time: remaining,
-                    timeColor: .secondaryLabelColor
+                    timeColor: Self.softenedLabelColor
                 )
                 button.toolTip = fullTitle ?? Self.idleToolTip
             }
@@ -690,9 +690,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         updateJoinHotKey()
     }
 
-    /// "Title · 15m" with the separator quieted and the time carrying the
-    /// state's one color. The model truncates the title and the whole time
-    /// phrase is always appended, so the time never clips before the title.
+    /// "Title in 15m" / "Title 12m left": the title in the label color, then
+    /// the time phrase in the state's one color, joined by a plain space. An
+    /// earlier cut used a " · " separator; it read as clutter at menu bar
+    /// size. The model truncates the title and the whole time phrase is
+    /// always appended, so the time never clips before the title.
     private static func statusTitle(
         title: String?,
         time: String,
@@ -701,13 +703,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         let font = NSFont.menuBarFont(ofSize: 0)
         let result = NSMutableAttributedString()
         if let title {
-            result.append(NSAttributedString(string: title, attributes: [
+            result.append(NSAttributedString(string: title + " ", attributes: [
                 .font: font,
                 .foregroundColor: NSColor.labelColor,
-            ]))
-            result.append(NSAttributedString(string: " · ", attributes: [
-                .font: font,
-                .foregroundColor: NSColor.secondaryLabelColor,
             ]))
         }
         result.append(NSAttributedString(string: time, attributes: [
@@ -715,6 +713,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             .foregroundColor: timeColor,
         ]))
         return result
+    }
+
+    /// The label color at 72% opacity, for the running state's "12m left".
+    /// Not `.secondaryLabelColor`: at menu bar size that drops to a grey that
+    /// reads as disabled next to the title. And not a plain
+    /// `labelColor.withAlphaComponent(_:)`: that snapshots the color for
+    /// whichever appearance is current when the title is built, so on a light
+    /// wallpaper -- where the bar flips to dark text -- the title went dark
+    /// while the time stayed white. A dynamic provider re-resolves it for the
+    /// appearance the status item is actually drawn in.
+    private static let softenedLabelColor = NSColor(name: nil) { appearance in
+        var color = NSColor.labelColor
+        appearance.performAsCurrentDrawingAppearance {
+            color = NSColor.labelColor.withAlphaComponent(0.72)
+        }
+        return color
     }
 
     private func updateJoinHotKey() {
