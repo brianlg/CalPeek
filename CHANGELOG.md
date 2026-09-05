@@ -52,12 +52,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   opens on press, and the icon stays highlighted the whole time it is
   open, with no flicker in between.
 - The next-meeting countdown in the menu bar now escalates through clear
-  states as a meeting approaches: a plain "Title · 15m" countdown inside
+  states as a meeting approaches: a plain "Title in 15m" countdown inside
   your lead window, the time turning red at five minutes, and, from one
   minute before the start until two minutes in, the whole item becoming a
   red Join button that joins the meeting in one click, without opening
   the calendar. While a meeting is running, the menu bar quietly shows
-  how much of it is left ("Title · 12m left"). Turning off Include
+  how much of it is left ("Title 12m left"). Turning off Include
   meeting title gives a compact look with just the time.
 - Overlapping meetings are no longer a coin flip. When more than one
   meeting can be joined right now, clicking the Join button opens a
