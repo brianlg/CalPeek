@@ -67,7 +67,7 @@ step "Checking the published appcast…"
 published=""
 if appcast="$(curl -fsSL --max-time 30 "$APPCAST_URL" 2>/dev/null)"; then
     published="$(printf '%s' "$appcast" \
-        | grep -o 'sparkle:version="[0-9][0-9]*"' \
+        | grep -oE 'sparkle:version="[0-9]+"|<sparkle:version>[0-9]+</sparkle:version>' \
         | tr -cd '0-9\n' \
         | sort -n | tail -1 || true)"
 fi
