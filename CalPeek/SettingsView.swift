@@ -153,7 +153,7 @@ struct GeneralSettingsView: View {
                 showCalendar = false
                 calendarDenied = true
                 calendarWriteOnly = true
-            case .denied, .restricted:
+            case .denied, .restricted, .failed:
                 showCalendar = false
                 calendarDenied = true
                 calendarWriteOnly = false
@@ -233,7 +233,7 @@ struct GeneralSettingsView: View {
             switch await RemindersAccess.enableShowReminders() {
             case .granted:
                 remindersDenied = false
-            case .denied, .writeOnly, .restricted:
+            case .denied, .writeOnly, .restricted, .failed:
                 showReminders = false
                 remindersDenied = true
             }
