@@ -264,6 +264,29 @@ hdiutil detach -quiet "$MOUNT"
 rmdir "$MOUNT"
 [ "$mounted_ok" -eq 1 ] || fail "the app inside $DMG is rejected by Gatekeeper"
 
+# --- README download links ----------------------------------------------------
+# The README links the disk image directly, which means the filename carries
+# the version: once a newer release becomes "latest", a link to the previous
+# DMG 404s. That is worse than a stale page link, and it is exactly the kind of
+# edit that gets forgotten at release time — so the release does it.
+step "Pointing the README at $version…"
+README="$ROOT/README.md"
+before="$(cat "$README")"
+# Both forms: the asset filename, and the human-readable link text.
+sed -i '' \
+    -e "s|CalPeek-[0-9][0-9.]*\.dmg|CalPeek-$version.dmg|g" \
+    -e "s|Download CalPeek [0-9][0-9.]*|Download CalPeek $version|g" \
+    "$README"
+if [ "$before" = "$(cat "$README")" ]; then
+    printf '   already points at %s\n' "$version"
+else
+    grep -q "CalPeek-$version.dmg" "$README" \
+        || fail "README rewrite produced no link to CalPeek-$version.dmg — check the link format"
+    git -C "$ROOT" add README.md
+    git -C "$ROOT" commit -q -m "Point the README download links at $version"
+    printf '   updated and committed — push before publishing the release\n'
+fi
+
 printf '\n\033[32mDone.\033[0m Release artifacts:\n'
 printf '  app      %s\n' "$APP"
 printf '  dmg      %s\n' "$DMG"

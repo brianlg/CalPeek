@@ -180,10 +180,20 @@ Scripts/release-direct.sh
 ```
 
 It archives `CalPeekDirect`, exports with Developer ID, notarizes and staples,
-then produces **two** containers and generates `appcast.xml` — finally printing
-the `gh release create` command. The appcast must ride on the **latest** GitHub
+then produces **two** containers and generates `appcast.xml`. It also rewrites
+the README's download links to the new version and commits that — the links
+name the disk image directly, so a stale one 404s as soon as a newer release
+becomes `latest`. Push that commit before publishing. Finally it prints the
+`gh release create` command. The appcast must ride on the **latest** GitHub
 release: the app's feed URL is
 `https://github.com/brianlg/CalPeek/releases/latest/download/appcast.xml`.
+
+Attach every asset the appcast names. Alongside the two containers,
+`generate_appcast` builds a binary **delta** from the last published build
+(`CalPeek<new>-<old>.delta`) and writes it into the appcast by name; leave it
+off the release and Sparkle requests it, gets a 404, and falls back to the
+full zip, so every existing user downloads megabytes instead of a few hundred
+kilobytes. The printed command includes any deltas it finds.
 
 Both containers hold the same stapled app and both must be attached to the
 release:

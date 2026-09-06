@@ -134,7 +134,8 @@ it, use all of it, keep it forever.
 [Download CalPeek 1.1](https://github.com/brianlg/CalPeek/releases/latest/download/CalPeek-1.1.dmg),
 open the `.dmg`, and drag CalPeek to your Applications folder. The build is
 signed and notarized, and it updates itself via
-[Sparkle](https://sparkle-project.org). CalPeek is also on the Mac App Store.
+[Sparkle](https://sparkle-project.org). CalPeek is also on the
+[Mac App Store](https://apps.apple.com/us/app/calpeek/id6794950422?mt=12).
 
 Every version is listed on the
 [Releases](https://github.com/brianlg/CalPeek/releases) page. The `.zip` and
