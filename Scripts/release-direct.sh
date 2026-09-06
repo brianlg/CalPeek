@@ -270,8 +270,17 @@ printf '  dmg      %s\n' "$DMG"
 printf '  zip      %s\n' "$ZIP"
 printf '  appcast  %s\n\n' "$OUT/appcast.xml"
 printf 'Publish with:\n'
-printf '  gh release create v%s "%s" "%s" "%s" --title "CalPeek %s"\n\n' \
-    "$version" "$DMG" "$ZIP" "$OUT/appcast.xml" "$version"
+# Delta updates are referenced by the appcast by name, so they must be
+# attached too. Left off, Sparkle requests the delta, gets a 404, and falls
+# back to the full zip -- every existing user then downloads ~3.3MB instead of
+# ~330KB, and the deltas generate_appcast just built are dead weight.
+deltas=""
+for d in "$UPDATES"/*.delta; do
+    [ -e "$d" ] || continue
+    deltas="$deltas \"$d\""
+done
+printf '  gh release create v%s "%s" "%s"%s "%s" --title "CalPeek %s"\n\n' \
+    "$version" "$DMG" "$ZIP" "$deltas" "$OUT/appcast.xml" "$version"
 printf 'The DMG is the download to link from the README; the zip is there for\n'
 printf 'Sparkle. The appcast must be attached to the *latest* release: the app\n'
 printf 'reads releases/latest/download/appcast.xml.\n'
