@@ -148,12 +148,32 @@ stamps it on the App Store submission, overriding the project's value — which
 puts the two channels permanently out of step. If it is ever turned back on,
 this scheme has to be revisited.
 
+## Marketing version and the website
+
+`MARKETING_VERSION` in `project.yml` is the version users see, and it is the
+source of truth. One copy of it lives outside this repo: the CalPeek page on
+[briangibson.dev](https://briangibson.dev/calpeek) prints it as fine print
+under the download buttons, linked to the releases page, and reads it from
+`version` in `src/site.ts` of the
+[site repo](https://github.com/brianlg/briangibson.dev).
+
+That copy is hand-kept on purpose. The site builds on push, so fetching the
+number from GitHub at build time would still leave it stale until the next
+deploy, and would put a network call in the build's path for a string that
+changes a few times a year. The tradeoff is that it has to be bumped by hand,
+which is why it is the last step in both checklists below. A version string
+sitting a year behind the shipped app reads as an abandoned project, which is
+worse than showing no version at all.
+
 ## Releasing to the App Store
 
 1. `Scripts/bump-build.sh`
 2. Xcode → **Product → Archive** with the `CalPeek` scheme (Release).
 3. Organizer → **Distribute App** → App Store Connect.
 4. In App Store Connect: attach the build to the version and submit.
+5. If `MARKETING_VERSION` changed, bump `version` in the site repo's
+   `src/site.ts` to match and push, so the CalPeek page's download fine print
+   names the shipping version.
 
 The upload is deliberately not scripted: it's a handful of clicks a few times
 a year, Organizer validates the archive first, and the release still ends in
@@ -234,6 +254,10 @@ Two notes on the DMG window, since both cost real debugging time:
   and draws the 2x page at 1x, which crops the artwork to its top-left quarter.
   Icon positions in the AppleScript and the artwork's arrow are two halves of
   one layout — move one and you must move the other.
+
+Once the release is published: if `MARKETING_VERSION` changed, bump `version`
+in the site repo's `src/site.ts` to match and push. The CalPeek page's download
+fine print names it, and links to the releases page this lands on.
 
 To test updates end to end without publishing: the direct **Debug** build's
 feed URL is `http://localhost:8000/appcast.xml`, so serve an appcast plus a
