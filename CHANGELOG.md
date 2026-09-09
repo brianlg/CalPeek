@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Turning on Show Calendar or Show Reminders and then declining the system
+  permission prompt now leaves a note under the switches saying access is
+  off, with a link to the matching pane of System Settings. Before, the
+  switch flipped itself back with nothing on screen to explain why, and no
+  pointer to where the decision could be changed.
+
 ## [1.1] - 2026-09-04
 
 ### Added

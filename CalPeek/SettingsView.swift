@@ -140,7 +140,12 @@ struct GeneralSettingsView: View {
     /// privacy pane.
     private func handleShowCalendarChange(_ enabled: Bool) {
         guard enabled else {
-            calendarDenied = false
+            // Deliberately does not clear `calendarDenied`. Reverting the
+            // toggle below re-enters this handler with `enabled == false` on
+            // the next view update, so clearing here would erase the denial
+            // notice the revert just raised — the footer would never appear.
+            // A user switching the toggle off by hand can only do so from a
+            // granted state, where the flag is already false.
             notifyCalendarSettingChanged()
             return
         }
@@ -225,7 +230,8 @@ struct GeneralSettingsView: View {
     /// privacy pane.
     private func handleShowRemindersChange(_ enabled: Bool) {
         guard enabled else {
-            remindersDenied = false
+            // Not cleared here, for the reason spelled out in
+            // `handleShowCalendarChange(_:)`.
             notifyRemindersSettingChanged()
             return
         }
