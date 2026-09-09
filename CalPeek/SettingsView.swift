@@ -69,6 +69,13 @@ struct GeneralSettingsView: View {
                 .onChange(of: showCalendar) { _, enabled in
                     handleShowCalendarChange(enabled)
                 }
+                // Once the grant is decided the request APIs answer from the
+                // stored decision without showing the system alert, so the
+                // switch is inert and must not invite the tap. It is bound to
+                // the same flag that draws the footer, never to the raw
+                // authorization status: a control greyed out with nothing to
+                // explain why is worse than one that does nothing.
+                .disabled(calendarDenied)
                 Toggle(isOn: $showReminders) {
                     rowLabel(
                         "Show Reminders",
@@ -78,6 +85,7 @@ struct GeneralSettingsView: View {
                 .onChange(of: showReminders) { _, enabled in
                     handleShowRemindersChange(enabled)
                 }
+                .disabled(remindersDenied)
             } header: {
                 Text("Permissions")
             } footer: {
@@ -131,6 +139,41 @@ struct GeneralSettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .fixedSize()
+        // Returning from System Settings is the one moment the grant can have
+        // changed behind the app's back; EventKit posts nothing when it does.
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessState()
+        }
+    }
+
+    /// Drops a denial notice the user has since resolved in System Settings,
+    /// so the footer and the disabled switch don't outlive the problem they
+    /// describe. This only ever lowers a flag: raising one here would put a
+    /// notice in front of someone who never asked for access in the first
+    /// place, which is why the flags stay tied to an actual attempt.
+    private func refreshAccessState() {
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .fullAccess, .notDetermined:
+            // `notDetermined` matters as much as `fullAccess`: the switch is
+            // disabled while the flag is up, so a grant reset back to
+            // undecided would otherwise strand the user with the one control
+            // that can raise the prompt greyed out.
+            calendarDenied = false
+            calendarWriteOnly = false
+        case .writeOnly where calendarDenied:
+            // A flat denial that has since become Add Events Only; still not
+            // enough to read events, but the footer must say so differently.
+            calendarWriteOnly = true
+        default:
+            break
+        }
+        switch EKEventStore.authorizationStatus(for: .reminder) {
+        case .fullAccess, .notDetermined:
+            remindersDenied = false
+        default:
+            break
+        }
     }
 
     /// Requests calendar access the first time the toggle is enabled, via
@@ -175,13 +218,7 @@ struct GeneralSettingsView: View {
     /// Toggle label with a caption underneath, matching the System Settings
     /// title-and-description row style.
     private func rowLabel(_ title: LocalizedStringKey, help: LocalizedStringKey) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-            Text(help)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        RowLabel(title: title, help: help)
     }
 
     /// One footer for both permission toggles: a System Settings pointer for
@@ -495,4 +532,31 @@ private final class ColorPanelDriver: NSObject {
 
 #Preview("Appearance") {
     AppearanceSettingsView()
+}
+
+/// The title-and-caption label used by every settings row.
+///
+/// It reads `isEnabled` itself because SwiftUI dims only its own controls
+/// when a row is disabled and leaves custom label content at full strength.
+/// Without this the permission rows would sit there with an inert switch
+/// beside undimmed text, saying nothing about why they cannot be used —
+/// and a switch that is already off looks identical either way.
+private struct RowLabel: View {
+    let title: LocalizedStringKey
+    let help: LocalizedStringKey
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+            Text(help)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        // Matches the roughly half-strength rendering AppKit gives a disabled
+        // control, so the label and its switch dim together.
+        .opacity(isEnabled ? 1 : 0.5)
+    }
 }

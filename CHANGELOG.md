@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   off, with a link to the matching pane of System Settings. Before, the
   switch flipped itself back with nothing on screen to explain why, and no
   pointer to where the decision could be changed.
+- A settings row that cannot be used now looks the part. Its title and
+  description dim along with its switch, so the Show Calendar and Show
+  Reminders rows read as unavailable while access is off, and the Next
+  Meeting rows do the same while Show Calendar is off.
 
 ## [1.1] - 2026-09-04
 
