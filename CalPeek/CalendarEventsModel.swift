@@ -82,6 +82,18 @@ final class CalendarEventsModel {
     private var reminderSnapshots: [ReminderSnapshot] = []
     /// Drops stale async reminder results after overlapping refetches.
     private var reminderFetchGeneration = 0
+    /// Bumped whenever anything a day's rows are built from may have changed:
+    /// each window load, each reminder snapshot update, and each in-app
+    /// write. `items(on:calendar:)` reads it, which is what keeps the day
+    /// popover re-rendering on those changes even while it is served from
+    /// `cachedDayItems` and reads nothing else from the model.
+    private var dayItemsRevision = 0
+    /// The rows `items(on:calendar:)` last built, reused while the day,
+    /// calendar, and revision are unchanged. The day popover asks from
+    /// `body`, which SwiftUI also re-runs for hover and resizing, and each
+    /// rebuild is an EventKit fetch plus meeting-link detection per event.
+    @ObservationIgnored
+    private var cachedDayItems: (day: Date, calendar: Calendar, revision: Int, items: [DayItem])?
     /// Token for the store-change observer. Not observation state, and
     /// `nonisolated(unsafe)` so the nonisolated `deinit` can remove it — safe
     /// because it's written once in `init` and only read again in `deinit`.
@@ -122,11 +134,18 @@ final class CalendarEventsModel {
 
     /// Fetches the events and reminders on a single day, sorted with all-day
     /// items first and then by time. Returns an empty array if access hasn't
-    /// been granted.
+    /// been granted. Asking again for the same day returns the cached rows
+    /// until `dayItemsRevision` says the data may have changed.
     func items(on date: Date, calendar: Calendar) -> [DayItem] {
+        let day = calendar.startOfDay(for: date)
+        let revision = dayItemsRevision
+        if let cached = cachedDayItems,
+           cached.day == day, cached.calendar == calendar, cached.revision == revision {
+            return cached.items
+        }
         let events = eventItems(on: date, calendar: calendar)
         let reminders = reminderItems(on: date, calendar: calendar)
-        return (events + reminders).sorted { lhs, rhs in
+        let items = (events + reminders).sorted { lhs, rhs in
             if lhs.sortsAsAllDay != rhs.sortsAsAllDay { return lhs.sortsAsAllDay }
             // Within the all-day group, events come before reminders.
             if lhs.sortsAsAllDay, (lhs.kind == .event) != (rhs.kind == .event) {
@@ -135,6 +154,8 @@ final class CalendarEventsModel {
             if lhs.sortDate != rhs.sortDate { return lhs.sortDate < rhs.sortDate }
             return lhs.title < rhs.title
         }
+        cachedDayItems = (day, calendar, revision, items)
+        return items
     }
 
     /// Marks a reminder complete (or incomplete) and saves it back to the store.
@@ -163,6 +184,7 @@ final class CalendarEventsModel {
             all[index] = all[index].completing(completed)
             allReminderSnapshots = all
         }
+        dayItemsRevision += 1
     }
 
     /// Whether the day popover can offer event creation.
@@ -239,6 +261,7 @@ final class CalendarEventsModel {
         if let recurrence { event.addRecurrenceRule(recurrence) }
         if let alarm { event.addAlarm(alarm) }
         try store.save(event, span: .thisEvent, commit: true)
+        dayItemsRevision += 1
     }
 
     /// Creates a reminder due on the given day (date-only, no time — rendered
@@ -287,6 +310,7 @@ final class CalendarEventsModel {
     /// revoked, `accessDenied` drives the popover's System Settings pointer.
     func load(days: [Date], calendar: Calendar) {
         lastWindow = (days, calendar)
+        dayItemsRevision += 1
 
         if !Preferences.showCalendar {
             accessDenied = false
@@ -386,11 +410,13 @@ final class CalendarEventsModel {
     /// and all future occurrences for recurring events.
     func update(event: EKEvent, span: EKSpan) throws {
         try store.save(event, span: span, commit: true)
+        dayItemsRevision += 1
     }
 
     /// Deletes an existing event, with the same span semantics as `update`.
     func remove(event: EKEvent, span: EKSpan) throws {
         try store.remove(event, span: span, commit: true)
+        dayItemsRevision += 1
     }
 
     /// Saves edits to an existing reminder.
@@ -474,6 +500,7 @@ final class CalendarEventsModel {
     private func applyReminderWindow(from all: [ReminderSnapshot], start: Date, end: Date, calendar: Calendar) {
         reminderSnapshots = all.filter { $0.dueDate >= start && $0.dueDate < end }
         daysWithReminders = markedReminderDays(calendar: calendar)
+        dayItemsRevision += 1
     }
 
     /// The dot-marker days for the current snapshots: every day with a due
