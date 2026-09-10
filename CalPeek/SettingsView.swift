@@ -70,12 +70,14 @@ struct GeneralSettingsView: View {
                     handleShowCalendarChange(enabled)
                 }
                 // Once the grant is decided the request APIs answer from the
-                // stored decision without showing the system alert, so the
-                // switch is inert and must not invite the tap. It is bound to
-                // the same flag that draws the footer, never to the raw
-                // authorization status: a control greyed out with nothing to
-                // explain why is worse than one that does nothing.
-                .disabled(calendarDenied)
+                // stored decision without showing the system alert, so
+                // switching this back on is inert and must not invite the
+                // tap. Only while it is off, though: with the feature on and
+                // access missing, switching it off is exactly what the user
+                // needs to be able to do. Bound to the flag that draws the
+                // footer, never to the raw authorization status, so a control
+                // is never greyed out with nothing to explain why.
+                .disabled(calendarDenied && !showCalendar)
                 Toggle(isOn: $showReminders) {
                     rowLabel(
                         "Show Reminders",
@@ -85,7 +87,7 @@ struct GeneralSettingsView: View {
                 .onChange(of: showReminders) { _, enabled in
                     handleShowRemindersChange(enabled)
                 }
-                .disabled(remindersDenied)
+                .disabled(remindersDenied && !showReminders)
             } header: {
                 Text("Permissions")
             } footer: {
@@ -139,40 +141,48 @@ struct GeneralSettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .fixedSize()
-        // Returning from System Settings is the one moment the grant can have
-        // changed behind the app's back; EventKit posts nothing when it does.
+        // Opening the window and returning to it are the two moments a grant
+        // can have changed behind the app's back; EventKit posts nothing when
+        // it does, so both re-read it.
+        .onAppear { refreshAccessState() }
         .onReceive(NotificationCenter.default.publisher(
             for: NSApplication.didBecomeActiveNotification)) { _ in
             refreshAccessState()
         }
     }
 
-    /// Drops a denial notice the user has since resolved in System Settings,
-    /// so the footer and the disabled switch don't outlive the problem they
-    /// describe. This only ever lowers a flag: raising one here would put a
-    /// notice in front of someone who never asked for access in the first
-    /// place, which is why the flags stay tied to an actual attempt.
+    /// Brings the denial notices in line with the grants as they stand now,
+    /// so one the user has resolved in System Settings stops being shown and
+    /// one they have walked into starts being shown.
+    ///
+    /// A notice is raised for a feature that is switched on but cannot work,
+    /// which is the state left behind when access is revoked from System
+    /// Settings while the toggle is on: the view would otherwise sit there
+    /// empty, claiming a feature the app can no longer deliver. It stays tied
+    /// to a switched-on feature or an actual attempt, so it never greets
+    /// someone who simply hasn't asked for access.
     private func refreshAccessState() {
         switch EKEventStore.authorizationStatus(for: .event) {
         case .fullAccess, .notDetermined:
-            // `notDetermined` matters as much as `fullAccess`: the switch is
-            // disabled while the flag is up, so a grant reset back to
-            // undecided would otherwise strand the user with the one control
-            // that can raise the prompt greyed out.
+            // `notDetermined` is cleared alongside `fullAccess` because an
+            // app that has never asked isn't listed in System Settings yet,
+            // so the notice's Open Settings link would lead nowhere — and the
+            // toggle can still raise the system prompt itself.
             calendarDenied = false
             calendarWriteOnly = false
-        case .writeOnly where calendarDenied:
-            // A flat denial that has since become Add Events Only; still not
-            // enough to read events, but the footer must say so differently.
-            calendarWriteOnly = true
         default:
-            break
+            // Decided, and not enough to read events.
+            if showCalendar { calendarDenied = true }
+            // Keeps the wording current when a flat denial has since become
+            // Add Events Only, or the reverse.
+            calendarWriteOnly = calendarDenied
+                && EKEventStore.authorizationStatus(for: .event) == .writeOnly
         }
         switch EKEventStore.authorizationStatus(for: .reminder) {
         case .fullAccess, .notDetermined:
             remindersDenied = false
         default:
-            break
+            if showReminders { remindersDenied = true }
         }
     }
 

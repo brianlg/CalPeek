@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   description dim along with its switch, so the Show Calendar and Show
   Reminders rows read as unavailable while access is off, and the Next
   Meeting rows do the same while Show Calendar is off.
+- A feature left switched on after its access was turned off in System
+  Settings now says so, instead of showing an empty month with nothing to
+  explain it. The note appears as soon as Settings is opened, and the
+  switch stays usable so the feature can still be turned off.
 
 ## [1.1] - 2026-09-04
 
