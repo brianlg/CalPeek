@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CalPeek used to ask Calendar and Reminders several of the same questions
   on every click; it now asks each once, which trims about a tenth off the
   time before the calendar appears.
+- Closing the calendar feels immediate again. The menu bar icon's
+  highlight now goes out together with the calendar, the way Apple's own
+  menu bar items behave, instead of lingering for about half a second after
+  the calendar had already disappeared.
 
 ## [1.1] - 2026-09-04
 
