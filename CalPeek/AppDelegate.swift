@@ -24,6 +24,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// would produce the same image.
     private var renderedJoinPill: NextMeetingMenuBarState?
     private var renderedIconScale: CGFloat?
+    /// The rung and tooltip the status item was last given, so a refresh
+    /// that changes neither leaves the button alone. Setting a title re-lays
+    /// out the status item and setting a tooltip re-registers it, about two
+    /// milliseconds that every popover open spent on no change.
+    private var shownMenuBarState: NextMeetingMenuBarState?
+    private var shownToolTip: String?
     /// App-lifetime source of the next joinable meeting, feeding the menu bar
     /// countdown, the context menu's join item, and the popover banner.
     private let nextMeeting = NextMeetingModel()
@@ -674,29 +680,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private func refreshNextMeetingUI() {
         let state = nextMeeting.menuBarState
         if let button = statusItem?.button {
-            let fullTitle = nextMeeting.nextMeeting?.title
-            switch state {
-            case .hidden:
-                button.attributedTitle = NSAttributedString()
-                button.toolTip = Self.idleToolTip
-            case let .countdown(title, time, isUrgent):
-                button.attributedTitle = Self.statusTitle(
-                    title: title,
-                    time: String(localized: "in \(time)"),
-                    timeColor: isUrgent ? .systemRed : .labelColor
-                )
-                button.toolTip = fullTitle ?? Self.idleToolTip
-            case .joinable:
-                // The pill image carries everything; see `refreshIcon()`.
-                button.attributedTitle = NSAttributedString()
-                button.toolTip = fullTitle ?? Self.idleToolTip
-            case let .running(title, remaining):
-                button.attributedTitle = Self.statusTitle(
-                    title: title,
-                    time: remaining,
-                    timeColor: Self.softenedLabelColor
-                )
-                button.toolTip = fullTitle ?? Self.idleToolTip
+            // The title follows from the rung alone.
+            if state != shownMenuBarState {
+                switch state {
+                case .hidden:
+                    button.attributedTitle = NSAttributedString()
+                case let .countdown(title, time, isUrgent):
+                    button.attributedTitle = Self.statusTitle(
+                        title: title,
+                        time: String(localized: "in \(time)"),
+                        timeColor: isUrgent ? .systemRed : .labelColor
+                    )
+                case .joinable:
+                    // The pill image carries everything; see `refreshIcon()`.
+                    button.attributedTitle = NSAttributedString()
+                case let .running(title, remaining):
+                    button.attributedTitle = Self.statusTitle(
+                        title: title,
+                        time: remaining,
+                        timeColor: Self.softenedLabelColor
+                    )
+                }
+                shownMenuBarState = state
+            }
+            let toolTip = state == .hidden
+                ? Self.idleToolTip
+                : nextMeeting.nextMeeting?.title ?? Self.idleToolTip
+            if toolTip != shownToolTip {
+                button.toolTip = toolTip
+                shownToolTip = toolTip
             }
         }
         // Only the joinable rung changes the image (the glyph swaps for the
