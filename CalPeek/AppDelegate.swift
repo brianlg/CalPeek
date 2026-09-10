@@ -17,6 +17,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// button cell can track them; see `configureStatusItem` for why. Lives
     /// for the app's lifetime alongside the status item.
     private var statusItemMouseDownMonitor: Any?
+    /// The next-meeting state the status item image was last drawn for (the
+    /// joinable state while the pill shows, else nil) and the backing scale
+    /// it was drawn at, so `refreshNextMeetingUI` can tell when a redraw
+    /// would produce the same image.
+    private var renderedJoinPill: NextMeetingMenuBarState?
+    private var renderedIconScale: CGFloat?
     /// App-lifetime source of the next joinable meeting, feeding the menu bar
     /// countdown, the context menu's join item, and the popover banner.
     private let nextMeeting = NextMeetingModel()
@@ -165,10 +171,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // During the join window the whole item becomes the red pill; the
         // regular glyph returns when the state moves on.
-        if case let .joinable(title) = nextMeeting.menuBarState {
+        let meetingState = nextMeeting.menuBarState
+        renderedIconScale = button.window?.backingScaleFactor
+        if case let .joinable(title) = meetingState {
+            renderedJoinPill = meetingState
             assign(joinPillImage(title: title, for: button), to: button)
             return
         }
+        renderedJoinPill = nil
 
         // Match the menu bar's appearance (which may differ from the rest of
         // the app, e.g. with wallpaper-tinted menu bars in macOS 14+) so
@@ -659,9 +669,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// Renders the current rung of the state ladder next to the glyph and
     /// (de)registers the global join hotkey to match current preferences.
     private func refreshNextMeetingUI() {
+        let state = nextMeeting.menuBarState
         if let button = statusItem?.button {
             let fullTitle = nextMeeting.nextMeeting?.title
-            switch nextMeeting.menuBarState {
+            switch state {
             case .hidden:
                 button.attributedTitle = NSAttributedString()
                 button.toolTip = Self.idleToolTip
@@ -685,8 +696,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 button.toolTip = fullTitle ?? Self.idleToolTip
             }
         }
-        // The joinable state swaps the glyph for the pill (and back).
-        refreshIcon()
+        // Only the joinable rung changes the image (the glyph swaps for the
+        // pill, and back); the other rungs change the title alone. Redraw
+        // only when the pill, or the scale it was drawn at, differs from
+        // what is showing, instead of re-rasterizing an identical image on
+        // every countdown tick and popover open. The icon's other inputs
+        // (date, colors, badge, appearance) call `refreshIcon()` themselves.
+        var pill: NextMeetingMenuBarState?
+        if case .joinable = state { pill = state }
+        if pill != renderedJoinPill
+            || statusItem?.button?.window?.backingScaleFactor != renderedIconScale {
+            refreshIcon()
+        }
         updateJoinHotKey()
     }
 
