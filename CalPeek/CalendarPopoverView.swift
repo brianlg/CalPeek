@@ -58,8 +58,11 @@ struct CalendarPopoverView: View {
     @State private var events = CalendarEventsModel()
     /// The day whose events popover is currently open, if any.
     @State private var selectedDate: Date?
-    /// The day currently under the pointer, for the hover highlight.
-    @State private var hoveredDate: Date?
+    /// Bumped wherever the grid drops its transient state (each open and each
+    /// month change). Hover lives in each `DayCell`; the bump tells the cells
+    /// to clear a highlight whose pointer exit they never saw, as when the
+    /// popover closes under the pointer.
+    @State private var hoverResetGeneration = 0
     /// Grid row of the week-number chip under the pointer, for the row wash.
     @State private var hoveredWeekRow: Int?
     /// Grid row whose week number was clicked; its row stays washed and the
@@ -151,7 +154,7 @@ struct CalendarPopoverView: View {
         .onReceive(NotificationCenter.default.publisher(for: .popoverWillShow)) { _ in
             monthOffset = 0
             selectedDate = nil
-            hoveredDate = nil
+            hoverResetGeneration += 1
             selectedWeekRow = nil
             hoveredWeekRow = nil
             isFocused = true
@@ -159,7 +162,7 @@ struct CalendarPopoverView: View {
         }
         .onChange(of: monthOffset) {
             selectedDate = nil
-            hoveredDate = nil
+            hoverResetGeneration += 1
             selectedWeekRow = nil
             hoveredWeekRow = nil
             events.load(days: monthDays, calendar: calendar)
@@ -331,13 +334,17 @@ struct CalendarPopoverView: View {
     // MARK: - Day grid
 
     private var grid: some View {
-        HStack(spacing: 0) {
+        // Build the month once per redraw so the week gutter and every cell
+        // share one copy, rather than each row and cell recomputing it.
+        let days = monthDays
+        let month = displayedMonth
+        return HStack(spacing: 0) {
             if showWeekNumbers {
-                weekNumberGutter
+                weekNumberGutter(days: days)
             }
             LazyVGrid(columns: columns, spacing: 0) {
-                ForEach(monthDays, id: \.self) { date in
-                    dayCell(for: date)
+                ForEach(days, id: \.self) { date in
+                    dayCell(for: date, in: month)
                 }
             }
             // See weekdayRow: keeps the day columns at their no-gutter width.
@@ -369,10 +376,10 @@ struct CalendarPopoverView: View {
     /// tone as out-of-month day numbers so the gutter reads as secondary.
     /// The current week's number brightens on a grey chip; hovering any
     /// number gives it the same chip, and clicking one selects the week.
-    private var weekNumberGutter: some View {
+    private func weekNumberGutter(days: [Date]) -> some View {
         VStack(spacing: 0) {
             ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
-                weekNumberChip(row: row)
+                weekNumberChip(row: row, days: days)
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .frame(height: Layout.rowHeight)
                     // Center against the day numerals, not the full row:
@@ -400,13 +407,13 @@ struct CalendarPopoverView: View {
     /// dim text. The chip is drawn with negative insets so it hugs the digits
     /// without affecting layout, and every state shares one text frame so
     /// they swap without shifting the column.
-    private func weekNumberChip(row: Int) -> some View {
+    private func weekNumberChip(row: Int, days: [Date]) -> some View {
         let isSelected = selectedWeekRow == row
-        let isChipped = isSelected || isCurrentWeek(row: row) || hoveredWeekRow == row
+        let isChipped = isSelected || isCurrentWeek(row: row, in: days) || hoveredWeekRow == row
         let text: Color = isSelected
             ? Color(nsColor: .alternateSelectedControlTextColor)
             : (isChipped ? Color.primary : Layout.dimmedText)
-        return Text(verbatim: String(weekNumber(forRow: row)))
+        return Text(verbatim: String(weekNumber(forRow: row, in: days)))
             .font(.system(size: 11))
             .foregroundStyle(text)
             .background {
@@ -454,89 +461,35 @@ struct CalendarPopoverView: View {
     /// Week-of-year for the given grid row, from the user's calendar so the
     /// numbering follows their region's week rules (ISO in most of Europe,
     /// Sunday-start in the US) — matching what Calendar.app shows.
-    private func weekNumber(forRow row: Int) -> Int {
-        let days = monthDays
+    private func weekNumber(forRow row: Int, in days: [Date]) -> Int {
         let index = row * Layout.daysPerWeek
         guard days.indices.contains(index) else { return 0 }
         return calendar.component(.weekOfYear, from: days[index])
     }
 
     /// True when the given grid row is the week containing today.
-    private func isCurrentWeek(row: Int) -> Bool {
-        let days = monthDays
+    private func isCurrentWeek(row: Int, in days: [Date]) -> Bool {
         let index = row * Layout.daysPerWeek
         guard days.indices.contains(index) else { return false }
         return calendar.isDate(days[index], equalTo: Date(), toGranularity: .weekOfYear)
     }
 
-    private func dayCell(for date: Date) -> some View {
-        let isToday = calendar.isDateInToday(date)
-        let inMonth = calendar.isDate(date, equalTo: displayedMonth, toGranularity: .month)
-        let hasEvent = events.hasEvents(on: date, calendar: calendar)
-        let hasReminder = events.hasReminders(on: date, calendar: calendar)
-        let isSelected = isSameDay(selectedDate, date)
-        let isHovered = isSameDay(hoveredDate, date)
-
-        return VStack(spacing: 2) {
-            Text(verbatim: String(calendar.component(.day, from: date)))
-                .font(.system(size: 15, weight: isToday ? .semibold : .regular))
-                // Today's digit sits on the accent fill, so its color derives
-                // from the accent — white on yellow would be unreadable.
-                .foregroundStyle(isToday ? accent.contrastingForeground : (inMonth ? Color.primary : Layout.dimmedText))
-                .frame(maxWidth: .infinity)
-                .background {
-                    dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
-                }
-
-            // Reserve the dots' space on every cell so row height stays
-            // stable; the HStack centers whichever dots are present.
-            HStack(spacing: Layout.eventDotSpacing) {
-                if hasEvent {
-                    agendaDot(eventDotColor, isToday: isToday, inMonth: inMonth)
-                }
-                if hasReminder {
-                    agendaDot(reminderDotColor, isToday: isToday, inMonth: inMonth)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: Layout.eventDotSize)
-            // Nudge the dots toward the digit without affecting layout.
-            .offset(y: Layout.eventDotNudge)
-        }
-        .frame(height: Layout.rowHeight)
-        .contentShape(Rectangle())
+    private func dayCell(for date: Date, in month: Date) -> some View {
+        DayCell(
+            day: calendar.component(.day, from: date),
+            isToday: calendar.isDateInToday(date),
+            inMonth: calendar.isDate(date, equalTo: month, toGranularity: .month),
+            hasEvent: events.hasEvents(on: date, calendar: calendar),
+            hasReminder: events.hasReminders(on: date, calendar: calendar),
+            isSelected: isSameDay(selectedDate, date),
+            accent: accent,
+            eventDotColor: eventDotColor,
+            reminderDotColor: reminderDotColor,
+            hoverResetGeneration: hoverResetGeneration
+        )
         .onTapGesture { toggleSelection(date) }
-        .onHover { hovering in
-            if hovering {
-                hoveredDate = date
-            } else if isSameDay(hoveredDate, date) {
-                hoveredDate = nil
-            }
-        }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
-        .animation(.easeOut(duration: 0.12), value: isSelected)
         .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
             DayEventsPopover(date: date, model: events, calendar: calendar, accent: accent)
-        }
-    }
-
-    /// Circular highlight behind a day number. Precedence: today (filled accent)
-    /// over the selected day (system grey selection fill) over hover (faint
-    /// fill). All three share one circle size so highlight states swap
-    /// without shifting the layout.
-    @ViewBuilder
-    private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
-        let size = Layout.dayCircleSize
-        if isToday {
-            Circle().fill(accent)
-                .frame(width: size, height: size)
-        } else if isSelected {
-            // Apple's standard grey for selected, unemphasized content —
-            // adapts to light and dark mode automatically.
-            Circle().fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
-                .frame(width: size, height: size)
-        } else if isHovered {
-            Circle().fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
         }
     }
 
@@ -544,14 +497,89 @@ struct CalendarPopoverView: View {
         lhs.map { calendar.isDate($0, inSameDayAs: rhs) } ?? false
     }
 
-    /// A single agenda dot in the given calendar/list color.
-    private func agendaDot(_ color: Color, isToday: Bool, inMonth: Bool) -> some View {
-        // Today's dots overlap the filled accent circle behind the day number,
-        // so they must contrast with the circle, not the popover background.
-        let fill = isToday ? accent.contrastingForeground : (inMonth ? color : color.opacity(0.4))
-        return Circle()
-            .fill(fill)
-            .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
+    /// One day in the month grid. A view of its own so the pointer hover is
+    /// the cell's own state: crossing from one day to the next redraws just
+    /// those two cells, where hover held by the popover redrew the whole
+    /// popover and all 42 cells for every day the pointer crossed.
+    private struct DayCell: View {
+        let day: Int
+        let isToday: Bool
+        let inMonth: Bool
+        let hasEvent: Bool
+        let hasReminder: Bool
+        let isSelected: Bool
+        let accent: Color
+        let eventDotColor: Color
+        let reminderDotColor: Color
+        /// See `CalendarPopoverView.hoverResetGeneration`.
+        let hoverResetGeneration: Int
+
+        @State private var isHovered = false
+
+        var body: some View {
+            VStack(spacing: 2) {
+                Text(verbatim: String(day))
+                    .font(.system(size: 15, weight: isToday ? .semibold : .regular))
+                    // Today's digit sits on the accent fill, so its color derives
+                    // from the accent — white on yellow would be unreadable.
+                    .foregroundStyle(isToday ? accent.contrastingForeground : (inMonth ? Color.primary : Layout.dimmedText))
+                    .frame(maxWidth: .infinity)
+                    .background {
+                        dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
+                    }
+
+                // Reserve the dots' space on every cell so row height stays
+                // stable; the HStack centers whichever dots are present.
+                HStack(spacing: Layout.eventDotSpacing) {
+                    if hasEvent {
+                        agendaDot(eventDotColor, isToday: isToday, inMonth: inMonth)
+                    }
+                    if hasReminder {
+                        agendaDot(reminderDotColor, isToday: isToday, inMonth: inMonth)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: Layout.eventDotSize)
+                // Nudge the dots toward the digit without affecting layout.
+                .offset(y: Layout.eventDotNudge)
+            }
+            .frame(height: Layout.rowHeight)
+            .contentShape(Rectangle())
+            .onHover { isHovered = $0 }
+            .onChange(of: hoverResetGeneration) { isHovered = false }
+            .animation(.easeOut(duration: 0.12), value: isHovered)
+            .animation(.easeOut(duration: 0.12), value: isSelected)
+        }
+
+        /// Circular highlight behind a day number. Precedence: today (filled accent)
+        /// over the selected day (system grey selection fill) over hover (faint
+        /// fill). All three share one circle size so highlight states swap
+        /// without shifting the layout.
+        @ViewBuilder
+        private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
+            let size = Layout.dayCircleSize
+            if isToday {
+                Circle().fill(accent)
+                    .frame(width: size, height: size)
+            } else if isSelected {
+                // Apple's standard grey for selected, unemphasized content —
+                // adapts to light and dark mode automatically.
+                Circle().fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+                    .frame(width: size, height: size)
+            } else if isHovered {
+                Circle().fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
+            }
+        }
+
+        /// A single agenda dot in the given calendar/list color.
+        private func agendaDot(_ color: Color, isToday: Bool, inMonth: Bool) -> some View {
+            // Today's dots overlap the filled accent circle behind the day number,
+            // so they must contrast with the circle, not the popover background.
+            let fill = isToday ? accent.contrastingForeground : (inMonth ? color : color.opacity(0.4))
+            return Circle()
+                .fill(fill)
+                .frame(width: Layout.eventDotSize, height: Layout.eventDotSize)
+        }
     }
 
     // MARK: - Day selection
