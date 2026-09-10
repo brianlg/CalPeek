@@ -112,12 +112,21 @@ extension EKEventStore {
     }
 
     /// Color of the user's default reminders list, or nil without full
-    /// reminders access or when no default list is set.
+    /// reminders access or when no default list is set. Finding the default
+    /// list is a synchronous call into the Reminders service, several
+    /// milliseconds each, and opening the popover needs it twice (badge and
+    /// month view), so it is asked at most once per run loop pass.
+    @MainActor
     var defaultReminderColor: Color? {
-        guard RemindersAccess.hasFullAccess,
-              let cgColor = defaultCalendarForNewReminders()?.cgColor else { return nil }
-        return Color(cgColor: cgColor)
+        guard RemindersAccess.hasFullAccess else { return nil }
+        let cgColor = Self.defaultReminderListColors.value(for: ObjectIdentifier(self)) {
+            defaultCalendarForNewReminders()?.cgColor
+        }
+        return cgColor.map { Color(cgColor: $0) }
     }
+
+    @MainActor
+    private static let defaultReminderListColors = RunLoopPassCache<ObjectIdentifier, CGColor?>()
 }
 
 extension Notification.Name {
