@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   calendar for every day the pointer crosses, which cuts the work it takes
   by more than a quarter. Moving around an open day's list also no longer
   rereads your calendar each time.
+- The calendar opens a little sooner after you click the menu bar icon.
+  CalPeek used to ask Calendar and Reminders several of the same questions
+  on every click; it now asks each once, which trims about a tenth off the
+  time before the calendar appears.
 
 ## [1.1] - 2026-09-04
 
