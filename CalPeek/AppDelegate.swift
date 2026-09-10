@@ -145,7 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // blinks the chip off for a frame. So popover-toggling clicks never
         // reach the cell at all: this monitor claims the mouse-down, toggles
         // the popover, and drives the chip manually (on at show, off in
-        // `popoverDidClose`). Joinable-pill clicks and right-clicks pass
+        // `popoverWillClose`). Joinable-pill clicks and right-clicks pass
         // through untouched and keep the cell's normal momentary press
         // behavior. Cmd-drag passes through so the item can be rearranged.
         statusItemMouseDownMonitor = NSEvent.addLocalMonitorForEvents(
@@ -448,7 +448,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    func popoverDidClose(_ notification: Notification) {
+    /// Clears the chip as the close begins, the way system menu bar items drop
+    /// their highlight with their menu. `popoverDidClose` arrives about half a
+    /// second after the popover has already faded out, which left the item lit
+    /// for that long after its UI was gone.
+    func popoverWillClose(_ notification: Notification) {
         statusItem?.button?.highlight(false)
     }
 
