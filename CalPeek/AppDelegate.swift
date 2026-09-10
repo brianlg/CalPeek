@@ -421,10 +421,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    private var popoverHostingController: NSHostingController<CalendarPopoverView>? {
-        popover.contentViewController as? NSHostingController<CalendarPopoverView>
-    }
-
     private func togglePopover(_ sender: Any?) {
         if popover.isShown {
             popover.performClose(sender)
@@ -439,9 +435,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
             let todayEvents = EKEventStore.shared.todaysEvents()
             nextMeeting.refresh(todayEvents: todayEvents)
             todayBadge.refresh(todayEvents: todayEvents)
-            // Size tracking is paused while closed (see `popoverWillClose`);
-            // resume it so the popover opens at its content's current size.
-            popoverHostingController?.sizingOptions = .preferredContentSize
             // The popover's SwiftUI view lives for the app's lifetime, so
             // `onAppear` fires only once; this tells it to reset to the
             // current month for each open.
@@ -461,11 +454,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// for that long after its UI was gone.
     func popoverWillClose(_ notification: Notification) {
         statusItem?.button?.highlight(false)
-        // Closing takes key status from the popover, and SwiftUI answers by
-        // re-resolving the content's text and re-measuring the whole view
-        // for `preferredContentSize`, a size nothing uses while the popover
-        // fades out. Pause the tracking until the next open resumes it.
-        popoverHostingController?.sizingOptions = []
     }
 
     // MARK: - Build identity
