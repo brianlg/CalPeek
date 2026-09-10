@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Turning on Show Calendar or Show Reminders and then declining the system
+  permission prompt now leaves a note under the switches saying access is
+  off, with a link to the matching pane of System Settings. Before, the
+  switch flipped itself back with nothing on screen to explain why, and no
+  pointer to where the decision could be changed.
+- A settings row that cannot be used now looks the part. Its title and
+  description dim along with its switch, so the Show Calendar and Show
+  Reminders rows read as unavailable while access is off, and the Next
+  Meeting rows do the same while Show Calendar is off.
+- A feature left switched on after its access was turned off in System
+  Settings now says so, instead of showing an empty month with nothing to
+  explain it. The note appears as soon as Settings is opened, and the
+  switch stays usable so the feature can still be turned off.
+
 ## [1.1] - 2026-09-04
 
 ### Added

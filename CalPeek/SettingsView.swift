@@ -69,6 +69,15 @@ struct GeneralSettingsView: View {
                 .onChange(of: showCalendar) { _, enabled in
                     handleShowCalendarChange(enabled)
                 }
+                // Once the grant is decided the request APIs answer from the
+                // stored decision without showing the system alert, so
+                // switching this back on is inert and must not invite the
+                // tap. Only while it is off, though: with the feature on and
+                // access missing, switching it off is exactly what the user
+                // needs to be able to do. Bound to the flag that draws the
+                // footer, never to the raw authorization status, so a control
+                // is never greyed out with nothing to explain why.
+                .disabled(calendarDenied && !showCalendar)
                 Toggle(isOn: $showReminders) {
                     rowLabel(
                         "Show Reminders",
@@ -78,6 +87,7 @@ struct GeneralSettingsView: View {
                 .onChange(of: showReminders) { _, enabled in
                     handleShowRemindersChange(enabled)
                 }
+                .disabled(remindersDenied && !showReminders)
             } header: {
                 Text("Permissions")
             } footer: {
@@ -131,6 +141,49 @@ struct GeneralSettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .fixedSize()
+        // Opening the window and returning to it are the two moments a grant
+        // can have changed behind the app's back; EventKit posts nothing when
+        // it does, so both re-read it.
+        .onAppear { refreshAccessState() }
+        .onReceive(NotificationCenter.default.publisher(
+            for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessState()
+        }
+    }
+
+    /// Brings the denial notices in line with the grants as they stand now,
+    /// so one the user has resolved in System Settings stops being shown and
+    /// one they have walked into starts being shown.
+    ///
+    /// A notice is raised for a feature that is switched on but cannot work,
+    /// which is the state left behind when access is revoked from System
+    /// Settings while the toggle is on: the view would otherwise sit there
+    /// empty, claiming a feature the app can no longer deliver. It stays tied
+    /// to a switched-on feature or an actual attempt, so it never greets
+    /// someone who simply hasn't asked for access.
+    private func refreshAccessState() {
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .fullAccess, .notDetermined:
+            // `notDetermined` is cleared alongside `fullAccess` because an
+            // app that has never asked isn't listed in System Settings yet,
+            // so the notice's Open Settings link would lead nowhere — and the
+            // toggle can still raise the system prompt itself.
+            calendarDenied = false
+            calendarWriteOnly = false
+        default:
+            // Decided, and not enough to read events.
+            if showCalendar { calendarDenied = true }
+            // Keeps the wording current when a flat denial has since become
+            // Add Events Only, or the reverse.
+            calendarWriteOnly = calendarDenied
+                && EKEventStore.authorizationStatus(for: .event) == .writeOnly
+        }
+        switch EKEventStore.authorizationStatus(for: .reminder) {
+        case .fullAccess, .notDetermined:
+            remindersDenied = false
+        default:
+            if showReminders { remindersDenied = true }
+        }
     }
 
     /// Requests calendar access the first time the toggle is enabled, via
@@ -140,7 +193,12 @@ struct GeneralSettingsView: View {
     /// privacy pane.
     private func handleShowCalendarChange(_ enabled: Bool) {
         guard enabled else {
-            calendarDenied = false
+            // Deliberately does not clear `calendarDenied`. Reverting the
+            // toggle below re-enters this handler with `enabled == false` on
+            // the next view update, so clearing here would erase the denial
+            // notice the revert just raised — the footer would never appear.
+            // A user switching the toggle off by hand can only do so from a
+            // granted state, where the flag is already false.
             notifyCalendarSettingChanged()
             return
         }
@@ -153,7 +211,7 @@ struct GeneralSettingsView: View {
                 showCalendar = false
                 calendarDenied = true
                 calendarWriteOnly = true
-            case .denied, .restricted:
+            case .denied, .restricted, .failed:
                 showCalendar = false
                 calendarDenied = true
                 calendarWriteOnly = false
@@ -170,13 +228,7 @@ struct GeneralSettingsView: View {
     /// Toggle label with a caption underneath, matching the System Settings
     /// title-and-description row style.
     private func rowLabel(_ title: LocalizedStringKey, help: LocalizedStringKey) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-            Text(help)
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        RowLabel(title: title, help: help)
     }
 
     /// One footer for both permission toggles: a System Settings pointer for
@@ -225,7 +277,8 @@ struct GeneralSettingsView: View {
     /// privacy pane.
     private func handleShowRemindersChange(_ enabled: Bool) {
         guard enabled else {
-            remindersDenied = false
+            // Not cleared here, for the reason spelled out in
+            // `handleShowCalendarChange(_:)`.
             notifyRemindersSettingChanged()
             return
         }
@@ -233,7 +286,7 @@ struct GeneralSettingsView: View {
             switch await RemindersAccess.enableShowReminders() {
             case .granted:
                 remindersDenied = false
-            case .denied, .writeOnly, .restricted:
+            case .denied, .writeOnly, .restricted, .failed:
                 showReminders = false
                 remindersDenied = true
             }
@@ -489,4 +542,31 @@ private final class ColorPanelDriver: NSObject {
 
 #Preview("Appearance") {
     AppearanceSettingsView()
+}
+
+/// The title-and-caption label used by every settings row.
+///
+/// It reads `isEnabled` itself because SwiftUI dims only its own controls
+/// when a row is disabled and leaves custom label content at full strength.
+/// Without this the permission rows would sit there with an inert switch
+/// beside undimmed text, saying nothing about why they cannot be used —
+/// and a switch that is already off looks identical either way.
+private struct RowLabel: View {
+    let title: LocalizedStringKey
+    let help: LocalizedStringKey
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+            Text(help)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        // Matches the roughly half-strength rendering AppKit gives a disabled
+        // control, so the label and its switch dim together.
+        .opacity(isEnabled ? 1 : 0.5)
+    }
 }

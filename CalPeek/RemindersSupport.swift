@@ -1,6 +1,7 @@
 import EventKit
 import Foundation
 import SwiftUI
+import os
 
 /// EKEventStore is documented thread-safe but isn't Sendable; this wrapper
 /// lets a `@MainActor` model hand its store to a nonisolated fetch helper.
@@ -138,9 +139,14 @@ enum CalendarAccess {
         EKEventStore.authorizationStatus(for: .event) == .fullAccess
     }
 
+    /// Throws rather than reporting a bare `false`, so the caller can tell a
+    /// user's "Don't Allow" apart from a request that never reached the user
+    /// (a missing usage string, a sandbox denial). Both look like a refusal
+    /// to the UI otherwise, and the app would blame the user for its own
+    /// misconfiguration.
     @MainActor
-    static func request() async -> Bool {
-        (try? await EKEventStore().requestFullAccessToEvents()) ?? false
+    static func request() async throws -> Bool {
+        try await EKEventStore().requestFullAccessToEvents()
     }
 }
 
@@ -149,9 +155,10 @@ enum RemindersAccess {
         EKEventStore.authorizationStatus(for: .reminder) == .fullAccess
     }
 
+    /// Throwing for the same reason as `CalendarAccess.request()`.
     @MainActor
-    static func request() async -> Bool {
-        (try? await EKEventStore().requestFullAccessToReminders()) ?? false
+    static func request() async throws -> Bool {
+        try await EKEventStore().requestFullAccessToReminders()
     }
 }
 
@@ -160,8 +167,13 @@ enum RemindersAccess {
 /// claim access is off entirely — and neither state can be re-prompted:
 /// once decided, the request APIs return the existing answer without showing
 /// the system alert, so System Settings is the user's only path back.
+/// `failed` means the request itself errored, which is a bug in the app's
+/// configuration rather than an answer from the user. Callers deliberately
+/// present it the same way as `denied` — there is nothing more useful to
+/// tell the user in the moment — but keeping it distinct means the log says
+/// which one actually happened.
 enum AccessGrantOutcome {
-    case granted, denied, writeOnly, restricted
+    case granted, denied, writeOnly, restricted, failed
 }
 
 extension CalendarAccess {
@@ -176,7 +188,13 @@ extension CalendarAccess {
         case .fullAccess:
             return grantedShowCalendar()
         case .notDetermined:
-            return await request() ? grantedShowCalendar() : .denied
+            do {
+                return try await request() ? grantedShowCalendar() : .denied
+            } catch {
+                Logger.calPeek.error(
+                    "Calendar access request failed: \(error.localizedDescription)")
+                return .failed
+            }
         case .writeOnly:
             return .writeOnly
         case .restricted:
@@ -204,7 +222,13 @@ extension RemindersAccess {
         case .fullAccess:
             return grantedShowReminders()
         case .notDetermined:
-            return await request() ? grantedShowReminders() : .denied
+            do {
+                return try await request() ? grantedShowReminders() : .denied
+            } catch {
+                Logger.calPeek.error(
+                    "Reminders access request failed: \(error.localizedDescription)")
+                return .failed
+            }
         case .restricted:
             return .restricted
         default:
