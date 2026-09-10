@@ -58,11 +58,6 @@ struct CalendarPopoverView: View {
     @State private var events = CalendarEventsModel()
     /// The day whose events popover is currently open, if any.
     @State private var selectedDate: Date?
-    /// Bumped wherever the grid drops its transient state (each open and each
-    /// month change). Hover lives in each `DayCell`; the bump tells the cells
-    /// to clear a highlight whose pointer exit they never saw, as when the
-    /// popover closes under the pointer.
-    @State private var hoverResetGeneration = 0
     /// Grid row of the week-number chip under the pointer, for the row wash.
     @State private var hoveredWeekRow: Int?
     /// Grid row whose week number was clicked; its row stays washed and the
@@ -154,7 +149,6 @@ struct CalendarPopoverView: View {
         .onReceive(NotificationCenter.default.publisher(for: .popoverWillShow)) { _ in
             monthOffset = 0
             selectedDate = nil
-            hoverResetGeneration += 1
             selectedWeekRow = nil
             hoveredWeekRow = nil
             isFocused = true
@@ -162,7 +156,6 @@ struct CalendarPopoverView: View {
         }
         .onChange(of: monthOffset) {
             selectedDate = nil
-            hoverResetGeneration += 1
             selectedWeekRow = nil
             hoveredWeekRow = nil
             events.load(days: monthDays, calendar: calendar)
@@ -484,8 +477,7 @@ struct CalendarPopoverView: View {
             isSelected: isSameDay(selectedDate, date),
             accent: accent,
             eventDotColor: eventDotColor,
-            reminderDotColor: reminderDotColor,
-            hoverResetGeneration: hoverResetGeneration
+            reminderDotColor: reminderDotColor
         )
         .onTapGesture { toggleSelection(date) }
         .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
@@ -511,8 +503,6 @@ struct CalendarPopoverView: View {
         let accent: Color
         let eventDotColor: Color
         let reminderDotColor: Color
-        /// See `CalendarPopoverView.hoverResetGeneration`.
-        let hoverResetGeneration: Int
 
         @State private var isHovered = false
 
@@ -546,7 +536,13 @@ struct CalendarPopoverView: View {
             .frame(height: Layout.rowHeight)
             .contentShape(Rectangle())
             .onHover { isHovered = $0 }
-            .onChange(of: hoverResetGeneration) { isHovered = false }
+            // The popover can close with the pointer still on a day and never
+            // deliver the exit, so every open starts unhovered. Each cell
+            // listens for the open itself: a reset passed in from the popover
+            // changes every cell's input and rebuilds all 42 on each open.
+            .onReceive(NotificationCenter.default.publisher(for: .popoverWillShow)) { _ in
+                isHovered = false
+            }
             .animation(.easeOut(duration: 0.12), value: isHovered)
             .animation(.easeOut(duration: 0.12), value: isSelected)
         }
