@@ -129,6 +129,36 @@ extension EKEventStore {
     private static let defaultReminderListColors = RunLoopPassCache<ObjectIdentifier, CGColor?>()
 }
 
+extension EKEventStore {
+    /// `refreshSourcesIfNecessary()`, at most once per run loop pass.
+    /// Long-running stores serve stale snapshots after external syncs (an
+    /// event added on another device, say), so each model asks before
+    /// reading; opening the popover used to ask three times in a row.
+    @MainActor
+    func refreshSourcesIfNecessaryOncePerPass() {
+        Self.refreshedSources.value(for: ObjectIdentifier(self)) {
+            refreshSourcesIfNecessary()
+        }
+    }
+
+    /// Every event overlapping today, read after bringing the store current.
+    /// Empty while Show Calendar is off or full calendar access is missing.
+    /// The next-meeting banner and the menu bar badge both start from this
+    /// list, so opening the popover reads it once and hands it to each.
+    @MainActor
+    func todaysEvents() -> [EKEvent] {
+        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return [] }
+        refreshSourcesIfNecessaryOncePerPass()
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return [] }
+        return events(matching: predicateForEvents(withStart: today, end: end, calendars: nil))
+    }
+
+    @MainActor
+    private static let refreshedSources = RunLoopPassCache<ObjectIdentifier, Void>()
+}
+
 extension Notification.Name {
     /// Posted by `SettingsView` when the Show Reminders toggle changes state
     /// or Reminders access is freshly granted. Models respond by resetting

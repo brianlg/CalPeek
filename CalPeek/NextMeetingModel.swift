@@ -283,8 +283,11 @@ final class NextMeetingModel {
         NSWorkspace.shared.open(meeting.link.url)
     }
 
-    func refresh() {
-        meetings = computeMeetings()
+    /// Recomputes today's meetings. A caller that has already read today's
+    /// events passes them in (see `AppDelegate.togglePopover`); nil reads
+    /// them here.
+    func refresh(todayEvents: [EKEvent]? = nil) {
+        meetings = computeMeetings(todayEvents: todayEvents)
         if !meetings.contains(where: { $0.id == chosenMeetingID }) {
             chosenMeetingID = nil
         }
@@ -371,21 +374,14 @@ final class NextMeetingModel {
         return now.addingTimeInterval(toNextMinute + 0.1)
     }
 
-    private func computeMeetings() -> [NextMeeting] {
+    private func computeMeetings(todayEvents: [EKEvent]?) -> [NextMeeting] {
         guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return [] }
-        // Long-running stores serve stale snapshots after external syncs
-        // (e.g. an event added on another device); make sure ours is current.
-        store.refreshSourcesIfNecessary()
         let now = Date()
-        let calendar = Calendar.current
-        guard let endOfDay = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) else {
-            return []
-        }
-
-        // The predicate matches events overlapping the window, so a meeting
-        // that started before `now` but hasn't ended is still a candidate.
-        let predicate = store.predicateForEvents(withStart: now, end: endOfDay, calendars: nil)
-        return store.events(matching: predicate)
+        // Today's events include ones that already ended. Keeping those that
+        // end after `now` leaves exactly the events overlapping the rest of
+        // the day, so a meeting that started earlier but hasn't ended is
+        // still a candidate.
+        return (todayEvents ?? store.todaysEvents())
             .filter { !$0.isAllDay && $0.endDate > now }
             .compactMap { event in
                 MeetingLinkParser.link(in: event).map { link in

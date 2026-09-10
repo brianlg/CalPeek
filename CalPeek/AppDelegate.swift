@@ -1,4 +1,5 @@
 import AppKit
+import EventKit
 import SwiftUI
 #if DEBUG
 import ServiceManagement
@@ -423,9 +424,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
                 return
             }
             // Freshen the banner and badge so they reflect any just-added
-            // events (or newly granted calendar access).
-            nextMeeting.refresh()
-            todayBadge.refresh()
+            // events (or newly granted calendar access). Both are built from
+            // today's events, so read those once and give each the same list.
+            let todayEvents = EKEventStore.shared.todaysEvents()
+            nextMeeting.refresh(todayEvents: todayEvents)
+            todayBadge.refresh(todayEvents: todayEvents)
             // The popover's SwiftUI view lives for the app's lifetime, so
             // `onAppear` fires only once; this tells it to reset to the
             // current month for each open.

@@ -449,7 +449,7 @@ final class CalendarEventsModel {
 
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
-        store.refreshSourcesIfNecessary()
+        store.refreshSourcesIfNecessaryOncePerPass()
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
         var marked: Set<Date> = []
         for event in store.events(matching: predicate) {
