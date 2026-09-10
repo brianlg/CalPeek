@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Settings now says so, instead of showing an empty month with nothing to
   explain it. The note appears as soon as Settings is opened, and the
   switch stays usable so the feature can still be turned off.
+- Moving the pointer across the month view is lighter on your Mac. Only
+  the days whose highlight changes are redrawn now, instead of the whole
+  calendar for every day the pointer crosses, which cuts the work it takes
+  by more than a quarter. Moving around an open day's list also no longer
+  rereads your calendar each time.
 
 ## [1.1] - 2026-09-04
 
