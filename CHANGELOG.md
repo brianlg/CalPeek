@@ -35,6 +35,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   highlight now goes out together with the calendar, the way Apple's own
   menu bar items behave, instead of lingering for about half a second after
   the calendar had already disappeared.
+- The calendar now opens and closes like the system's own menu bar
+  panels. It appears the moment you click, fades out when dismissed, and a
+  click during that fade brings it straight back; before, a click in the
+  half second after closing was ignored, so clicking the icon on and off
+  quickly skipped every other click. It hangs directly under the icon
+  without a pointer arrow, as Apple's menu bar panels do.
 
 ## [1.1] - 2026-09-04
 

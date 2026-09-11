@@ -144,6 +144,14 @@ struct CalendarPopoverView: View {
         .onKeyPress(.rightArrow) { changeMonth(by: 1); return .handled }
         .onKeyPress(.upArrow) { changeMonth(by: -12); return .handled }
         .onKeyPress(.downArrow) { changeMonth(by: 12); return .handled }
+        // Esc closes a day's list or the year picker first; with neither
+        // open it falls through to the panel, which closes the calendar.
+        .onKeyPress(.escape) {
+            guard selectedDate != nil || isYearPickerPresented else { return .ignored }
+            selectedDate = nil
+            isYearPickerPresented = false
+            return .handled
+        }
         .onAppear {
             isFocused = true
             events.load(days: monthDays, calendar: calendar)

@@ -9,12 +9,14 @@ import os
 import Sparkle
 #endif
 
-/// Owns the menu bar status item and the calendar popover.
+/// Owns the menu bar status item and the calendar panel.
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
-    private let popover = NSPopover()
-    /// Claims popover-toggling left mouse-downs on the status item before the
+    /// The calendar, in a panel of our own under the status item; see
+    /// `MenuBarPanel` for why it isn't an `NSPopover`.
+    private var calendarPanel: MenuBarPanel!
+    /// Claims panel-toggling left mouse-downs on the status item before the
     /// button cell can track them; see `configureStatusItem` for why. Lives
     /// for the app's lifetime alongside the status item.
     private var statusItemMouseDownMonitor: Any?
@@ -83,7 +85,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         // checks run even if the user never opens the menu or Settings.
         _ = UpdaterController.shared
         #endif
-        configurePopover()
+        configureCalendarPanel()
         configureStatusItem()
         observeDateChanges()
         observeAppearanceChanges()
@@ -140,24 +142,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
 
         // System menu bar items open on mouse-down, and their highlight chip
         // stays on for as long as the item's UI is open. The button cell's
-        // click tracking can't express that for a popover: it always clears
+        // click tracking can't express that for a panel: it always clears
         // the highlight when the click ends, after the action runs, which
-        // blinks the chip off for a frame. So popover-toggling clicks never
+        // blinks the chip off for a frame. So panel-toggling clicks never
         // reach the cell at all: this monitor claims the mouse-down, toggles
-        // the popover, and drives the chip manually (on at show, off in
-        // `popoverWillClose`). Joinable-pill clicks and right-clicks pass
-        // through untouched and keep the cell's normal momentary press
-        // behavior. Cmd-drag passes through so the item can be rearranged.
+        // the panel, and drives the chip manually (on at present, off as the
+        // panel begins to dismiss). Joinable-pill clicks and right-clicks
+        // pass through untouched and keep the cell's normal momentary press
+        // behavior, after dismissing an open panel so its menu doesn't stack
+        // on top of the calendar. Cmd-drag passes through so the item can be
+        // rearranged.
         statusItemMouseDownMonitor = NSEvent.addLocalMonitorForEvents(
-            matching: .leftMouseDown
+            matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] event in
             guard let self,
                   let button = self.statusItem?.button,
                   event.window === button.window,
                   !event.modifierFlags.contains(.command)
             else { return event }
-            if case .joinable = self.nextMeeting.menuBarState { return event }
-            self.togglePopover(button)
+            var togglesPanel = event.type == .leftMouseDown
+            if case .joinable = self.nextMeeting.menuBarState { togglesPanel = false }
+            guard togglesPanel else {
+                self.calendarPanel.dismiss()
+                return event
+            }
+            self.toggleCalendarPanel()
             return nil
         }
 
@@ -389,20 +398,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    // MARK: - Popover
+    // MARK: - Calendar panel
 
-    private func configurePopover() {
-        popover.behavior = .transient // auto-closes when clicking outside
-        popover.delegate = self // to clear the status item highlight on close
-        popover.animates = true
-        popover.appearance = nil // inherit system light/dark appearance
-        // Let SwiftUI drive the popover size so the view's layout is the single
+    private func configureCalendarPanel() {
+        // Let SwiftUI drive the panel size so the view's layout is the single
         // source of truth.
         let hosting = NSHostingController(
             rootView: CalendarPopoverView(nextMeetingModel: nextMeeting)
         )
         hosting.sizingOptions = .preferredContentSize
-        popover.contentViewController = hosting
+        calendarPanel = MenuBarPanel(contentViewController: hosting)
+        // The chip is fully manual (see `configureStatusItem`): it goes out
+        // as the panel starts to, like a system item's with its menu.
+        calendarPanel.onDismiss = { [weak self] in
+            self?.statusItem?.button?.highlight(false)
+        }
     }
 
     @objc private func statusItemClicked(_ sender: Any?) {
@@ -421,39 +431,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
         }
     }
 
-    private func togglePopover(_ sender: Any?) {
-        if popover.isShown {
-            popover.performClose(sender)
-        } else {
-            guard let button = statusItem.button else {
-                assertionFailure("Cannot show popover - status item button is nil")
-                return
-            }
-            // Freshen the banner and badge so they reflect any just-added
-            // events (or newly granted calendar access). Both are built from
-            // today's events, so read those once and give each the same list.
-            let todayEvents = EKEventStore.shared.todaysEvents()
-            nextMeeting.refresh(todayEvents: todayEvents)
-            todayBadge.refresh(todayEvents: todayEvents)
-            // The popover's SwiftUI view lives for the app's lifetime, so
-            // `onAppear` fires only once; this tells it to reset to the
-            // current month for each open.
-            NotificationCenter.default.post(name: .popoverWillShow, object: nil)
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            // Bring the popover's window forward so it can receive key events.
-            popover.contentViewController?.view.window?.makeKey()
-            // The chip is fully manual (see `configureStatusItem`): on for
-            // exactly as long as the popover is open, like system items.
-            button.highlight(true)
+    private func toggleCalendarPanel() {
+        if calendarPanel.isPresented {
+            calendarPanel.dismiss()
+            return
         }
-    }
-
-    /// Clears the chip as the close begins, the way system menu bar items drop
-    /// their highlight with their menu. `popoverDidClose` arrives about half a
-    /// second after the popover has already faded out, which left the item lit
-    /// for that long after its UI was gone.
-    func popoverWillClose(_ notification: Notification) {
-        statusItem?.button?.highlight(false)
+        guard let button = statusItem.button else {
+            assertionFailure("Cannot show the calendar - status item button is nil")
+            return
+        }
+        // Freshen the banner and badge so they reflect any just-added
+        // events (or newly granted calendar access). Both are built from
+        // today's events, so read those once and give each the same list.
+        let todayEvents = EKEventStore.shared.todaysEvents()
+        nextMeeting.refresh(todayEvents: todayEvents)
+        todayBadge.refresh(todayEvents: todayEvents)
+        // The panel's SwiftUI view lives for the app's lifetime, so
+        // `onAppear` fires only once; this tells it to reset to the
+        // current month for each open.
+        NotificationCenter.default.post(name: .popoverWillShow, object: nil)
+        calendarPanel.present(below: button)
+        // The chip is fully manual (see `configureStatusItem`): on for
+        // exactly as long as the panel is open, like system items.
+        button.highlight(true)
     }
 
     // MARK: - Build identity
@@ -838,8 +838,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// The menu has already closed by the time its action runs, so showing
     /// the popover here is the same as a plain glyph click.
     @objc private func showPopoverFromMenu() {
-        guard !popover.isShown else { return }
-        togglePopover(statusItem.button)
+        guard !calendarPanel.isPresented else { return }
+        toggleCalendarPanel()
     }
 
     @objc private func openSettings() {
@@ -906,7 +906,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     /// `NSApp.delegate` is SwiftUI's own proxy object, so views can't get at
     /// this delegate directly; they post a notification observed here.
     private func showSettings(selecting tab: SettingsTab) {
-        popover.performClose(nil)
+        calendarPanel.dismiss()
         openSettings()
         (settingsWindow?.contentViewController as? NSTabViewController)?
             .selectedTabViewItemIndex = tab.rawValue
