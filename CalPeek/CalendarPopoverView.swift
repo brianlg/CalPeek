@@ -622,13 +622,14 @@ struct CalendarPopoverView: View {
         @ViewBuilder
         private func dayHighlight(isToday: Bool, isSelected: Bool, isPressed: Bool, isHovered: Bool) -> some View {
             let size = Layout.dayCircleSize
-            if isToday {
-                Circle().fill(accent)
-                    .frame(width: size, height: size)
-            } else if isSelected {
-                // Apple's standard grey for selected, unemphasized content —
-                // adapts to light and dark mode automatically.
-                Circle().fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
+            if isToday || isSelected {
+                // Today keeps its accent and the selected day Apple's standard
+                // grey for selected, unemphasized content. While pressed the
+                // fill darkens, as the system's tinted buttons do; there is
+                // no hover change, as there is none on a system push button.
+                let fill = isToday ? accent : Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+                Circle().fill(fill)
+                    .overlay { if isPressed { Circle().fill(Color.black.opacity(0.18)) } }
                     .frame(width: size, height: size)
             } else if isPressed {
                 Circle().fill(.tertiary).frame(width: size, height: size)
