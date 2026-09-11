@@ -387,7 +387,16 @@ struct CalendarPopoverView: View {
     private func weekNumberGutter(days: [Date]) -> some View {
         VStack(spacing: 0) {
             ForEach(0..<Layout.numberOfWeeks, id: \.self) { row in
-                weekNumberChip(row: row, days: days)
+                let number = weekNumber(forRow: row, in: days)
+                Button {
+                    toggleWeekSelection(row)
+                } label: {
+                    WeekNumberChip(
+                        number: number,
+                        isSelected: selectedWeekRow == row,
+                        isCurrent: isCurrentWeek(row: row, in: days),
+                        isHovered: hoveredWeekRow == row
+                    )
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .frame(height: Layout.rowHeight)
                     // Center against the day numerals, not the full row:
@@ -395,14 +404,17 @@ struct CalendarPopoverView: View {
                     // the row's optical center sits above its geometric one.
                     .offset(y: -(Layout.eventDotSize + Layout.eventDotSpacing) / 2)
                     .contentShape(Rectangle())
-                    .onTapGesture { toggleWeekSelection(row) }
-                    .onHover { hovering in
-                        if hovering {
-                            hoveredWeekRow = row
-                        } else if hoveredWeekRow == row {
-                            hoveredWeekRow = nil
-                        }
+                }
+                .buttonStyle(PressReportingButtonStyle())
+                .accessibilityLabel(String(localized: "Week \(number)"))
+                .accessibilityAddTraits(selectedWeekRow == row ? .isSelected : [])
+                .onHover { hovering in
+                    if hovering {
+                        hoveredWeekRow = row
+                    } else if hoveredWeekRow == row {
+                        hoveredWeekRow = nil
                     }
+                }
             }
         }
         .frame(width: Layout.weekNumberWidth)
@@ -415,27 +427,36 @@ struct CalendarPopoverView: View {
     /// dim text. The chip is drawn with negative insets so it hugs the digits
     /// without affecting layout, and every state shares one text frame so
     /// they swap without shifting the column.
-    private func weekNumberChip(row: Int, days: [Date]) -> some View {
-        let isSelected = selectedWeekRow == row
-        let isChipped = isSelected || isCurrentWeek(row: row, in: days) || hoveredWeekRow == row
-        let text: Color = isSelected
-            ? Color(nsColor: .alternateSelectedControlTextColor)
-            : (isChipped ? Color.primary : Layout.dimmedText)
-        return Text(verbatim: String(weekNumber(forRow: row, in: days)))
-            .font(.system(size: 11))
-            .foregroundStyle(text)
-            .background {
-                if isChipped {
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(isSelected
-                              ? Color(nsColor: .controlAccentColor)
-                              : Layout.navChipFill)
-                        .padding(.horizontal, -4)
-                        .padding(.vertical, -2)
+    private struct WeekNumberChip: View {
+        let number: Int
+        let isSelected: Bool
+        let isCurrent: Bool
+        let isHovered: Bool
+        @Environment(\.reportedPress) private var isPressed
+
+        var body: some View {
+            let isChipped = isSelected || isCurrent || isHovered || isPressed
+            let text: Color = isSelected
+                ? Color(nsColor: .alternateSelectedControlTextColor)
+                : (isChipped ? Color.primary : Layout.dimmedText)
+            // Hover and press use the system's hierarchical fills, the same
+            // tones its own chips use, rather than a fixed opacity.
+            let fill: AnyShapeStyle = isSelected
+                ? AnyShapeStyle(Color(nsColor: .controlAccentColor))
+                : (isPressed ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.quaternary))
+            Text(verbatim: String(number))
+                .font(.system(size: 11))
+                .foregroundStyle(text)
+                .background {
+                    if isChipped {
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(fill)
+                            .padding(.horizontal, -4)
+                            .padding(.vertical, -2)
+                    }
                 }
-            }
-            .animation(.easeOut(duration: 0.12), value: isChipped)
-            .animation(.easeOut(duration: 0.12), value: isSelected)
+                .animation(.easeOut(duration: 0.12), value: isSelected)
+        }
     }
 
     /// Faint wash across the hovered and selected week rows, spanning the
@@ -493,9 +514,10 @@ struct CalendarPopoverView: View {
             accent: accent,
             eventDotColor: eventDotColor,
             reminderDotColor: reminderDotColor,
-            hoverResetGeneration: hoverResetGeneration
+            hoverResetGeneration: hoverResetGeneration,
+            accessibilityLabel: date.formatted(.dateTime.weekday(.wide).month(.wide).day()),
+            action: { toggleSelection(date) }
         )
-        .onTapGesture { toggleSelection(date) }
         .popover(isPresented: selectionBinding(for: date), arrowEdge: .bottom) {
             DayEventsPopover(date: date, model: events, calendar: calendar, accent: accent)
         }
@@ -505,11 +527,45 @@ struct CalendarPopoverView: View {
         lhs.map { calendar.isDate($0, inSameDayAs: rhs) } ?? false
     }
 
-    /// One day in the month grid. A view of its own so the pointer hover is
-    /// the cell's own state: crossing from one day to the next redraws just
+    /// One day in the month grid: a button, so it has a button's role for
+    /// VoiceOver, activates from the keyboard, and shows a pressed state,
+    /// with the drawing in `DayFace`.
+    private struct DayCell: View {
+        let day: Int
+        let isToday: Bool
+        let inMonth: Bool
+        let hasEvent: Bool
+        let hasReminder: Bool
+        let isSelected: Bool
+        let accent: Color
+        let eventDotColor: Color
+        let reminderDotColor: Color
+        /// See `CalendarPopoverView.hoverResetGeneration`.
+        let hoverResetGeneration: Int
+        /// The full date, for VoiceOver; the visible label is only the day.
+        let accessibilityLabel: String
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                DayFace(
+                    day: day, isToday: isToday, inMonth: inMonth,
+                    hasEvent: hasEvent, hasReminder: hasReminder, isSelected: isSelected,
+                    accent: accent, eventDotColor: eventDotColor, reminderDotColor: reminderDotColor,
+                    hoverResetGeneration: hoverResetGeneration
+                )
+            }
+            .buttonStyle(PressReportingButtonStyle())
+            .accessibilityLabel(accessibilityLabel)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        }
+    }
+
+    /// A day cell's drawing. A view of its own so the pointer hover is the
+    /// cell's own state: crossing from one day to the next redraws just
     /// those two cells, where hover held by the popover redrew the whole
     /// popover and all 42 cells for every day the pointer crossed.
-    private struct DayCell: View {
+    private struct DayFace: View {
         let day: Int
         let isToday: Bool
         let inMonth: Bool
@@ -523,6 +579,7 @@ struct CalendarPopoverView: View {
         let hoverResetGeneration: Int
 
         @State private var isHovered = false
+        @Environment(\.reportedPress) private var isPressed
 
         var body: some View {
             VStack(spacing: 2) {
@@ -533,7 +590,7 @@ struct CalendarPopoverView: View {
                     .foregroundStyle(isToday ? accent.contrastingForeground : (inMonth ? Color.primary : Layout.dimmedText))
                     .frame(maxWidth: .infinity)
                     .background {
-                        dayHighlight(isToday: isToday, isSelected: isSelected, isHovered: isHovered)
+                        dayHighlight(isToday: isToday, isSelected: isSelected, isPressed: isPressed, isHovered: isHovered)
                     }
 
                 // Reserve the dots' space on every cell so row height stays
@@ -555,16 +612,18 @@ struct CalendarPopoverView: View {
             .contentShape(Rectangle())
             .onHover { isHovered = $0 }
             .onChange(of: hoverResetGeneration) { isHovered = false }
-            .animation(.easeOut(duration: 0.12), value: isHovered)
+            // Hover and press switch at once, as system chips do; only the
+            // selection change animates.
             .animation(.easeOut(duration: 0.12), value: isSelected)
         }
 
-        /// Circular highlight behind a day number. Precedence: today (filled accent)
-        /// over the selected day (system grey selection fill) over hover (faint
-        /// fill). All three share one circle size so highlight states swap
-        /// without shifting the layout.
+        /// Circular highlight behind a day number. Precedence: today (filled
+        /// accent) over the selected day (system grey selection fill) over
+        /// pressed and hovered (the system's hierarchical fills, the tones
+        /// its own chips use). All share one circle size so highlight states
+        /// swap without shifting the layout.
         @ViewBuilder
-        private func dayHighlight(isToday: Bool, isSelected: Bool, isHovered: Bool) -> some View {
+        private func dayHighlight(isToday: Bool, isSelected: Bool, isPressed: Bool, isHovered: Bool) -> some View {
             let size = Layout.dayCircleSize
             if isToday {
                 Circle().fill(accent)
@@ -574,8 +633,10 @@ struct CalendarPopoverView: View {
                 // adapts to light and dark mode automatically.
                 Circle().fill(Color(nsColor: .unemphasizedSelectedContentBackgroundColor))
                     .frame(width: size, height: size)
+            } else if isPressed {
+                Circle().fill(.tertiary).frame(width: size, height: size)
             } else if isHovered {
-                Circle().fill(Color.primary.opacity(0.08)).frame(width: size, height: size)
+                Circle().fill(.quaternary).frame(width: size, height: size)
             }
         }
 
@@ -1062,8 +1123,13 @@ private struct ItemRow: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 7)
-        // Rounded hover highlight, like menu items in Control Center.
-        .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(isHovered ? 0.08 : 0)))
+        // Rounded hover highlight, like menu items in Control Center, in
+        // the system's hierarchical fill.
+        .background {
+            if isHovered {
+                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+            }
+        }
         // The row's hover region is only its hit-testable content by default,
         // which excludes the spacer gap and the faded-out button — hovering
         // there would drop `isHovered` before the button could be clicked.
@@ -1073,7 +1139,6 @@ private struct ItemRow: View {
         .onTapGesture { onEdit?() }
         .accessibilityAddTraits(onEdit == nil ? [] : .isButton)
         .onHover { isHovered = $0 }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
         .contextMenu { contextMenuItems }
         .confirmationDialog(
             String(localized: "This is a repeating event."),
@@ -2572,6 +2637,21 @@ private struct NextMeetingBanner: View {
             }
         )
     }
+}
+
+/// Passes a button's pressed state down to its label through the
+/// environment, so a label that draws its own highlight (a day's circle, a
+/// week number's chip) can show the press. The label is otherwise drawn as
+/// given, like `.plain`.
+private struct PressReportingButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.environment(\.reportedPress, configuration.isPressed)
+    }
+}
+
+extension EnvironmentValues {
+    /// True while the enclosing `PressReportingButtonStyle` button is pressed.
+    @Entry var reportedPress = false
 }
 
 #Preview {
