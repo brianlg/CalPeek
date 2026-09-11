@@ -23,6 +23,9 @@ final class MenuBarPanel: NSPanel {
         static let screenMargin: CGFloat = 8
         /// A menu's fade-out, more or less.
         static let fadeOutDuration: TimeInterval = 0.12
+        /// Tint laid over the material for contrast: black in dark mode,
+        /// white in light, at this opacity. 0 leaves the material as is.
+        static let dimming: CGFloat = 0.2
     }
 
     /// Called as a dismissal begins, whatever caused it (a click outside,
@@ -85,6 +88,12 @@ final class MenuBarPanel: NSPanel {
         material.maskImage = Self.roundedMask(radius: Metrics.cornerRadius)
         hosting.view.frame = material.bounds
         hosting.view.autoresizingMask = [.width, .height]
+        if Metrics.dimming > 0 {
+            let dim = DimView(opacity: Metrics.dimming)
+            dim.frame = material.bounds
+            dim.autoresizingMask = [.width, .height]
+            material.addSubview(dim)
+        }
         material.addSubview(hosting.view)
         let edge = EdgeView(cornerRadius: Metrics.cornerRadius)
         edge.frame = material.bounds
@@ -323,5 +332,29 @@ private final class EdgeView: NSView {
     override func viewDidChangeBackingProperties() {
         super.viewDidChangeBackingProperties()
         needsLayout = true
+    }
+}
+
+/// A flat tint over the material, darkening it in dark mode and lightening
+/// it in light mode, so text and the agenda dots get more contrast without
+/// giving up the translucency. Layer-only and hit-test transparent.
+private final class DimView: NSView {
+    private let opacity: CGFloat
+
+    init(opacity: CGFloat) {
+        self.opacity = opacity
+        super.init(frame: .zero)
+        wantsLayer = true
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        layer?.backgroundColor = (dark ? NSColor.black : NSColor.white).withAlphaComponent(opacity).cgColor
     }
 }
