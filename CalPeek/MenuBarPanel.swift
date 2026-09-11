@@ -15,10 +15,10 @@ import SwiftUI
 @MainActor
 final class MenuBarPanel: NSPanel {
     private enum Metrics {
-        /// Rounding of the panel's corners, close to a menu's.
-        static let cornerRadius: CGFloat = 12
+        /// Rounding of the panel's corners, like a Control Center panel's.
+        static let cornerRadius: CGFloat = 20
         /// Space between the bottom of the menu bar and the panel.
-        static let menuBarGap: CGFloat = 5
+        static let menuBarGap: CGFloat = 8
         /// Minimum distance kept from the screen's side edges.
         static let screenMargin: CGFloat = 8
         /// A menu's fade-out, more or less.
@@ -75,16 +75,21 @@ final class MenuBarPanel: NSPanel {
         backgroundColor = .clear
         hasShadow = true
 
-        // The popover material behind the SwiftUI content, rounded with a
-        // mask image (the documented way to shape a visual effect view).
+        // The menu material behind the SwiftUI content, rounded with a mask
+        // image (the documented way to shape a visual effect view), with the
+        // hairline and top highlight the system's own panels draw on top.
         let material = NSVisualEffectView()
-        material.material = .popover
+        material.material = .menu
         material.blendingMode = .behindWindow
         material.state = .active
         material.maskImage = Self.roundedMask(radius: Metrics.cornerRadius)
         hosting.view.frame = material.bounds
         hosting.view.autoresizingMask = [.width, .height]
         material.addSubview(hosting.view)
+        let edge = EdgeView(cornerRadius: Metrics.cornerRadius)
+        edge.frame = material.bounds
+        edge.autoresizingMask = [.width, .height]
+        material.addSubview(edge)
         contentView = material
 
         sizeObservation = hosting.observe(\.preferredContentSize, options: [.new]) { [weak self] _, _ in
@@ -262,5 +267,61 @@ private extension NSWindow {
             window = current.parent
         }
         return false
+    }
+}
+
+/// The panel's edge: a one-pixel hairline around the rounded shape, and a
+/// lighter line along the top edge that reads as a lit rim, the way menus
+/// and Control Center panels draw theirs. Layer-only and hit-test
+/// transparent, so it never gets between the pointer and the calendar.
+private final class EdgeView: NSView {
+    private let hairline = CALayer()
+    private let highlight = CALayer()
+    private let highlightMask = CALayer()
+    private let cornerRadius: CGFloat
+
+    init(cornerRadius: CGFloat) {
+        self.cornerRadius = cornerRadius
+        super.init(frame: .zero)
+        wantsLayer = true
+        for line in [hairline, highlight] {
+            line.cornerRadius = cornerRadius
+            layer?.addSublayer(line)
+        }
+        highlight.mask = highlightMask
+        highlightMask.backgroundColor = NSColor.black.cgColor
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    override var wantsUpdateLayer: Bool { true }
+
+    /// `updateLayer` runs again on every appearance change, so the colors
+    /// follow light and dark mode without observing anything.
+    override func updateLayer() {
+        let dark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+        hairline.borderColor = (dark
+            ? NSColor.white.withAlphaComponent(0.14)
+            : NSColor.black.withAlphaComponent(0.12)).cgColor
+        highlight.borderColor = NSColor.white.withAlphaComponent(dark ? 0.22 : 0.6).cgColor
+    }
+
+    override func layout() {
+        super.layout()
+        let pixel = 1 / (window?.backingScaleFactor ?? 2)
+        for line in [hairline, highlight] {
+            line.frame = bounds
+            line.borderWidth = pixel
+        }
+        // Only the top of the highlight's rim shows: a strip as tall as the
+        // corner radius, so the line follows the curve round the corners.
+        highlightMask.frame = CGRect(x: 0, y: bounds.height - cornerRadius, width: bounds.width, height: cornerRadius)
+    }
+
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        needsLayout = true
     }
 }
