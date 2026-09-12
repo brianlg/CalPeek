@@ -112,12 +112,51 @@ extension EKEventStore {
     }
 
     /// Color of the user's default reminders list, or nil without full
-    /// reminders access or when no default list is set.
+    /// reminders access or when no default list is set. Finding the default
+    /// list is a synchronous call into the Reminders service, several
+    /// milliseconds each, and opening the popover needs it twice (badge and
+    /// month view), so it is asked at most once per run loop pass.
+    @MainActor
     var defaultReminderColor: Color? {
-        guard RemindersAccess.hasFullAccess,
-              let cgColor = defaultCalendarForNewReminders()?.cgColor else { return nil }
-        return Color(cgColor: cgColor)
+        guard RemindersAccess.hasFullAccess else { return nil }
+        let cgColor = Self.defaultReminderListColors.value(for: ObjectIdentifier(self)) {
+            defaultCalendarForNewReminders()?.cgColor
+        }
+        return cgColor.map { Color(cgColor: $0) }
     }
+
+    @MainActor
+    private static let defaultReminderListColors = RunLoopPassCache<ObjectIdentifier, CGColor?>()
+}
+
+extension EKEventStore {
+    /// `refreshSourcesIfNecessary()`, at most once per run loop pass.
+    /// Long-running stores serve stale snapshots after external syncs (an
+    /// event added on another device, say), so each model asks before
+    /// reading; opening the popover used to ask three times in a row.
+    @MainActor
+    func refreshSourcesIfNecessaryOncePerPass() {
+        Self.refreshedSources.value(for: ObjectIdentifier(self)) {
+            refreshSourcesIfNecessary()
+        }
+    }
+
+    /// Every event overlapping today, read after bringing the store current.
+    /// Empty while Show Calendar is off or full calendar access is missing.
+    /// The next-meeting banner and the menu bar badge both start from this
+    /// list, so opening the popover reads it once and hands it to each.
+    @MainActor
+    func todaysEvents() -> [EKEvent] {
+        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return [] }
+        refreshSourcesIfNecessaryOncePerPass()
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return [] }
+        return events(matching: predicateForEvents(withStart: today, end: end, calendars: nil))
+    }
+
+    @MainActor
+    private static let refreshedSources = RunLoopPassCache<ObjectIdentifier, Void>()
 }
 
 extension Notification.Name {

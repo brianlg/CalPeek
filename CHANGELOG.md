@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- On macOS Tahoe the calendar panel is made of Liquid Glass, the same
+  material as the system's own menu bar panels, so it refracts what is
+  behind it and its edge catches the light the way Control Center's does.
+  It is tinted to stay close to the shade it had before, so text and event
+  dots keep their contrast. Its corners are a little tighter, matching a
+  system popover's, and the next-meeting card now sits closer to the edge
+  with corners that follow the panel's round the bend. The highlights in a
+  day's list and the year picker's selection follow their popover's corners
+  the same way. Earlier versions of macOS keep the previous look.
+
 ### Fixed
 
 - Turning on Show Calendar or Show Reminders and then declining the system
@@ -22,6 +34,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Settings now says so, instead of showing an empty month with nothing to
   explain it. The note appears as soon as Settings is opened, and the
   switch stays usable so the feature can still be turned off.
+- Moving the pointer across the month view is lighter on your Mac. Only
+  the days whose highlight changes are redrawn now, instead of the whole
+  calendar for every day the pointer crosses, which cuts the work it takes
+  by more than a quarter. Moving around an open day's list also no longer
+  rereads your calendar each time.
+- The calendar opens a little sooner after you click the menu bar icon.
+  CalPeek used to ask Calendar and Reminders several of the same questions
+  on every click; it now asks each once, which trims about a tenth off the
+  time before the calendar appears.
+- Closing the calendar feels immediate again. The menu bar icon's
+  highlight now goes out together with the calendar, the way Apple's own
+  menu bar items behave, instead of lingering for about half a second after
+  the calendar had already disappeared.
+- The calendar now opens and closes like the system's own menu bar
+  panels. It appears the moment you click, fades out when dismissed, and a
+  click during that fade brings it straight back; before, a click in the
+  half second after closing was ignored, so clicking the icon on and off
+  quickly skipped every other click. It hangs directly under the icon
+  without a pointer arrow, as Apple's menu bar panels do.
 
 ## [1.1] - 2026-09-04
 

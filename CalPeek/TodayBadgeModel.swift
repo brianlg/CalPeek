@@ -86,16 +86,18 @@ final class TodayBadgeModel {
         timer?.invalidate()
     }
 
-    func refresh() {
+    /// Recomputes both dots. A caller that has already read today's events
+    /// passes them in (see `AppDelegate.togglePopover`); nil reads them here.
+    func refresh(todayEvents: [EKEvent]? = nil) {
         refreshReminders()
-        recompute()
+        recompute(todayEvents: todayEvents)
     }
 
-    private func recompute() {
+    private func recompute(todayEvents: [EKEvent]? = nil) {
         // `endDate > now` keeps in-progress events counted as upcoming, so
         // the dot survives until the last event of the day has ended.
         let now = Date()
-        let events = todayEvents()
+        let events = todayEvents ?? store.todaysEvents()
         let newState = (
             eventDot: events.contains { $0.endDate > now },
             reminderDot: !todayReminderIDs.isEmpty,
@@ -156,18 +158,5 @@ final class TodayBadgeModel {
             self.todayReminderIDs = ids
             self.recompute()
         }
-    }
-
-    private func todayEvents() -> [EKEvent] {
-        guard Preferences.showCalendar, CalendarAccess.hasFullAccess else { return [] }
-        // Long-running stores serve stale snapshots after external syncs
-        // (e.g. an event added on another device); make sure ours is current.
-        store.refreshSourcesIfNecessary()
-
-        let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
-        guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return [] }
-        let predicate = store.predicateForEvents(withStart: today, end: end, calendars: nil)
-        return store.events(matching: predicate)
     }
 }
