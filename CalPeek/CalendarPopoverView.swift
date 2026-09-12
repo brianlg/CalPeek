@@ -975,6 +975,7 @@ private struct DayEventsPopover: View {
                 plusGlyph
             }
             .buttonStyle(.accessoryBar)
+            .buttonBorderShape(.circle)
             .help(model.canCreateEvents
                 ? String(localized: "New Event")
                 : String(localized: "New Reminder"))
@@ -1319,6 +1320,7 @@ private struct HoverIconButton: View {
                 .foregroundStyle(tint)
         }
         .buttonStyle(.accessoryBar)
+        .buttonBorderShape(.circle)
         .help(help)
     }
 }
