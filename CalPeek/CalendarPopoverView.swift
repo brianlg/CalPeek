@@ -125,7 +125,11 @@ struct CalendarPopoverView: View {
                     alternatives: model.joinableMeetings,
                     accent: accent,
                     join: { model.joinNextMeeting() },
-                    choose: { model.choose($0) }
+                    choose: { model.choose($0) },
+                    // Concentric with the panel's corners: its radius less
+                    // the card's inset, so the card's edge keeps an even
+                    // distance from the panel's round the corner.
+                    cornerRadius: MenuBarPanel.cornerRadius - Layout.cardInset
                 )
                 .padding([.horizontal, .top], Layout.cardInset - Layout.padding)
             }
@@ -140,10 +144,6 @@ struct CalendarPopoverView: View {
         // The gutter widens the popover rather than compressing the day
         // grid, so the month view looks identical either way.
         .frame(width: Layout.popoverWidth + (showWeekNumbers ? weekNumberGutterWidth : 0))
-        // The panel's own shape, so a `ConcentricRectangle` inset within the
-        // content (the next-meeting card) takes a corner radius that keeps
-        // its edge an even distance from the panel's rounded corner.
-        .containerShape(RoundedRectangle(cornerRadius: MenuBarPanel.cornerRadius, style: .continuous))
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
@@ -836,7 +836,7 @@ private struct YearPickerPopover: View {
             .frame(maxWidth: .infinity)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    RoundedRectangle(cornerRadius: PopoverShape.concentricRadius(inset: 4), style: .continuous)
                         .fill(accent)
                         .padding(.horizontal, 4)
                 }
@@ -2556,6 +2556,9 @@ private struct NextMeetingBanner: View {
     let accent: Color
     let join: () -> Void
     let choose: (NextMeeting) -> Void
+    /// The card's corner, chosen by the month view to be concentric with
+    /// the panel's.
+    let cornerRadius: CGFloat
 
     var body: some View {
         HStack(spacing: 8) {
@@ -2581,24 +2584,10 @@ private struct NextMeetingBanner: View {
                 .tint(accent)
         }
         .padding(10)
-        .background { cardShape.fill(.quaternary.opacity(0.5)) }
-    }
-
-    /// Concentric with the panel's corners on macOS 26: the radius is the
-    /// panel's less the card's inset, so the card's edge runs parallel to
-    /// the panel's round the corner, and never tighter than `minimum`, the
-    /// floor a card keeps once the inset eats the whole radius. Earlier
-    /// systems draw a fixed radius.
-    private var cardShape: AnyShape {
-        if #available(macOS 26, *) {
-            return AnyShape(ConcentricRectangle(corners: .concentric(minimum: .fixed(Layout.minimumRadius))))
+        .background {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(.quaternary.opacity(0.5))
         }
-        return AnyShape(RoundedRectangle(cornerRadius: Layout.fallbackRadius, style: .continuous))
-    }
-
-    private enum Layout {
-        static let minimumRadius: CGFloat = 4
-        static let fallbackRadius: CGFloat = 8
     }
 
     /// A plain Join button, or the split form once there is something to
@@ -2686,17 +2675,39 @@ private struct ReminderRing: View {
     }
 }
 
+/// A system popover's corner, which measures 16 pt on macOS 26 (there is
+/// no API to read it), and the rule for shapes drawn inside one: a
+/// highlight or selection inset from the popover's edge takes the radius
+/// concentric with it, the popover's less the inset, so at the corners its
+/// edge runs parallel to the popover's. Every row takes that same radius,
+/// as the items of a system menu do, rather than each computing its own
+/// from where it happens to sit. `inset` is from the SwiftUI content's
+/// bounds, which NSPopover sets about 2 pt inside its edge.
+private enum PopoverShape {
+    static let cornerRadius: CGFloat = 16
+    static let contentInset: CGFloat = 2
+
+    static func concentricRadius(inset: CGFloat) -> CGFloat {
+        cornerRadius - contentInset - inset
+    }
+}
+
 /// A day-list row's background: the system's quaternary fill under the
-/// pointer and tertiary while the row is pressed.
+/// pointer and tertiary while the row is pressed, concentric with the
+/// popover (the rows sit 6 pt inside the content, 8 from the edge).
 private struct RowFill: View {
     let isHovered: Bool
     @Environment(\.reportedPress) private var isPressed
 
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: PopoverShape.concentricRadius(inset: 6), style: .continuous)
+    }
+
     var body: some View {
         if isPressed {
-            RoundedRectangle(cornerRadius: 6).fill(.tertiary)
+            shape.fill(.tertiary)
         } else if isHovered {
-            RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+            shape.fill(.quaternary)
         }
     }
 }

@@ -15,8 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It is tinted to stay close to the shade it had before, so text and event
   dots keep their contrast. Its corners are a little tighter, matching a
   system popover's, and the next-meeting card now sits closer to the edge
-  with corners that follow the panel's round the bend. Earlier versions of
-  macOS keep the previous look.
+  with corners that follow the panel's round the bend. The highlights in a
+  day's list and the year picker's selection follow their popover's corners
+  the same way. Earlier versions of macOS keep the previous look.
 
 ### Fixed
 
