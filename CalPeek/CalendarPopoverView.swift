@@ -860,9 +860,6 @@ private struct DayEventsPopover: View {
     /// Measured height of the list's row stack, so the ScrollView can report
     /// a real ideal height to the popover (see `listContent`).
     @State private var listHeight: CGFloat = 0
-    /// Hover state for the header "+" chip, which brightens under the
-    /// pointer like the rows' inline icon buttons.
-    @State private var plusHovered = false
 
     @AppStorage(Preferences.calendarEventsColorKey)
     private var calendarEventsRaw = WeekdayColor.auto.rawValue
@@ -970,17 +967,14 @@ private struct DayEventsPopover: View {
     @ViewBuilder
     private var plusControl: some View {
         if model.canCreateEvents || model.canCreateReminders {
+            // The system's accessory-bar style: an icon button whose hover
+            // and pressed chips AppKit draws, as in Finder's and Notes' bars.
             Button {
                 mode = .create
             } label: {
                 plusGlyph
-                    .frame(width: 20, height: 20)
-                    .background(Circle().fill(Color.primary.opacity(plusHovered ? 0.14 : 0.08)))
-                    .contentShape(Circle())
             }
-            .buttonStyle(.plain)
-            .onHover { plusHovered = $0 }
-            .animation(.easeOut(duration: 0.12), value: plusHovered)
+            .buttonStyle(.accessoryBar)
             .help(model.canCreateEvents
                 ? String(localized: "New Event")
                 : String(localized: "New Reminder"))
@@ -1042,6 +1036,42 @@ private struct ItemRow: View {
     private static let glyphWeight: Font.Weight = .bold
 
     var body: some View {
+        // The row is a button when its item can be edited, so a click shows
+        // a press and VoiceOver reads a button; its own buttons (checkbox,
+        // open-in-app, Join) nest inside and take their own clicks. A
+        // read-only row keeps the same look without the button.
+        Group {
+            if let onEdit {
+                Button(action: onEdit) { rowContent }
+                    .buttonStyle(PressReportingButtonStyle())
+            } else {
+                rowContent
+            }
+        }
+        .onHover { isHovered = $0 }
+        .contextMenu { contextMenuItems }
+        .confirmationDialog(
+            String(localized: "This is a repeating event."),
+            isPresented: deleteBinding(.span),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete This Event"), role: .destructive) { performDelete(span: .thisEvent) }
+            Button(String(localized: "Delete All Future Events"), role: .destructive) { performDelete(span: .futureEvents) }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        }
+        .confirmationDialog(
+            item.kind == .event
+                ? String(localized: "Delete this event?")
+                : String(localized: "Delete this reminder?"),
+            isPresented: deleteBinding(.confirm),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Delete"), role: .destructive) { performDelete(span: .thisEvent) }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        }
+    }
+
+    private var rowContent: some View {
         // Laid out like the Calendar app's list on iOS: glyph, title, and
         // the time flush right — or, while the meeting can be joined, a
         // Join button in the time's place. Open-in-app rides just after
@@ -1063,16 +1093,12 @@ private struct ItemRow: View {
                 Button {
                     model.setReminderCompleted(reminderID, !isCompleted)
                 } label: {
-                    // Reminders' ring is not a public control; the closest
-                    // first-party primitive is the `circle` symbol, whose
-                    // stroke thickens with symbol weight. Bold brings it to
-                    // the ~1.5pt ring Calendar and Reminders draw at this
-                    // size, versus the hairline the regular weight gives.
-                    Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
-                        .font(.system(size: Self.glyphSize, weight: Self.glyphWeight))
-                        .foregroundStyle(tint)
+                    ReminderRing(isCompleted: isCompleted, tint: tint)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressReportingButtonStyle())
+                .accessibilityLabel(String(localized: "Completed"))
+                .accessibilityValue(isCompleted ? String(localized: "On") : String(localized: "Off"))
+                .accessibilityAddTraits(.isToggle)
                 .help(isCompleted
                     ? String(localized: "Mark reminder incomplete")
                     : String(localized: "Mark reminder complete"))
@@ -1122,41 +1148,13 @@ private struct ItemRow: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 7)
         // Rounded hover highlight, like menu items in Control Center, in
-        // the system's hierarchical fill.
-        .background {
-            if isHovered {
-                RoundedRectangle(cornerRadius: 6).fill(.quaternary)
-            }
-        }
+        // the system's hierarchical fills: quaternary under the pointer,
+        // tertiary while pressed.
+        .background { RowFill(isHovered: isHovered) }
         // The row's hover region is only its hit-testable content by default,
         // which excludes the spacer gap and the faded-out button — hovering
         // there would drop `isHovered` before the button could be clicked.
         .contentShape(Rectangle())
-        // The nested buttons (checkbox, join, open-in-app) win their own
-        // clicks; the gesture only sees the rest of the row.
-        .onTapGesture { onEdit?() }
-        .accessibilityAddTraits(onEdit == nil ? [] : .isButton)
-        .onHover { isHovered = $0 }
-        .contextMenu { contextMenuItems }
-        .confirmationDialog(
-            String(localized: "This is a repeating event."),
-            isPresented: deleteBinding(.span),
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "Delete This Event"), role: .destructive) { performDelete(span: .thisEvent) }
-            Button(String(localized: "Delete All Future Events"), role: .destructive) { performDelete(span: .futureEvents) }
-            Button(String(localized: "Cancel"), role: .cancel) {}
-        }
-        .confirmationDialog(
-            item.kind == .event
-                ? String(localized: "Delete this event?")
-                : String(localized: "Delete this reminder?"),
-            isPresented: deleteBinding(.confirm),
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "Delete"), role: .destructive) { performDelete(span: .thisEvent) }
-            Button(String(localized: "Cancel"), role: .cancel) {}
-        }
     }
 
     /// Right-click actions. Read-only items offer only the open-in-app jump;
@@ -1313,22 +1311,14 @@ private struct HoverIconButton: View {
     let help: String
     let action: () -> Void
 
-    @State private var isHovered = false
-
     var body: some View {
+        // The system's accessory-bar style draws the hover and pressed chips.
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 11))
                 .foregroundStyle(tint)
-                .frame(width: 24, height: 24)
-                // Sits atop the row's own faint hover wash, so it's a step
-                // stronger to read as a distinct control.
-                .background(Circle().fill(Color.primary.opacity(isHovered ? 0.12 : 0)))
-                .contentShape(Circle())
         }
-        .buttonStyle(.plain)
-        .onHover { isHovered = $0 }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .buttonStyle(.accessoryBar)
         .help(help)
     }
 }
@@ -2650,6 +2640,39 @@ private struct PressReportingButtonStyle: ButtonStyle {
 extension EnvironmentValues {
     /// True while the enclosing `PressReportingButtonStyle` button is pressed.
     @Entry var reportedPress = false
+}
+
+/// Reminders' ring, which is not a public control; the closest first-party
+/// primitive is the `circle` symbol, whose stroke thickens with symbol
+/// weight. Bold brings it to the ~1.5pt ring Calendar and Reminders draw at
+/// this size, versus the hairline the regular weight gives. Dims while
+/// pressed, the press state a custom button owes.
+private struct ReminderRing: View {
+    let isCompleted: Bool
+    let tint: Color
+    @Environment(\.reportedPress) private var isPressed
+
+    var body: some View {
+        Image(systemName: isCompleted ? "circle.inset.filled" : "circle")
+            .font(.system(size: 16, weight: .bold))
+            .foregroundStyle(tint)
+            .opacity(isPressed ? 0.6 : 1)
+    }
+}
+
+/// A day-list row's background: the system's quaternary fill under the
+/// pointer and tertiary while the row is pressed.
+private struct RowFill: View {
+    let isHovered: Bool
+    @Environment(\.reportedPress) private var isPressed
+
+    var body: some View {
+        if isPressed {
+            RoundedRectangle(cornerRadius: 6).fill(.tertiary)
+        } else if isHovered {
+            RoundedRectangle(cornerRadius: 6).fill(.quaternary)
+        }
+    }
 }
 
 #Preview {
