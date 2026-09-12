@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- On macOS Tahoe the calendar panel is made of Liquid Glass, the same
+  material as the system's own menu bar panels, so it refracts what is
+  behind it and its edge catches the light the way Control Center's does.
+  It is tinted to stay close to the shade it had before, so text and event
+  dots keep their contrast. Earlier versions of macOS keep the previous
+  look.
+
 ### Fixed
 
 - Turning on Show Calendar or Show Reminders and then declining the system

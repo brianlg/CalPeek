@@ -26,6 +26,11 @@ final class MenuBarPanel: NSPanel {
         /// Tint laid over the material for contrast: black in dark mode,
         /// white in light, at this opacity. 0 leaves the material as is.
         static let dimming: CGFloat = 0.2
+        /// The glass's tint toward the same neutral colors. Lighter in light
+        /// mode: white lifts glass more than it lifts the material, and this
+        /// keeps the two backdrops the same shade.
+        static let glassTintDark: CGFloat = 0.2
+        static let glassTintLight: CGFloat = 0.08
     }
 
     /// Called as a dismissal begins, whatever caused it (a click outside,
@@ -78,28 +83,8 @@ final class MenuBarPanel: NSPanel {
         backgroundColor = .clear
         hasShadow = true
 
-        // The menu material behind the SwiftUI content, rounded with a mask
-        // image (the documented way to shape a visual effect view), with the
-        // hairline and top highlight the system's own panels draw on top.
-        let material = NSVisualEffectView()
-        material.material = .menu
-        material.blendingMode = .behindWindow
-        material.state = .active
-        material.maskImage = Self.roundedMask(radius: Metrics.cornerRadius)
-        hosting.view.frame = material.bounds
         hosting.view.autoresizingMask = [.width, .height]
-        if Metrics.dimming > 0 {
-            let dim = DimView(opacity: Metrics.dimming)
-            dim.frame = material.bounds
-            dim.autoresizingMask = [.width, .height]
-            material.addSubview(dim)
-        }
-        material.addSubview(hosting.view)
-        let edge = EdgeView(cornerRadius: Metrics.cornerRadius)
-        edge.frame = material.bounds
-        edge.autoresizingMask = [.width, .height]
-        material.addSubview(edge)
-        contentView = material
+        contentView = Self.makeBackdrop(around: hosting.view)
 
         sizeObservation = hosting.observe(\.preferredContentSize, options: [.new]) { [weak self] _, _ in
             MainActor.assumeIsolated { self?.refit(animated: true) }
@@ -253,6 +238,60 @@ final class MenuBarPanel: NSPanel {
         // Whole-point origin, unchanged size: `integral` would widen the
         // frame by a point whenever centering lands on a half point.
         return NSRect(origin: NSPoint(x: origin.x.rounded(), y: origin.y.rounded()), size: size)
+    }
+
+    /// The backdrop behind the SwiftUI content. On macOS 26 that is Liquid
+    /// Glass, the same as the system's own menu bar panels, tinted toward a
+    /// neutral color (black in dark mode, white in light) for the contrast
+    /// the material's dimming gave. Earlier systems get the menu material,
+    /// rounded with a mask image (the documented way to shape a visual
+    /// effect view), a flat dimming tint, and the hairline and top highlight
+    /// the system's panels draw on top.
+    private static func makeBackdrop(around content: NSView) -> NSView {
+        if #available(macOS 26, *) {
+            let glass = NSGlassEffectView()
+            glass.cornerRadius = Metrics.cornerRadius
+            glass.style = .regular
+            glass.tintColor = NSColor(name: nil) { appearance in
+                let dark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                return dark
+                    ? NSColor.black.withAlphaComponent(Metrics.glassTintDark)
+                    : NSColor.white.withAlphaComponent(Metrics.glassTintLight)
+            }
+            content.frame = glass.bounds
+            glass.contentView = content
+            // The window's shadow follows its alpha; the glass is composited
+            // outside the window's own surface, which stays a full rectangle
+            // and would get a squared shadow. Clip it in a rounded layer so
+            // the surface, and the shadow, take the same shape.
+            let clip = NSView()
+            clip.wantsLayer = true
+            clip.layer?.cornerRadius = Metrics.cornerRadius
+            clip.layer?.cornerCurve = .continuous
+            clip.layer?.masksToBounds = true
+            glass.frame = clip.bounds
+            glass.autoresizingMask = [.width, .height]
+            clip.addSubview(glass)
+            return clip
+        }
+        let material = NSVisualEffectView()
+        material.material = .menu
+        material.blendingMode = .behindWindow
+        material.state = .active
+        material.maskImage = roundedMask(radius: Metrics.cornerRadius)
+        content.frame = material.bounds
+        if Metrics.dimming > 0 {
+            let dim = DimView(opacity: Metrics.dimming)
+            dim.frame = material.bounds
+            dim.autoresizingMask = [.width, .height]
+            material.addSubview(dim)
+        }
+        material.addSubview(content)
+        let edge = EdgeView(cornerRadius: Metrics.cornerRadius)
+        edge.frame = material.bounds
+        edge.autoresizingMask = [.width, .height]
+        material.addSubview(edge)
+        return material
     }
 
     private static func roundedMask(radius: CGFloat) -> NSImage {
