@@ -16,6 +16,11 @@ struct CalendarPopoverView: View {
         static let popoverWidth: CGFloat = 300
         static let rowHeight: CGFloat = 36
         static let padding: CGFloat = 16
+        /// The next-meeting card's distance from the panel's edge, closer
+        /// than the rest of the content the way Control Center's tiles sit
+        /// nearer its edge than its text, so its concentric corner has some
+        /// radius left (the panel's 16 less this).
+        static let cardInset: CGFloat = 10
         static let daysPerWeek = 7
         static let numberOfWeeks = 6
         static let totalDays = daysPerWeek * numberOfWeeks // 42
@@ -122,6 +127,7 @@ struct CalendarPopoverView: View {
                     join: { model.joinNextMeeting() },
                     choose: { model.choose($0) }
                 )
+                .padding([.horizontal, .top], Layout.cardInset - Layout.padding)
             }
             header
             weekdayRow
@@ -134,6 +140,10 @@ struct CalendarPopoverView: View {
         // The gutter widens the popover rather than compressing the day
         // grid, so the month view looks identical either way.
         .frame(width: Layout.popoverWidth + (showWeekNumbers ? weekNumberGutterWidth : 0))
+        // The panel's own shape, so a `ConcentricRectangle` inset within the
+        // content (the next-meeting card) takes a corner radius that keeps
+        // its edge an even distance from the panel's rounded corner.
+        .containerShape(RoundedRectangle(cornerRadius: MenuBarPanel.cornerRadius, style: .continuous))
         .focusable()
         .focused($isFocused)
         .focusEffectDisabled()
@@ -2571,10 +2581,24 @@ private struct NextMeetingBanner: View {
                 .tint(accent)
         }
         .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.quaternary.opacity(0.5))
-        )
+        .background { cardShape.fill(.quaternary.opacity(0.5)) }
+    }
+
+    /// Concentric with the panel's corners on macOS 26: the radius is the
+    /// panel's less the card's inset, so the card's edge runs parallel to
+    /// the panel's round the corner, and never tighter than `minimum`, the
+    /// floor a card keeps once the inset eats the whole radius. Earlier
+    /// systems draw a fixed radius.
+    private var cardShape: AnyShape {
+        if #available(macOS 26, *) {
+            return AnyShape(ConcentricRectangle(corners: .concentric(minimum: .fixed(Layout.minimumRadius))))
+        }
+        return AnyShape(RoundedRectangle(cornerRadius: Layout.fallbackRadius, style: .continuous))
+    }
+
+    private enum Layout {
+        static let minimumRadius: CGFloat = 4
+        static let fallbackRadius: CGFloat = 8
     }
 
     /// A plain Join button, or the split form once there is something to

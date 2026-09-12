@@ -14,9 +14,13 @@ import SwiftUI
 /// fade brings it straight back.
 @MainActor
 final class MenuBarPanel: NSPanel {
+    /// Rounding of the panel's corners: what a system popover's measure on
+    /// macOS 26. The content declares the same shape as its container so
+    /// shapes inset within it can be drawn concentric with the corners.
+    nonisolated static let cornerRadius: CGFloat = 16
+
     private enum Metrics {
-        /// Rounding of the panel's corners, like a Control Center panel's.
-        static let cornerRadius: CGFloat = 20
+        static let cornerRadius = MenuBarPanel.cornerRadius
         /// Space between the bottom of the menu bar and the panel.
         static let menuBarGap: CGFloat = 8
         /// Minimum distance kept from the screen's side edges.
