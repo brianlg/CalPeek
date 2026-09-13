@@ -33,8 +33,17 @@ For every code change:
    ```sh
    xcodebuild -scheme CalPeek -configuration Debug build
    ```
-2. **For any UI change, visually verify at runtime.** Use the `verify` skill — build, launch, and drive the app, then screenshot to confirm it actually looks and behaves right. Don't claim a UI change works without seeing it.
-3. **On completing a feature or bug fix, add a user-facing entry to the
+2. **Tests must pass.** Run the unit suite before reporting done; a
+   change that touches tested logic must keep it green, and new pure logic
+   gets tests (see Testing below).
+   ```sh
+   xcodebuild test -scheme CalPeek -configuration Debug -destination 'platform=macOS'
+   ```
+   The same command runs on every push and pull request in GitHub Actions
+   (`.github/workflows/tests.yml`), unsigned; keep the tests free of anything
+   that needs a signing identity, a TCC grant, or the user's real calendars.
+3. **For any UI change, visually verify at runtime.** Use the `verify` skill — build, launch, and drive the app, then screenshot to confirm it actually looks and behaves right. Don't claim a UI change works without seeing it.
+4. **On completing a feature or bug fix, add a user-facing entry to the
    `[Unreleased]` section of `CHANGELOG.md`**, following
    [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/)
    (`Added`/`Changed`/`Fixed`/`Removed` groupings). Entries feed the Mac App
@@ -44,7 +53,7 @@ For every code change:
    prose (what changed for the user, not how), so that at release time it
    is copied, not reconstructed. Implementation notes go below the
    user-facing prose, not in place of it.
-4. **Auto-commit the completed task** with a descriptive message. **Never push** unless explicitly asked.
+5. **Auto-commit the completed task** with a descriptive message. **Never push** unless explicitly asked.
 
 ## Branching
 
@@ -120,7 +129,24 @@ Prefer Apple frameworks (SwiftUI, AppKit, EventKit, etc.). A third-party SwiftPM
 
 ## Testing
 
-Add lightweight unit tests for **pure/parseable logic** going forward — date math, `MeetingLinkParser`, and similar. Skip UI tests (verify those visually via the `verify` skill). There is no test target yet; when the first testable logic change lands, set one up via `project.yml`.
+Unit tests live in `CalPeekTests` (Swift Testing, run by the `CalPeek`
+scheme). Add lightweight tests for **pure/parseable logic** — date math,
+`MeetingLinkParser`, the next-meeting state ladder, and similar. Skip UI
+tests (verify those visually via the `verify` skill).
+
+**Keep product rules testable by keeping them pure.** Most of the app's
+logic sits inside `@MainActor` classes that read the clock, `Preferences`,
+or `EKEventStore`. When adding or changing a rule there, put the rule in a
+function that takes those inputs as parameters (`now: Date`, the relevant
+setting, the already-fetched items) and test that function; the class
+method that reads the live values stays a thin wrapper. `NextMeeting`'s
+`menuBarState(at:leadWindowMinutes:title:)` is the pattern: the model
+passes `Date()` and `Preferences`, the tests pass fixed values.
+
+Tests must run without calendar or reminders access: `EKEvent`,
+`EKReminder`, `EKAlarm`, and `EKRecurrenceRule` can all be constructed
+against a fresh `EKEventStore()` with no grant, but never fetch from one.
+Name tests for the behavior they pin, not the method they call.
 
 ## Don't regress these
 
