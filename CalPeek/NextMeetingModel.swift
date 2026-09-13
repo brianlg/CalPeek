@@ -113,6 +113,25 @@ struct NextMeeting: Identifiable {
         meetings.first { $0.isInJoinWindow(at: now) } ?? meetings.first
     }
 
+    /// The meeting to act on: the user's chooser pick while it is still
+    /// joinable, else the `primary` one. A pick that has ended, or is no
+    /// longer in the list, yields to the primary rather than pinning a
+    /// stale call.
+    static func current(of meetings: [NextMeeting], chosen chosenID: ID?, at now: Date) -> NextMeeting? {
+        if let chosen = meetings.first(where: { $0.id == chosenID }), chosen.isJoinable(at: now) {
+            return chosen
+        }
+        return primary(of: meetings, at: now)
+    }
+
+    /// Menu bar space is scarce; clamp long titles to `limit` characters
+    /// with an ellipsis, trimming any space left dangling before it.
+    static func truncatedTitle(_ title: String, limit: Int = 20) -> String {
+        guard title.count > limit else { return title }
+        let prefix = title.prefix(limit - 1)
+        return prefix.trimmingCharacters(in: .whitespaces) + "…"
+    }
+
     /// Deterministic candidate order: start, then end, then title. Meetings
     /// that start together are a sort tie, and `sorted` makes no stability
     /// promise — without the extra keys, which of three 1:00s leads would be
@@ -167,11 +186,7 @@ final class NextMeetingModel {
     /// joinable, else the `primary` one;
     /// the rest stay reachable through `joinableMeetings`.
     var nextMeeting: NextMeeting? {
-        let now = Date()
-        if let chosen = meetings.first(where: { $0.id == chosenMeetingID }), chosen.isJoinable(at: now) {
-            return chosen
-        }
-        return NextMeeting.primary(of: meetings, at: now)
+        NextMeeting.current(of: meetings, chosen: chosenMeetingID, at: Date())
     }
 
     /// What the popover banner and the context menu's Join item show:
@@ -267,7 +282,7 @@ final class NextMeetingModel {
         return meeting.menuBarState(
             at: Date(),
             leadWindowMinutes: Preferences.leadWindowMinutes,
-            title: Preferences.showMeetingTitle ? truncated(meeting.title) : nil
+            title: Preferences.showMeetingTitle ? NextMeeting.truncatedTitle(meeting.title) : nil
         )
     }
 
@@ -368,7 +383,7 @@ final class NextMeetingModel {
     /// changed when the timer fires. A near-zero phase means a boundary is
     /// imminent, not a minute away; skipping it (as a `: 60` fallback would)
     /// leaves the old minute showing for most of the next one.
-    private static func nextMinuteBoundary(before reference: Date, after now: Date) -> Date {
+    static func nextMinuteBoundary(before reference: Date, after now: Date) -> Date {
         let remaining = reference.timeIntervalSince(now)
         var toNextMinute = remaining.truncatingRemainder(dividingBy: 60)
         if toNextMinute < 0.1 { toNextMinute += 60 }
@@ -395,12 +410,5 @@ final class NextMeetingModel {
                 }
             }
             .sorted(by: NextMeeting.chronological)
-    }
-
-    /// Menu bar space is scarce; clamp long titles.
-    private func truncated(_ title: String, to limit: Int = 20) -> String {
-        guard title.count > limit else { return title }
-        let prefix = title.prefix(limit - 1)
-        return prefix.trimmingCharacters(in: .whitespaces) + "…"
     }
 }

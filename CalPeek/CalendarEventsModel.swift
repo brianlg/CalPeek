@@ -36,6 +36,18 @@ struct DayItem: Identifiable, Sendable, Equatable {
     /// Event end, which with `sortDate` decides whether the row shows Join.
     /// Nil for reminders, which have no join window.
     let endDate: Date?
+
+    /// The day list's order: all-day items first, events before reminders
+    /// within that group, then by time, then by title so equal times keep
+    /// a stable order across refreshes.
+    static func dayListOrder(_ lhs: DayItem, _ rhs: DayItem) -> Bool {
+        if lhs.sortsAsAllDay != rhs.sortsAsAllDay { return lhs.sortsAsAllDay }
+        if lhs.sortsAsAllDay, (lhs.kind == .event) != (rhs.kind == .event) {
+            return lhs.kind == .event
+        }
+        if lhs.sortDate != rhs.sortDate { return lhs.sortDate < rhs.sortDate }
+        return lhs.title < rhs.title
+    }
 }
 
 /// Bridge to the user's calendars and reminders. Tracks which days in the
@@ -145,15 +157,7 @@ final class CalendarEventsModel {
         }
         let events = eventItems(on: date, calendar: calendar)
         let reminders = reminderItems(on: date, calendar: calendar)
-        let items = (events + reminders).sorted { lhs, rhs in
-            if lhs.sortsAsAllDay != rhs.sortsAsAllDay { return lhs.sortsAsAllDay }
-            // Within the all-day group, events come before reminders.
-            if lhs.sortsAsAllDay, (lhs.kind == .event) != (rhs.kind == .event) {
-                return lhs.kind == .event
-            }
-            if lhs.sortDate != rhs.sortDate { return lhs.sortDate < rhs.sortDate }
-            return lhs.title < rhs.title
-        }
+        let items = (events + reminders).sorted(by: DayItem.dayListOrder)
         cachedDayItems = (day, calendar, revision, items)
         return items
     }
@@ -245,14 +249,9 @@ final class CalendarEventsModel {
         event.calendar = eventCalendar
         event.isAllDay = isAllDay
         if isAllDay {
-            // All-day events end at 23:59:59 of the last day — the convention
-            // EventKit itself returns for fetched events. A midnight end would
-            // make a one-day event zero-length (breaking the `endDate > now`
-            // badge and next-meeting filters), and a next-midnight end puts the
-            // end's day component on the following day.
-            event.startDate = cal.startOfDay(for: start)
-            let lastDay = cal.startOfDay(for: max(start, end))
-            event.endDate = cal.date(byAdding: DateComponents(day: 1, second: -1), to: lastDay) ?? lastDay
+            let span = Self.allDaySpan(from: start, to: end, calendar: cal)
+            event.startDate = span.start
+            event.endDate = span.end
         } else {
             event.startDate = start
             event.endDate = end
@@ -262,6 +261,20 @@ final class CalendarEventsModel {
         if let alarm { event.addAlarm(alarm) }
         try store.save(event, span: .thisEvent, commit: true)
         dayItemsRevision += 1
+    }
+
+    /// The stored dates for an all-day event covering the days containing
+    /// `start` through `end` (times ignored, an end before the start treated
+    /// as a single day): midnight at the start, 23:59:59 on the last day.
+    /// That end is the convention EventKit itself returns for fetched events.
+    /// A midnight end would make a one-day event zero-length (breaking the
+    /// `endDate > now` badge and next-meeting filters), and a next-midnight
+    /// end puts the end's day component on the following day.
+    static func allDaySpan(from start: Date, to end: Date, calendar: Calendar) -> (start: Date, end: Date) {
+        let firstDay = calendar.startOfDay(for: start)
+        let lastDay = calendar.startOfDay(for: max(start, end))
+        let lastSecond = calendar.date(byAdding: DateComponents(day: 1, second: -1), to: lastDay) ?? lastDay
+        return (firstDay, lastSecond)
     }
 
     /// Creates a reminder due on the given day (date-only, no time — rendered
@@ -451,20 +464,29 @@ final class CalendarEventsModel {
         // (e.g. an event added on another device); make sure ours is current.
         store.refreshSourcesIfNecessaryOncePerPass()
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+        daysWithEvents = Self.markedEventDays(
+            store.events(matching: predicate).map { DateInterval(start: $0.startDate, end: $0.endDate) },
+            window: DateInterval(start: start, end: end),
+            calendar: calendar)
+    }
+
+    /// The days that get an event dot: every day each event spans, clamped
+    /// to the visible window, so multi-day events mark more than just their
+    /// first day. The end is exclusive, which keeps a timed event ending
+    /// exactly at midnight off the next day. Events that don't overlap the
+    /// window mark nothing.
+    static func markedEventDays(_ events: [DateInterval], window: DateInterval, calendar: Calendar) -> Set<Date> {
         var marked: Set<Date> = []
-        for event in store.events(matching: predicate) {
-            // Dot every day the event spans, clamped to the visible window, so
-            // multi-day events mark more than just their first day. `next < cap`
-            // keeps a timed event ending exactly at midnight off the next day.
-            var day = max(calendar.startOfDay(for: event.startDate), start)
-            let cap = min(event.endDate, end)
+        for event in events where event.end > window.start && event.start < window.end {
+            var day = max(calendar.startOfDay(for: event.start), window.start)
+            let cap = min(event.end, window.end)
             marked.insert(day)
             while let next = calendar.date(byAdding: .day, value: 1, to: day), next < cap {
                 marked.insert(next)
                 day = next
             }
         }
-        daysWithEvents = marked
+        return marked
     }
 
     private func fetchReminders(days: [Date], calendar: Calendar) {
@@ -507,8 +529,12 @@ final class CalendarEventsModel {
     /// reminder, except days up through today whose reminders are all
     /// completed — checking off the last of today's reminders clears its dot.
     private func markedReminderDays(calendar: Calendar) -> Set<Date> {
-        let today = calendar.startOfDay(for: Date())
-        return Set(reminderSnapshots.compactMap { snapshot in
+        Self.markedReminderDays(reminderSnapshots, today: Date(), calendar: calendar)
+    }
+
+    static func markedReminderDays(_ snapshots: [ReminderSnapshot], today now: Date, calendar: Calendar) -> Set<Date> {
+        let today = calendar.startOfDay(for: now)
+        return Set(snapshots.compactMap { snapshot in
             let day = calendar.startOfDay(for: snapshot.dueDate)
             return day <= today && snapshot.isCompleted ? nil : day
         })

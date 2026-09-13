@@ -21,9 +21,8 @@ struct CalendarPopoverView: View {
         /// nearer its edge than its text, so its concentric corner has some
         /// radius left (the panel's 16 less this).
         static let cardInset: CGFloat = 10
-        static let daysPerWeek = 7
-        static let numberOfWeeks = 6
-        static let totalDays = daysPerWeek * numberOfWeeks // 42
+        static let daysPerWeek = MonthGrid.daysPerWeek
+        static let numberOfWeeks = MonthGrid.numberOfWeeks
         /// Today, hover, and selection circles share one size so highlight
         /// states swap without shifting the layout.
         static let dayCircleSize: CGFloat = 34
@@ -495,13 +494,8 @@ struct CalendarPopoverView: View {
         selectedWeekRow = selectedWeekRow == row ? nil : row
     }
 
-    /// Week-of-year for the given grid row, from the user's calendar so the
-    /// numbering follows their region's week rules (ISO in most of Europe,
-    /// Sunday-start in the US) — matching what Calendar.app shows.
     private func weekNumber(forRow row: Int, in days: [Date]) -> Int {
-        let index = row * Layout.daysPerWeek
-        guard days.indices.contains(index) else { return 0 }
-        return calendar.component(.weekOfYear, from: days[index])
+        MonthGrid.weekNumber(forRow: row, in: days, calendar: calendar)
     }
 
     /// True when the given grid row is the week containing today.
@@ -761,25 +755,49 @@ struct CalendarPopoverView: View {
         String(calendar.component(.year, from: displayedMonth))
     }
 
-    /// Always 42 days (six weeks) so the popover height is stable regardless of
-    /// whether a month spans five or six visual rows.
     private var monthDays: [Date] {
+        MonthGrid.days(showing: displayedMonth, calendar: calendar)
+    }
+}
+
+/// The six-week day grid behind the month view.
+enum MonthGrid {
+    static let daysPerWeek = 7
+    /// Always six weeks so the popover height is stable regardless of
+    /// whether a month spans four, five, or six visual rows.
+    static let numberOfWeeks = 6
+    static let dayCount = daysPerWeek * numberOfWeeks
+
+    /// The grid's days for the month containing `month`: `dayCount`
+    /// consecutive days from the first day of the week (per the calendar's
+    /// `firstWeekday`) that contains the 1st.
+    static func days(showing month: Date, calendar: Calendar) -> [Date] {
         guard
-            let monthInterval = calendar.dateInterval(of: .month, for: displayedMonth),
+            let monthInterval = calendar.dateInterval(of: .month, for: month),
             let firstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start)
         else {
-            assertionFailure("Failed to compute calendar intervals for \(displayedMonth)")
+            assertionFailure("Failed to compute calendar intervals for \(month)")
             return []
         }
 
         var dates: [Date] = []
         var date = firstWeek.start
-        for _ in 0..<Layout.totalDays {
+        for _ in 0..<dayCount {
             dates.append(date)
             guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
             date = next
         }
         return dates
+    }
+
+    /// Week-of-year for a grid row, from the user's calendar so the
+    /// numbering follows their region's week rules (ISO in most of Europe,
+    /// Sunday-start in the US), matching what Calendar.app shows. Zero for
+    /// a row the grid doesn't have.
+    static func weekNumber(forRow row: Int, in days: [Date], calendar: Calendar) -> Int {
+        let index = row * daysPerWeek
+        guard days.indices.contains(index) else { return 0 }
+        return calendar.component(.weekOfYear, from: days[index])
     }
 }
 
@@ -1574,6 +1592,28 @@ enum AlertOption: String, CaseIterable, Identifiable {
     }
 }
 
+/// Where a new item's fields start out before the user touches them.
+enum NewItemDefaults {
+    /// The proposed start time for an event on `date`: today opens at the
+    /// next half-hour boundary after `now` (capped at 23:00); other days
+    /// open at 9:00 AM.
+    static func start(on date: Date, now: Date, calendar: Calendar) -> Date {
+        let dayStart = calendar.startOfDay(for: date)
+        guard calendar.isDate(date, inSameDayAs: now) else {
+            return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: dayStart) ?? dayStart
+        }
+        var hour = calendar.component(.hour, from: now)
+        var minute = calendar.component(.minute, from: now)
+        switch minute {
+        case 0: break
+        case 1...30: minute = 30
+        default: minute = 0; hour += 1
+        }
+        if hour > 23 { hour = 23; minute = 0 }
+        return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: dayStart) ?? dayStart
+    }
+}
+
 private struct NewItemForm: View {
     enum Kind {
         case event, reminder
@@ -1648,7 +1688,7 @@ private struct NewItemForm: View {
         let initialKind: Kind = eventCalendars.isEmpty ? .reminder : .event
         _kind = State(initialValue: initialKind)
         _thumbKind = State(initialValue: initialKind)
-        let start = Self.defaultStart(on: date, calendar: calendar)
+        let start = NewItemDefaults.start(on: date, now: Date(), calendar: calendar)
         _startTime = State(initialValue: start)
         _endTime = State(initialValue: start.addingTimeInterval(3600))
         _reminderDate = State(initialValue: date)
@@ -1736,25 +1776,6 @@ private struct NewItemForm: View {
             return (.custom, custom, false)
         }
         return (.never, nil, true)
-    }
-
-    /// Today opens at the next half-hour boundary (capped at 23:00); other
-    /// days open at 9:00 AM.
-    private static func defaultStart(on date: Date, calendar: Calendar) -> Date {
-        let dayStart = calendar.startOfDay(for: date)
-        guard calendar.isDateInToday(date) else {
-            return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: dayStart) ?? dayStart
-        }
-        let now = Date()
-        var hour = calendar.component(.hour, from: now)
-        var minute = calendar.component(.minute, from: now)
-        switch minute {
-        case 0: break
-        case 1...30: minute = 30
-        default: minute = 0; hour += 1
-        }
-        if hour > 23 { hour = 23; minute = 0 }
-        return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: dayStart) ?? dayStart
     }
 
     private var trimmedTitle: String {
