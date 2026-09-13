@@ -1,0 +1,43 @@
+# Runs the unit suite on every push and pull request. The test host is the
+# App Store target built unsigned: the suite is pure logic and never needs a
+# signing identity, a TCC grant, or the runner's calendars (see the Testing
+# section of CLAUDE.md). Release archives are not built here.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    # The panel uses macOS 26 APIs behind availability checks, so the macOS
+    # 26 SDK (Xcode 26, the image's default) is required to compile.
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen and xcbeautify
+        run: brew install xcodegen xcbeautify
+
+      - name: Generate project
+        run: |
+          xcodebuild -version
+          xcodegen generate
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme CalPeek \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath build/ci \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify --renderer github-actions

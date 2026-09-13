@@ -40,7 +40,9 @@ struct ReminderSnapshot: Sendable, Identifiable {
         isEditable = reminder.calendar.allowsContentModifications
     }
 
-    private init(id: String, title: String, isCompleted: Bool, hasDueTime: Bool, dueDate: Date, color: Color, isEditable: Bool) {
+    /// Memberwise, for `completing` and for tests that need a snapshot
+    /// without an `EKReminder` behind it.
+    init(id: String, title: String, isCompleted: Bool, hasDueTime: Bool, dueDate: Date, color: Color, isEditable: Bool) {
         self.id = id
         self.title = title
         self.isCompleted = isCompleted
