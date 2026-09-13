@@ -66,6 +66,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Preferences.remindersColorKey,
         Preferences.remindersCustomColorKey,
         Preferences.monochromeIconKey,
+        // The join pill fills with the accent.
+        Preferences.todayMarkerColorKey,
+        Preferences.todayMarkerCustomColorKey,
     ]
     /// Next Meeting preference keys, observed the same way: they change the
     /// status-item title and the hotkey registration, not the icon.
@@ -185,8 +188,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        // During the join window the whole item becomes the red pill; the
-        // regular glyph returns when the state moves on.
+        // During the join window the whole item becomes the accent-filled
+        // pill; the regular glyph returns when the state moves on.
         let meetingState = nextMeeting.menuBarState
         renderedIconScale = button.window?.backingScaleFactor
         if case let .joinable(title) = meetingState {
@@ -260,16 +263,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// The joinable state's image: the glyph and "Join <title>" reversed out
-    /// of a filled red capsule that replaces the whole status item content.
-    /// Rendered as one image (not a styled title) so the fill can sit behind
-    /// glyph and text alike.
+    /// of a filled capsule, in the user's accent color (the one behind the
+    /// today circle and the popover's Join buttons), that replaces the whole
+    /// status item content. Rendered as one image (not a styled title) so
+    /// the fill can sit behind glyph and text alike.
     private func joinPillImage(title: String?, for button: NSStatusBarButton) -> NSImage {
-        // The glyph reversed out of the fill: white text, no badge dots —
-        // they'd be illegible against red, and the pill already says what
-        // matters right now. Forcing the dark scheme resolves `.primary`
-        // (the day number) to white regardless of the menu bar's appearance.
-        let glyphView = MenuBarIconView(date: Date(), weekdayColor: .white)
-            .environment(\.colorScheme, .dark)
+        let accent = Preferences.accentOverride ?? Color(nsColor: .systemRed)
+        // The glyph reversed out of the fill, no badge dots: they'd be
+        // illegible against the fill, and the pill already says what matters
+        // right now. White on most accents, black on light ones like yellow,
+        // the same rule as the digit in the today circle. Forcing the color
+        // scheme resolves `.primary` (the day number) to that same tone
+        // regardless of the menu bar's appearance.
+        let foreground = accent.contrastingForeground
+        let glyphView = MenuBarIconView(date: Date(), weekdayColor: foreground)
+            .environment(\.colorScheme, foreground == .white ? .dark : .light)
         let renderer = ImageRenderer(content: glyphView)
         renderer.scale = button.window?.backingScaleFactor
             ?? NSScreen.main?.backingScaleFactor
@@ -280,7 +288,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let text = title.map { String(localized: "Join \($0)") } ?? String(localized: "Join")
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: NSFont.menuBarFont(ofSize: 0).pointSize, weight: .semibold),
-            .foregroundColor: NSColor.white,
+            .foregroundColor: NSColor(foreground),
         ]
         let textSize = (text as NSString).size(withAttributes: attributes)
 
@@ -293,7 +301,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         let image = NSImage(size: size, flipped: false) { rect in
-            NSColor.systemRed.setFill()
+            NSColor(accent).setFill()
             let pillRect = rect.insetBy(dx: 0, dy: 0.5)
             // A rounded rectangle, not a capsule: full rounding crowds the
             // glyph at the leading edge and reads as a foreign shape next to

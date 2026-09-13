@@ -21,8 +21,11 @@ final class MenuBarPanel: NSPanel {
 
     private enum Metrics {
         static let cornerRadius = MenuBarPanel.cornerRadius
-        /// Space between the bottom of the menu bar and the panel.
-        static let menuBarGap: CGFloat = 8
+        /// Space between the bottom of the menu bar and the panel. The
+        /// system's own panels sit flush under the bar; this small gap is a
+        /// deliberate departure so the calendar reads as its own surface
+        /// rather than a continuation of the bar.
+        static let menuBarGap: CGFloat = 6
         /// Minimum distance kept from the screen's side edges.
         static let screenMargin: CGFloat = 8
         /// A menu's fade-out, more or less.
@@ -50,7 +53,11 @@ final class MenuBarPanel: NSPanel {
     /// owner's to handle (toggle, right-click menu), never a dismissal.
     private weak var anchorWindow: NSWindow?
     /// Where the panel hangs from, in screen coordinates: the status item
-    /// button's frame, kept so a size change re-anchors the top edge.
+    /// button's frame, widened to the menu bar's full height so the panel's
+    /// gap is measured from the bar's bottom edge. The button is inset in
+    /// the bar by an amount that varies with the display (a notch makes the
+    /// bar taller), so measuring from the button would leave a different
+    /// gap on every screen. Kept so a size change re-anchors the top edge.
     private var anchorRect: NSRect = .zero
     /// Bumped by every present and dismiss so a fade-out that was overtaken
     /// by a new present doesn't order the panel out at its end.
@@ -122,7 +129,11 @@ final class MenuBarPanel: NSPanel {
     func present(below button: NSStatusBarButton) {
         guard let buttonWindow = button.window else { return }
         anchorWindow = buttonWindow
-        anchorRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        let buttonRect = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        anchorRect = NSRect(
+            x: buttonRect.minX, y: buttonWindow.frame.minY,
+            width: buttonRect.width, height: buttonRect.maxY - buttonWindow.frame.minY
+        )
         fadeGeneration += 1
         refit(animated: false)
         alphaValue = 1
@@ -227,8 +238,9 @@ final class MenuBarPanel: NSPanel {
     }
 
     /// The panel's frame for a content size: centered under `anchor` (the
-    /// status item button, in screen coordinates), its top a small gap below
-    /// the bar, and kept within `screen` by a margin. Pure, so it's tested.
+    /// status item's column of the menu bar, in screen coordinates, so its
+    /// bottom is the bar's), its top a small gap below the bar, and kept
+    /// within `screen` by a margin. Pure, so it's tested.
     static func frame(fitting size: NSSize, under anchor: NSRect, within screen: NSRect?) -> NSRect {
         var origin = NSPoint(
             x: anchor.midX - size.width / 2,

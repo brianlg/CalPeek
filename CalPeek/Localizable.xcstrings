@@ -63,6 +63,9 @@
     "Access is restricted on this Mac." : {
 
     },
+    "Accent Color" : {
+
+    },
     "Add the event name to the menu bar." : {
 
     },
@@ -138,7 +141,7 @@
     "Close" : {
 
     },
-    "Colors the circle around today." : {
+    "Colors the circle around today, Join buttons, and other highlights." : {
 
     },
     "Colors the dots and checkboxes for Reminders that fall on a specific day." : {
@@ -460,9 +463,6 @@
 
     },
     "Today" : {
-
-    },
-    "Today Marker" : {
 
     },
     "Version %@ (%@)" : {

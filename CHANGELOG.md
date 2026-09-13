@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The Today Marker setting is now Accent Color, and it colors more than the
+  circle: the Join pill in the menu bar fills with it too, alongside the
+  Join buttons and next-meeting card in the panel that already used it. A
+  light accent such as yellow gets dark text on the pill so it stays
+  readable. The last-five-minutes countdown in the menu bar stays red.
+- The calendar panel opens a little further below the menu bar, so it reads
+  as its own surface rather than hanging off the bar. The gap is now
+  measured from the bar's bottom edge, so it is the same on a MacBook with
+  a notch as on an external display.
 - On macOS Tahoe the calendar panel is made of Liquid Glass, the same
   material as the system's own menu bar panels, so it refracts what is
   behind it and its edge catches the light the way Control Center's does.

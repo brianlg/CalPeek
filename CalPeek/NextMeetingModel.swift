@@ -135,15 +135,16 @@ struct NextMeeting: Identifiable {
 }
 
 /// What the status item shows beside the glyph — the state ladder. Color
-/// escalates only twice (red countdown at five minutes, the filled join
-/// pill), so the red stays meaningful when it appears.
+/// escalates only twice (red countdown at five minutes, then the join pill
+/// filled with the accent), so color stays meaningful when it appears.
 enum NextMeetingMenuBarState: Equatable {
     /// Feature off, no meeting left today, or outside the lead window:
     /// glyph (and its badge dots) only.
     case hidden
     /// Inside the lead window: "Title · 15m", the time red when urgent.
     case countdown(title: String?, time: String, isUrgent: Bool)
-    /// Around the start: the whole item fills red as "Join Title", and a
+    /// Around the start: the whole item fills with the accent as "Join
+    /// Title", and a
     /// click joins without opening the popover.
     case joinable(title: String?)
     /// In progress: "Title · 12m left", muted.

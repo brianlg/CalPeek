@@ -15,7 +15,7 @@ struct MenuBarPanelFrameTests {
         let frame = MenuBarPanel.frame(fitting: size, under: item, within: screen)
         #expect(abs(frame.midX - item.midX) <= 0.5)  // whole-point origin, odd width
         #expect(frame.maxY < item.minY)
-        #expect(item.minY - frame.maxY < 10)
+        #expect(item.minY - frame.maxY == 6)
         #expect(frame.size == size)
     }
 
