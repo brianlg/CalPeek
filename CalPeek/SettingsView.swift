@@ -372,8 +372,8 @@ struct AppearanceSettingsView: View {
 
             Section {
                 ThemeColorPicker(
-                    title: String(localized: "Today Marker"),
-                    help: String(localized: "Colors the circle around today."),
+                    title: String(localized: "Accent Color"),
+                    help: String(localized: "Colors the circle around today, Join buttons, and other highlights."),
                     automaticSwatch: Color(nsColor: .systemRed),
                     selection: $todayMarkerRaw,
                     customHex: $todayMarkerCustomHex

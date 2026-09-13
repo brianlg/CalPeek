@@ -90,8 +90,9 @@ struct CalendarPopoverView: View {
     @AppStorage(Preferences.remindersCustomColorKey)
     private var remindersCustomHex = ""
 
-    /// Accent for the "today" circle, year picker selection, and other
-    /// highlights. Automatic is Calendar-app red regardless of the system
+    /// The app's accent: the "today" circle, Join buttons, the year picker
+    /// selection, and other highlights (the menu bar's join pill reads the
+    /// same setting). Automatic is Calendar-app red regardless of the system
     /// accent; the user can pick another color in Appearance settings.
     private var accent: Color {
         WeekdayColor.overrideColor(selection: todayMarkerRaw, customHex: todayMarkerCustomHex)

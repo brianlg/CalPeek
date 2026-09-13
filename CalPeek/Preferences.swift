@@ -88,7 +88,7 @@ enum Preferences {
     static var weekdayOverride: Color? {
         themeOverride(selectionKey: WeekdayColor.defaultsKey, customKey: WeekdayColor.customColorDefaultsKey)
     }
-    static var todayMarkerOverride: Color? {
+    static var accentOverride: Color? {
         themeOverride(selectionKey: todayMarkerColorKey, customKey: todayMarkerCustomColorKey)
     }
     static var calendarEventsOverride: Color? {
