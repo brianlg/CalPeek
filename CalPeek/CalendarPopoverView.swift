@@ -1594,13 +1594,14 @@ enum AlertOption: String, CaseIterable, Identifiable {
 
 /// Where a new item's fields start out before the user touches them.
 enum NewItemDefaults {
-    /// The proposed start time for an event on `date`: today opens at the
-    /// next half-hour boundary after `now` (capped at 23:00); other days
-    /// open at 9:00 AM.
+    /// The proposed start for an item on `date`: today opens at the next
+    /// half-hour boundary after `now`; other days open at 9:00 AM. Past the
+    /// day's last half hour there is no time left to propose, so the
+    /// proposal moves to tomorrow morning rather than a time already gone.
     static func start(on date: Date, now: Date, calendar: Calendar) -> Date {
         let dayStart = calendar.startOfDay(for: date)
         guard calendar.isDate(date, inSameDayAs: now) else {
-            return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: dayStart) ?? dayStart
+            return morning(of: dayStart, calendar: calendar)
         }
         var hour = calendar.component(.hour, from: now)
         var minute = calendar.component(.minute, from: now)
@@ -1609,8 +1610,15 @@ enum NewItemDefaults {
         case 1...30: minute = 30
         default: minute = 0; hour += 1
         }
-        if hour > 23 { hour = 23; minute = 0 }
+        if hour > 23 {
+            let tomorrow = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart
+            return morning(of: tomorrow, calendar: calendar)
+        }
         return calendar.date(bySettingHour: hour, minute: minute, second: 0, of: dayStart) ?? dayStart
+    }
+
+    private static func morning(of dayStart: Date, calendar: Calendar) -> Date {
+        calendar.date(bySettingHour: 9, minute: 0, second: 0, of: dayStart) ?? dayStart
     }
 }
 
@@ -1691,7 +1699,9 @@ private struct NewItemForm: View {
         let start = NewItemDefaults.start(on: date, now: Date(), calendar: calendar)
         _startTime = State(initialValue: start)
         _endTime = State(initialValue: start.addingTimeInterval(3600))
-        _reminderDate = State(initialValue: date)
+        // The proposed start can land on tomorrow (see `NewItemDefaults`);
+        // the reminder's day follows it so its time isn't in the past.
+        _reminderDate = State(initialValue: calendar.startOfDay(for: start))
         _reminderTime = State(initialValue: start)
         _selectedEventCalendarID = State(initialValue: eventCalendars.first?.calendarIdentifier ?? "")
         _selectedReminderListID = State(initialValue: reminderLists.first?.calendarIdentifier ?? "")

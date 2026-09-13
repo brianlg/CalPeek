@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Creating an event or reminder for today late in the evening no longer
+  proposes a start time that has already passed. After 11:30 PM the new
+  item is offered for 9:00 AM tomorrow instead of being pinned to 11:00 PM
+  tonight.
 - Turning on Show Calendar or Show Reminders and then declining the system
   permission prompt now leaves a note under the switches saying access is
   off, with a link to the matching pane of System Settings. Before, the

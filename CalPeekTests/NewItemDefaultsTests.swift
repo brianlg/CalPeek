@@ -41,5 +41,14 @@ struct NewItemDefaultsTests {
 
     @Test func todayLateInTheEveningStillLandsOnTheNextHalfHour() {
         #expect(start(on: 14, now: date(14, 22, 45)) == date(14, 23, 0))
+        #expect(start(on: 14, now: date(14, 23, 1)) == date(14, 23, 30))
+        #expect(start(on: 14, now: date(14, 23, 30)) == date(14, 23, 30))
+    }
+
+    /// After the day's last half hour there is nothing left to propose
+    /// today; proposing 11:00 PM tonight would be a time already gone.
+    @Test func afterTheLastHalfHourTodayProposesTomorrowMorning() {
+        #expect(start(on: 14, now: date(14, 23, 31)) == date(15, 9))
+        #expect(start(on: 14, now: date(14, 23, 59)) == date(15, 9))
     }
 }
