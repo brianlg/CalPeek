@@ -20,6 +20,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// button cell can track them; see `configureStatusItem` for why. Lives
     /// for the app's lifetime alongside the status item.
     private var statusItemMouseDownMonitor: Any?
+    /// True while a menu is borrowing the status item (the context menu, the
+    /// join chooser). On macOS 27 the click that opens it also begins an
+    /// expanded interface session; this tells the session's delegate the
+    /// menu is the interface, so the calendar stays out of its way.
+    private var isShowingBorrowedMenu = false
     /// The next-meeting state the status item image was last drawn for (the
     /// joinable state while the pill shows, else nil) and the backing scale
     /// it was drawn at, so `refreshNextMeetingUI` can tell when a redraw
@@ -169,8 +174,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.calendarPanel.dismiss()
                 return event
             }
+            // On macOS 27 the expanded interface session opens and closes
+            // the panel and holds the chip; see the delegate extension. The
+            // menu bar tracks those clicks itself, so none arrive here.
+            if #available(macOS 27, *) { return event }
             self.toggleCalendarPanel()
             return nil
+        }
+        if #available(macOS 27, *) {
+            statusItem.expandedInterfaceDelegate = self
         }
 
         refreshIcon()
@@ -419,7 +431,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // The chip is fully manual (see `configureStatusItem`): it goes out
         // as the panel starts to, like a system item's with its menu.
         calendarPanel.onDismiss = { [weak self] in
-            self?.statusItem?.button?.highlight(false)
+            // On macOS 27 the chip belongs to the expanded interface
+            // session. Ending it here covers the dismissals the panel
+            // decides on its own (Esc, a click outside, a Space switch).
+            if #available(macOS 27, *) {
+                self?.statusItem?.expandedInterfaceSession?.cancel()
+            } else {
+                self?.statusItem?.button?.highlight(false)
+            }
+        }
+        if #available(macOS 27, *) {
+            // The menu bar begins a session on a click but reports nothing
+            // for a second click on the item while one runs, so closing on
+            // that click is left to the app. With no session running (see
+            // `showPopoverFromMenu`) the click begins one, and its
+            // `didBegin` does the closing.
+            calendarPanel.onAnchorClick = { [weak self] in
+                guard let self, self.statusItem.expandedInterfaceSession != nil else { return }
+                self.calendarPanel.dismiss()
+            }
         }
     }
 
@@ -444,6 +474,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             calendarPanel.dismiss()
             return
         }
+        presentCalendarPanel()
+        // The chip is fully manual (see `configureStatusItem`): on for
+        // exactly as long as the panel is open, like system items.
+        statusItem.button?.highlight(true)
+    }
+
+    private func presentCalendarPanel() {
         guard let button = statusItem.button else {
             assertionFailure("Cannot show the calendar - status item button is nil")
             return
@@ -459,9 +496,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // current month for each open.
         NotificationCenter.default.post(name: .popoverWillShow, object: nil)
         calendarPanel.present(below: button)
-        // The chip is fully manual (see `configureStatusItem`): on for
-        // exactly as long as the panel is open, like system items.
-        button.highlight(true)
     }
 
     // MARK: - Build identity
@@ -562,7 +596,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// detaches it so left-clicks resume reaching `statusItemClicked(_:)`
     /// instead of opening the menu.
     private func showContextMenu() {
-        statusItem.menu = makeContextMenu()
+        showBorrowedMenu(makeContextMenu())
+    }
+
+    private func showBorrowedMenu(_ menu: NSMenu) {
+        isShowingBorrowedMenu = true
+        defer { isShowingBorrowedMenu = false }
+        statusItem.menu = menu
         statusItem.button?.performClick(nil)
         statusItem.menu = nil
     }
@@ -820,6 +860,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// menu, then detached so left-clicks keep reaching
     /// `statusItemClicked(_:)`.
     private func showJoinChooser(_ meetings: [NextMeeting]) {
+        showBorrowedMenu(makeJoinChooser(meetings))
+    }
+
+    private func makeJoinChooser(_ meetings: [NextMeeting]) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
         addJoinItems(meetings, to: menu)
@@ -831,9 +875,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         show.target = self
         menu.addItem(show)
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
+        return menu
     }
 
     /// Joining from a menu also makes that meeting the current one, so the
@@ -847,6 +889,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// the popover here is the same as a plain glyph click.
     @objc private func showPopoverFromMenu() {
         guard !calendarPanel.isPresented else { return }
+        if #available(macOS 27, *) {
+            // The chooser opened inside an expanded interface session. A
+            // click-to-open, click-to-choose leaves it running and the
+            // calendar takes it over, chip and all. A press-drag-release
+            // ends it on the release, before this action, and only the user
+            // can begin another: the calendar then opens without a session
+            // and so without the chip, which the menu bar draws itself on
+            // macOS 27 (`highlight(_:)` no longer shows).
+            presentCalendarPanel()
+            return
+        }
         toggleCalendarPanel()
     }
 
@@ -1015,5 +1068,45 @@ private final class SettingsTabViewController: NSTabViewController {
     override func tabView(_ tabView: NSTabView, didSelect tabViewItem: NSTabViewItem?) {
         super.tabView(tabView, didSelect: tabViewItem)
         pinWindowTitle()
+    }
+}
+
+// MARK: - Expanded interface session
+
+/// macOS 27 gives status items that open a window of their own the lifecycle
+/// menus always had: the menu bar begins a session on the click (or on Return
+/// during keyboard navigation), holds the highlight chip while it lasts, and
+/// ends it when the user moves on. Earlier systems keep the mouse-down monitor
+/// in `configureStatusItem`.
+@available(macOS 27, *)
+extension AppDelegate: @preconcurrency NSStatusItemExpandedInterfaceDelegate {
+    func statusItem(_ statusItem: NSStatusItem, didBegin session: NSStatusItemExpandedInterfaceSession) {
+        guard !isShowingBorrowedMenu else { return }
+        guard !calendarPanel.isPresented else {
+            // Open without a session (see `showPopoverFromMenu`), so this
+            // click is the one that closes it.
+            calendarPanel.dismiss()
+            return
+        }
+        if case .joinable = nextMeeting.menuBarState {
+            // The pill opens its chooser, not the calendar; see
+            // `statusItemClicked(_:)`. The chooser is this session's
+            // interface, so the chip stays on under it. Popping it up
+            // tracks the menu until it closes, which can't happen inside
+            // this callback.
+            DispatchQueue.main.async { [self] in
+                guard let button = statusItem.button else { return }
+                let menu = makeJoinChooser(nextMeeting.joinableMeetings)
+                menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY + 5), in: button)
+                // "Show CalPeek" hands the session to the calendar.
+                if !calendarPanel.isPresented { session.cancel() }
+            }
+            return
+        }
+        presentCalendarPanel()
+    }
+
+    func statusItemDidEndExpandedInterfaceSession(_ statusItem: NSStatusItem, animated: Bool) {
+        calendarPanel.dismiss()
     }
 }

@@ -43,6 +43,10 @@ final class MenuBarPanel: NSPanel {
     /// Called as a dismissal begins, whatever caused it (a click outside,
     /// Esc, losing key status, `dismiss()`), before the fade.
     var onDismiss: (() -> Void)?
+    /// Called for a click on the status item that reached the panel instead
+    /// of the owner: on macOS 27 the menu bar tracks those clicks outside
+    /// the app, and only the global monitor sees them.
+    var onAnchorClick: (() -> Void)?
 
     /// True from `present` until the next dismissal begins. The window can
     /// still be ordered in for a moment after this turns false, fading out.
@@ -208,7 +212,15 @@ final class MenuBarPanel: NSPanel {
             outsideClickMonitors.append(local)
         }
         if let global = NSEvent.addGlobalMonitorForEvents(matching: buttons, handler: { [weak self] _ in
-            self?.dismiss()
+            guard let self else { return }
+            // On macOS 27 the menu bar tracks clicks on the status item
+            // itself, so they arrive here instead of at the local monitor.
+            // They are still the owner's.
+            if self.anchorRect.contains(NSEvent.mouseLocation) {
+                self.onAnchorClick?()
+                return
+            }
+            self.dismiss()
         }) {
             outsideClickMonitors.append(global)
         }
