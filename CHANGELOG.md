@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The weekday and date in the menu bar icon sit a little closer together,
+  so the icon reads as a single piece and is a better fit beside the
+  system's own icons.
 - The Today Marker setting is now Accent Color, and it colors more than the
   circle: the Join pill in the menu bar fills with it too, alongside the
   Join buttons and next-meeting card in the panel that already used it. A
