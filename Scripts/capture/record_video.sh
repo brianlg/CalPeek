@@ -141,7 +141,7 @@ echo "take A -> $OUT/A.mov"
 # ================================================================== take B ==
 echo "== take B: day list + create (running) =="
 ROWS=$(pin running)
-echo "$ROWS" | grep -v '^row '
+echo "$ROWS"
 sleep 1.5
 
 # hide_others activates Finder, which dismisses the popover, so re-open it

@@ -70,6 +70,7 @@ if ! se 'get name of window 1' 2>/dev/null | grep -q Settings; then
 fi
 
 se 'get name of window 1' | grep -q Settings || { echo "ABORT: Settings window did not open"; exit 1; }
+activate_app
 echo "settings window: $(se 'get size of window 1')"
 
 for spec in $TABS; do
@@ -84,5 +85,5 @@ for spec in $TABS; do
   echo "wrote $OUT/$NAME-$MODE.png ($(sips -g pixelWidth -g pixelHeight $OUT/$NAME-$MODE.png | tail -2 | tr -d '\n' | tr -s ' '))"
 done
 
-se 'keystroke "w" using command down' 2>/dev/null || true
+close_settings
 echo "== done =="

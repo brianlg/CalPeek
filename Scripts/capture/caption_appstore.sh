@@ -20,16 +20,17 @@ mkdir -p $OUT
 frame () {  # frame <source> <output> <align> <x> <y> <w> <headline> <sub>
   [[ -f $IN/$1.png ]] || { echo "ABORT: $IN/$1.png missing -- run capture.sh stills"; exit 1; }
   caption_frame $IN/$1.png $OUT/$2.png $3 $4 $5 $6 $7 $8
-  echo "wrote $OUT/$2.png"
 }
 
+# 02 and 03 are narrower: their day panel opens down and to the left of the
+# month, to about 0.46 of the frame's width.
 frame 01-hero-next-meeting 01-hero left 0.07 0.50 0.48 \
   'Your calendar.\nOne click away.' \
   "CalPeek lives in your menu bar, so today's date is always in sight and your whole month is one click away."
-frame 02-day-agenda 02-day left 0.07 0.50 0.48 \
+frame 02-day-agenda 02-day left 0.07 0.50 0.36 \
   'Peek at any day.' \
   'Click a day to see its events and reminders together, with times, colors, and meeting links. Check reminders off without leaving the popover.'
-frame 03-quick-add 03-create left 0.07 0.50 0.48 \
+frame 03-quick-add 03-create left 0.07 0.50 0.36 \
   'Create in seconds.' \
   "New events and reminders, right where you're looking. Pick a day, hit +, type. No app switch, no friction."
 frame 05-join-chooser 04-join left 0.07 0.50 0.48 \

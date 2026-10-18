@@ -91,20 +91,27 @@ pin () {
 
 # MARK: - Desktop state
 
-# Sets the wallpaper, first saving the user's own unless a save from an
-# interrupted run is still waiting to be restored -- re-saving then would
-# save the capture ground over it.
+# Sets the wallpaper, first saving the user's own picture unless a save from
+# an interrupted run is still waiting to be restored -- saving then would
+# save the capture ground over it. Saved and restored as a picture path
+# through System Events; copying the wallpaper store's Index.plist back does
+# not take effect on current macOS.
 set_wallpaper () {
-  local store=~/Library/Application\ Support/com.apple.wallpaper/Store/Index.plist
-  [[ -f $WORK/wallpaper-backup.plist ]] || cp $store $WORK/wallpaper-backup.plist
+  local current=$(osascript -e 'tell application "System Events" to get picture of desktop 1')
+  # Never save the capture ground itself as "yours".
+  [[ -f $WORK/wallpaper-backup.txt || $current == $WORK/* ]] || print -r -- $current > $WORK/wallpaper-backup.txt
   osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"$1\"" >/dev/null
 }
 
 restore_wallpaper () {
-  [[ -f $WORK/wallpaper-backup.plist ]] || return 0
-  cp $WORK/wallpaper-backup.plist ~/Library/Application\ Support/com.apple.wallpaper/Store/Index.plist
-  killall WallpaperAgent 2>/dev/null
-  rm $WORK/wallpaper-backup.plist
+  [[ -f $WORK/wallpaper-backup.txt ]] || return 0
+  local saved=$(<$WORK/wallpaper-backup.txt)
+  if [[ -f $saved ]]; then
+    osascript -e "tell application \"System Events\" to set picture of every desktop to POSIX file \"$saved\"" >/dev/null
+    rm $WORK/wallpaper-backup.txt
+  else
+    echo "NOTE: couldn't restore your wallpaper (saved as '$saved'); set it in System Settings > Wallpaper"
+  fi
 }
 
 # The capture ground, scaled to this display's backing size; see makeplum.sh.
@@ -127,7 +134,10 @@ assert_glyph_visible () {
 # window enumerates under Control Center. Ice hides an item by moving it to a
 # negative x, which this treats as hidden. Takes ~15s; it asks every process.
 assert_clean_menubar () {
-  local width=$(osascript -e 'tell application "Finder" to get item 3 of (get bounds of window of desktop)')
+  # From AppKit, not Finder's desktop window: the video run turns desktop
+  # icons off, and with them that window.
+  local width=$(osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSScreen.mainScreen.frame.size.width')
+  [[ $width -gt 0 ]] || { echo "ABORT: could not read the screen width"; exit 1; }
   local found=$(osascript <<'OSA'
 tell application "System Events"
   set out to ""
@@ -153,4 +163,22 @@ OSA
     exit 1
   fi
   echo "menu bar clear: only Apple's items and CalPeek's"
+}
+
+# Closes CalPeek's Settings window through its own close button. A ⌘W
+# keystroke goes to whichever app is frontmost, which an accessory app
+# opening a window doesn't reliably become, and left the window open.
+close_settings () {
+  osascript -e 'tell application "System Events" to tell process "CalPeek"
+    if exists window "Settings" then click (first button of window "Settings" whose subrole is "AXCloseButton")
+  end tell' >/dev/null 2>&1 || true
+  sleep 1
+}
+
+# Brings the capture app forward. Its own NSApp.activate() is only a request
+# on current macOS, declined while another app is frontmost, which left the
+# Settings window inactive (grey traffic lights) in the shots.
+activate_app () {
+  osascript -e "tell application id \"$APP_ID\" to activate" >/dev/null 2>&1 || true
+  sleep 1
 }

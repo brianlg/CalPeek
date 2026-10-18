@@ -144,6 +144,7 @@ input rightclick $(( $(glyph_x) + $(glyph_w)/2 )) 19; sleep 1.5
 se 'click menu item "Settings…" of menu 1 of menu bar item 1 of menu bar 2' 2>/dev/null || true
 sleep 3
 se 'get name of window 1' | grep -q Settings || { echo "ABORT: Settings did not open"; exit 1; }
+activate_app
 se 'click button "Appearance" of toolbar 1 of window 1' 2>/dev/null || true
 sleep 2
 input move ${=PARK}; sleep 0.5
@@ -153,7 +154,7 @@ screencapture -x -o -l ${WIN[(w)1]} $OUT/_win.png
 SX=$(strip_of $OUT/_strip.png)
 compose_window $WALL $OUT/bar_empty.png 700 $OUT/_strip.png $SX \
                  $OUT/_win.png $WX $WY $OUT/04-appearance.png
-se 'keystroke "w" using command down' 2>/dev/null || true
+close_settings
 sleep 1
 
 echo "== 05 join chooser =="
