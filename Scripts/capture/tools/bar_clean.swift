@@ -38,16 +38,28 @@ let items = try! String(contentsOfFile: a[3], encoding: .utf8)
         guard f.count == 3, let x = Int(f[1]), let w = Int(f[2]), w > 0 else { return nil }
         return Item(id: String(f[0]), x: x, w: w)
     }
-let erase = items.filter { !$0.id.hasPrefix("com.apple.") && $0.id != capture && $0.x >= 0 }
-guard !erase.isEmpty else { print("nothing to erase"); exit(0) }
+var erase = items.filter { !$0.id.hasPrefix("com.apple.") && $0.id != capture && $0.x >= 0 }
 
-// The empty stretch: right of the app menus (which end well before 600pt
-// with Finder in front) and left of the leftmost status item of any kind.
+// The empty stretch to fit against: right of the app menus (which end well
+// before 600pt with Finder in front), and short of where status items start.
+// Capped at 900pt because Control Center hosts items Accessibility can't
+// list (third-party Controls among them), so the leftmost listed item isn't
+// necessarily the leftmost item.
 let leftmost = items.filter { $0.x >= 0 }.map(\.x).min() ?? 0
-let sampleLo = 600 * 2, sampleHi = (leftmost - 8) * 2
+let sampleLoPt = 600, sampleHiPt = min(900, leftmost - 8)
+let sampleLo = sampleLoPt * 2, sampleHi = sampleHiPt * 2
 guard sampleHi - sampleLo >= 100 else {
     fputs("no empty stretch of bar to fit against (leftmost item at \(leftmost)pt)\n", stderr); exit(1)
 }
+
+// Everything between that stretch and CalPeek's pill goes too, listed or
+// not: a Control Center-hosted item has no position to read, but it can only
+// be somewhere in that span. Stops 2pt short of the pill: any wider and the
+// edge of the neighbouring icon survives as a sliver.
+if let glyph = items.first(where: { $0.id == capture }), glyph.x - 2 > sampleHiPt {
+    erase.append(Item(id: "everything left of CalPeek", x: sampleHiPt + pad, w: glyph.x - 2 - sampleHiPt - 2 * pad))
+}
+guard !erase.isEmpty else { print("nothing to erase"); exit(0) }
 
 // Rows are counted from the top in both buffers: CGContext's bitmap memory
 // starts at the image's top row.

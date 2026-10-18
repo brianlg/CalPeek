@@ -39,11 +39,11 @@ tracked and gets committed:
    cross a painted item to its right; the run aborts if one is there. The
    capture build keeps its own position (status item positions are stored per
    app), so ⌘-drag *its* item once. It stays put across runs.
-   Items are found through each app's Accessibility menu bar. Items hosted
-   by Control Center (Wi-Fi, battery, clock, and third-party Controls added
-   to the menu bar) are invisible to that, so they are neither listed nor
-   painted: remove any non-Apple Control from the menu bar in System
-   Settings before a video run.
+   Beyond the items Accessibility can list, the whole stretch of menu bar
+   left of CalPeek is painted out too, because items hosted by Control Center
+   (third-party Controls among them) can't be listed. So anything left of
+   CalPeek is gone from the video, Apple's or not; Wi-Fi, the clock and the
+   other system items to its right stay.
    The stills don't need any of this: they rebuild the menu bar and keep only
    CalPeek's item.
 3. **Grant Accessibility** to whatever runs the scripts (Terminal, or Claude).
