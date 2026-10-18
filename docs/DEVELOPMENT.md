@@ -165,6 +165,13 @@ which is why it is the last step in both checklists below. A version string
 sitting a year behind the shipped app reads as an abandoned project, which is
 worse than showing no version at all.
 
+## Screenshots, preview video, and README images
+
+`Scripts/capture/capture.sh` makes all of them from a Release capture build
+running on demo data, so your own calendar is never involved. See
+[`Scripts/capture/README.md`](../Scripts/capture/README.md). Reshoot whenever
+the panel's look changes.
+
 ## Releasing to the App Store
 
 1. `Scripts/bump-build.sh`
@@ -273,3 +280,4 @@ already cask-ready.
 - `CalPeek/CalendarPopoverView.swift` — the month calendar shown in the popover.
 - `CalPeek/WeekdayColor.swift` — the curated weekday color palette and its persisted preference key.
 - `CalPeek/Direct/` — GitHub channel only: the Sparkle updater and sponsor link.
+- `CalPeek/CaptureDemo.swift` — demo data for the marketing captures; compiled only with `CAPTURE` (Debug, and the capture build in `Scripts/capture/`), never into an archive.

@@ -90,8 +90,11 @@ targets:
           PRODUCT_BUNDLE_IDENTIFIER: com.briangibson.calpeek.debug
           PRODUCT_DISPLAY_NAME: CalPeek Debug
           # APPSTORE marks the App Store channel; the direct-distribution
-          # target uses DIRECT instead.
-          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG APPSTORE
+          # target uses DIRECT instead. CAPTURE compiles in the demo mode
+          # behind the marketing captures (CaptureDemo.swift) so the unit
+          # tests can reach its schedule; Release gets it only from
+          # Scripts/capture/build-capture-app.sh, never in an archive.
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG APPSTORE CAPTURE
         Release:
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
     scheme:
