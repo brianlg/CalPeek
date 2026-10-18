@@ -26,11 +26,14 @@ tracked and gets committed:
 
 ## Before a run
 
-1. **Turn on a Focus mode.** A notification landing in a frame puts real
+1. **Shoot on a weekday.** The glyph, the day panel and the menu bar clock
+   all show the real day, and a workday schedule reads wrong on a weekend,
+   so `capture.sh` refuses to shoot on Saturday or Sunday.
+2. **Turn on a Focus mode.** A notification landing in a frame puts real
    content from your Mac into a marketing asset. The scripts wait for the
    screen to be clear and abort after 20 seconds rather than shoot anyway,
    but that's a safety net, not a substitute.
-2. **Put CalPeek's menu bar item to the right of every third-party item.**
+3. **Put CalPeek's menu bar item to the right of every third-party item.**
    The video records the real menu bar. Other apps' items don't need hiding:
    just before each take the script records where they are, and
    `cut_video.sh` paints them out with rebuilt menu bar (`tools/bar_clean`,
@@ -46,9 +49,9 @@ tracked and gets committed:
    other system items to its right stay.
    The stills don't need any of this: they rebuild the menu bar and keep only
    CalPeek's item.
-3. **Grant Accessibility** to whatever runs the scripts (Terminal, or Claude).
+4. **Grant Accessibility** to whatever runs the scripts (Terminal, or Claude).
    Synthetic clicks silently do nothing without it.
-4. **Keep the screen unlocked.** A locked screen or sleeping display makes
+5. **Keep the screen unlocked.** A locked screen or sleeping display makes
    captures come back black; every script checks first and keeps the display
    awake for the run.
 

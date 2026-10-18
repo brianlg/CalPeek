@@ -71,6 +71,19 @@ finish () {
   open -b com.briangibson.calpeek 2>/dev/null || true
 }
 
+# The menu bar glyph, the day panel's heading and the system clock all show
+# today's real weekday, and a schedule of standups and reviews reads wrong on
+# a Saturday or Sunday. The app can't fake the day: the menu bar clock is the
+# system's. So shooting is weekdays only.
+weekday_only () {
+  local day=$(date +%u)   # 1 = Monday ... 7 = Sunday
+  (( day <= 5 )) || { echo "ABORT: it's $(date +%A); assets must show a weekday. Shoot Monday to Friday."; exit 1; }
+}
+
+case ${1:-} in
+  stills|docs|video|all) weekday_only ;;
+esac
+
 case ${1:-} in
   build)   build ;;
   stills)  stills; finish ;;
