@@ -127,18 +127,16 @@ assert_glyph_visible () {
   [[ -n $x && $x -ge 0 ]] || { echo "ABORT: CalPeek's menu bar item is off-screen (x=$x); show it in Ice and retry"; exit 1; }
 }
 
-# Refuses to go on while any menu bar item that isn't Apple's or CalPeek's is
-# on-screen. The video records the real menu bar, so another company's icon
-# there would ship in the App Store preview. Items are found through each
-# app's own accessibility menu bar, not by window owner: every status item
-# window enumerates under Control Center. Ice hides an item by moving it to a
-# negative x, which this treats as hidden. Takes ~15s; it asks every process.
-assert_clean_menubar () {
-  # From AppKit, not Finder's desktop window: the video run turns desktop
-  # icons off, and with them that window.
-  local width=$(osascript -l JavaScript -e 'ObjC.import("AppKit"); $.NSScreen.mainScreen.frame.size.width')
-  [[ $width -gt 0 ]] || { echo "ABORT: could not read the screen width"; exit 1; }
-  local found=$(osascript <<'OSA'
+# Writes every status item on the menu bar to <file> as `bundleID x width`
+# lines (points), and names the ones that will be erased. The video records
+# the real menu bar, so any item that is neither Apple's nor CalPeek's would
+# ship in the App Store preview; cut_video.sh paints over those with rebuilt
+# bar (tools/bar_clean.swift), using the positions recorded here just before
+# each take. Items are found through each app's accessibility menu bar, not
+# by window owner: every status item window enumerates under Control Center.
+# Takes ~15s; it asks every process.
+note_menubar_items () {
+  osascript > $1 <<'OSA'
 tell application "System Events"
   set out to ""
   repeat with p in (every process)
@@ -154,15 +152,14 @@ tell application "System Events"
   return out
 end tell
 OSA
-)
-  local offenders=$(echo "$found" | awk -v W=$width -v me=$APP_ID \
-    '$1 !~ /^com\.apple\./ && $1 != me && $2 >= 0 && $2 < W && $3 > 0 {print "  " $1 " at x=" $2}')
-  if [[ -n $offenders ]]; then
-    echo "ABORT: these menu bar items would be captured; hide them (System Settings > Menu Bar, or Ice) and retry:"
-    echo "$offenders"
-    exit 1
-  fi
-  echo "menu bar clear: only Apple's items and CalPeek's"
+  local erased=$(awk -v me=$APP_ID '$1 !~ /^com\.apple\./ && $1 != me && $2 >= 0 && $3 > 0 {printf " %s", $1}' $1)
+  [[ -n $erased ]] && echo "will paint out of the video:$erased"
+  # The cursor ends every approach on the glyph; a painted item to its right
+  # would be crossed by it, and the patch would erase the cursor with it.
+  local right=$(awk -v me=$APP_ID '$1 == me {x = $2} {all[NR] = $0}
+    END {for (i in all) {split(all[i], f, " "); if (f[1] !~ /^com\.apple\./ && f[1] != me && f[2] > x && f[3] > 0) printf " %s", f[1]}}' $1)
+  [[ -z $right ]] || { echo "ABORT: drag CalPeek's menu bar item (⌘-drag) to the right of:$right"; exit 1; }
+  return 0
 }
 
 # Closes CalPeek's Settings window through its own close button. A ⌘W

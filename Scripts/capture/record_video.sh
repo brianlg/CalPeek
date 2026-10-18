@@ -69,10 +69,11 @@ if [[ $WAS_DARK == true ]]; then
 fi
 restore_appearance () { [[ $WAS_DARK == true ]] && osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' >/dev/null 2>&1; true; }
 
-# The video records the real menu bar, so other apps' status items have to be
-# hidden first: System Settings > Menu Bar, or a manager like Ice.
-# assert_clean_menubar, run before each take, is the gate -- it fails the run
-# if any non-Apple item other than CalPeek's is on-screen.
+# The video records the real menu bar. Other apps' status items don't have to
+# be hidden: note_menubar_items records where they are just before each take,
+# and cut_video.sh paints them out. They do have to sit LEFT of CalPeek's
+# glyph, because the cursor's path ends on the glyph and would cross anything
+# to its right that gets painted.
 launch_app
 assert_glyph_visible
 PID=$(pgrep -x CalPeek)
@@ -113,7 +114,7 @@ pin countdown
 sleep 1.5
 input move ${=PARK_LO}
 hide_others
-assert_clean_menubar
+note_menubar_items $OUT/A.items
 wait_clear
 rec A $A_DUR
 
@@ -147,7 +148,7 @@ sleep 1.5
 # hide_others activates Finder, which dismisses the popover, so re-open it
 # here rather than assuming it survived take A.
 hide_others
-assert_clean_menubar
+note_menubar_items $OUT/B.items
 for i in 1 2 3; do [[ $(nwin) -eq 0 ]] && break; input esc; sleep 0.7; done
 GX=$(( $(gx) + $(gw)/2 ))
 input click $GX 12; sleep 1.2

@@ -30,10 +30,21 @@ tracked and gets committed:
    content from your Mac into a marketing asset. The scripts wait for the
    screen to be clear and abort after 20 seconds rather than shoot anyway,
    but that's a safety net, not a substitute.
-2. **Hide other apps' menu bar items** (System Settings › Menu Bar, or Ice)
-   before `video`. The video records the real menu bar, and the run refuses
-   to start a take while any non-Apple item other than CalPeek's is visible.
-   The stills don't need this: they rebuild the menu bar and keep only
+2. **Put CalPeek's menu bar item to the right of every third-party item.**
+   The video records the real menu bar. Other apps' items don't need hiding:
+   just before each take the script records where they are, and
+   `cut_video.sh` paints them out with rebuilt menu bar (`tools/bar_clean`,
+   the same per-row fit against the wallpaper that the stills use). They must
+   sit left of CalPeek, because the cursor's path ends on the glyph and would
+   cross a painted item to its right; the run aborts if one is there. The
+   capture build keeps its own position (status item positions are stored per
+   app), so ⌘-drag *its* item once. It stays put across runs.
+   Items are found through each app's Accessibility menu bar. Items hosted
+   by Control Center (Wi-Fi, battery, clock, and third-party Controls added
+   to the menu bar) are invisible to that, so they are neither listed nor
+   painted: remove any non-Apple Control from the menu bar in System
+   Settings before a video run.
+   The stills don't need any of this: they rebuild the menu bar and keep only
    CalPeek's item.
 3. **Grant Accessibility** to whatever runs the scripts (Terminal, or Claude).
    Synthetic clicks silently do nothing without it.
@@ -110,7 +121,8 @@ takes. Take A shows the month with a countdown; take B opens today, hovers the
 running meeting, ticks the reminder, and creates "Coffee with Dana". The cut
 lands where the meeting starts. `cut_video.sh` trims (`A_IN/A_OUT`,
 `B_IN/B_OUT`: retune these rather than re-shooting), paints over macOS's
-screen-recording indicator, adds captions, and encodes 1920x1080 30fps H.264
+screen-recording indicator, paints out third-party menu bar items, adds
+captions, and encodes 1920x1080 30fps H.264
 with a **silent AAC track**: App Store Connect rejects a preview with no audio
 stream, with a misleading "unsupported or corrupted audio" error. Previews
 must run 15 to 30 seconds.
@@ -133,8 +145,8 @@ must run 15 to 30 seconds.
 
 `capture.sh` is the entry point; `common.sh` holds the shared pieces (paths,
 compiling `tools/` into `AppStoreAssets/_capture/bin` on first use, app
-launch, pins, the menu bar gate, wallpaper save/restore). `tools/*.swift` are
+launch, pins, recording menu bar items, wallpaper save/restore). `tools/*.swift` are
 small single-purpose programs: `input` (clicks, glides, typing), `windows`,
 `grab`, `intruders`, `screen_ready`, `compose_scene`, `compose_window`,
-`mask_region`, `backdrop`, `find_accent`, `find_glyph`, `find_dot`,
+`mask_region`, `backdrop`, `find_accent`, `find_glyph`, `find_dot`, `bar_clean`,
 `desk_clear`, `add_shadow`, `caption`, `caption_frame`.

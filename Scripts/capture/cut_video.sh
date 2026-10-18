@@ -40,48 +40,71 @@ B_IN=0.30  B_OUT=19.8
 # column of clear menu bar stretched across it -- the bar is a smooth
 # horizontal gradient there, so the patch is invisible. Done at 3600 wide,
 # before the downscale, so no softened edge survives into the result.
-norm_filter () {   # norm_filter <take.mov>
+norm_filter () {   # norm_filter <take.mov> <bar patch png or ""> -- graph for input 0 (+ 1)
   local f=$(mktemp -t dotprobe).png
   ffmpeg -v error -y -ss 3.0 -i $1 -frames:v 1 $f
   local out=$(find_dot $f 2>/dev/null) ; rm -f $f
   # fps first, then pixels. screencapture records at up to 120fps; scaling
   # 7-megapixel frames to 1080p and *then* throwing three quarters of them away
   # costs four times what it needs to and pins every core for minutes.
-  if [[ -z $out ]]; then
-    # No indicator in this take -- don't fabricate a patch over clean bar.
-    echo "[0:v]fps=${FPS},${FRAME},scale=${W}:${H}:flags=lanczos,format=yuv420p[v]"
-    return
-  fi
-  local -a lines; lines=(${(f)out})
+  local -a lines; [[ -n $out ]] && lines=(${(f)out})
   local n=${#lines}
-  # One patch per indicator. Patching is done on the FULL frame, before the
-  # crop, because find_dot reports x in full-frame coordinates.
-  local g="[0:v]fps=${FPS},split=$((n + 1))[b0]"
-  local i
-  for (( i = 1; i <= n; i++ )); do g+="[s$i]"; done
-  g+=";"
-  for (( i = 1; i <= n; i++ )); do
-    local l=(${=lines[$i]})
-    g+="[s$i]crop=6:${l[4]}:${l[3]}:0,scale=${l[2]}:${l[4]}[p$i];"
-  done
-  local prev="b0"
+  local g="[0:v]fps=${FPS}" prev i
+  if (( n == 0 )); then
+    # No indicator in this take -- don't fabricate a patch over clean bar.
+    g+="[b0];"
+  else
+    # One patch per indicator. Patching is done on the FULL frame, before the
+    # crop, because find_dot reports x in full-frame coordinates.
+    g+=",split=$((n + 1))[b0]"
+    for (( i = 1; i <= n; i++ )); do g+="[s$i]"; done
+    g+=";"
+    for (( i = 1; i <= n; i++ )); do
+      local l=(${=lines[$i]})
+      g+="[s$i]crop=6:${l[4]}:${l[3]}:0,scale=${l[2]}:${l[4]}[p$i];"
+    done
+  fi
+  prev="b0"
   for (( i = 1; i <= n; i++ )); do
     local l=(${=lines[$i]})
     g+="[$prev][p$i]overlay=${l[1]}:0[o$i];"
     prev="o$i"
   done
+  # Third-party menu bar items, painted out with rebuilt bar (bar_clean).
+  if [[ -n $2 ]]; then
+    g+="[$prev][1:v]overlay=0:0:shortest=1[ob];"
+    prev="ob"
+  fi
   g+="[$prev]${FRAME},scale=${W}:${H}:flags=lanczos,format=yuv420p[v]"
   echo $g
+}
+
+# Builds take <t>'s menu bar patch from a frame of the take, the ground it was
+# shot on, and the item positions record_video.sh noted. Prints its path, or
+# nothing when there is nothing to erase.
+bar_patch () {   # bar_patch <A|B>
+  [[ -f $RAW/$1.items ]] || return 0
+  local f=$(mktemp -t barprobe).png
+  ffmpeg -v error -y -ss 3.0 -i $RAW/$1.mov -frames:v 1 $f
+  bar_clean $f plum.png $RAW/$1.items $RAW/$1.bar.png >&2
+  rm -f $f
+  [[ -f $RAW/$1.bar.png && $RAW/$1.bar.png -nt $RAW/$1.items ]] && echo $RAW/$1.bar.png
+  return 0
 }
 
 for t in A B; do
   [[ -f $RAW/$t.mov ]] || { echo "ABORT: $RAW/$t.mov missing -- run capture.sh video"; exit 1; }
 done
 
-ffmpeg -v error -y -ss $A_IN -to $A_OUT -i $RAW/A.mov -filter_complex "$(norm_filter $RAW/A.mov)" \
-  -map "[v]" -an -c:v libx264 -crf 12 -preset ultrafast $RAW/a_norm.mp4
-ffmpeg -v error -y -ss $B_IN -to $B_OUT -i $RAW/B.mov -filter_complex "$(norm_filter $RAW/B.mov)" \
-  -map "[v]" -an -c:v libx264 -crf 12 -preset ultrafast $RAW/b_norm.mp4
+for t in A B; do
+  local_in=${t}_IN local_out=${t}_OUT
+  rm -f $RAW/$t.bar.png
+  patch=$(bar_patch $t)
+  extra=(); [[ -n $patch ]] && extra=(-loop 1 -i $patch)   # an array: zsh won't split a string
+  ffmpeg -v error -y -ss ${(P)local_in} -to ${(P)local_out} -i $RAW/$t.mov \
+    $extra -filter_complex "$(norm_filter $RAW/$t.mov "$patch")" \
+    -map "[v]" -an -c:v libx264 -crf 12 -preset ultrafast $RAW/${(L)t}_norm.mp4
+done
 
 DA=$(ffprobe -v error -show_entries format=duration -of csv=p=0 $RAW/a_norm.mp4)
 DB=$(ffprobe -v error -show_entries format=duration -of csv=p=0 $RAW/b_norm.mp4)
