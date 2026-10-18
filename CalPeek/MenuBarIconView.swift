@@ -43,7 +43,10 @@ struct MenuBarIconView: View {
     }
 
     var body: some View {
-        VStack(spacing: -1) {
+        // Negative spacing because the two lines' font line boxes leave far
+        // more empty leading between them than their ink needs. Tuned by eye
+        // in the live menu bar: -2 leaves a 3.5pt gap; -3.5 read as cramped.
+        VStack(spacing: -2) {
             Text(verbatim: weekday)
                 .font(.system(size: 7, weight: .bold))
                 .foregroundColor(weekdayColor)
