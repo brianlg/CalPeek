@@ -171,8 +171,10 @@ enum CaptureDemo {
         case .chooser:
             // Staggered by one slot, not stacked: two calls both reading
             // "8:30 - 9:30 AM" in the chooser looks like a rendering fault.
+            // The earlier one runs 90 minutes so it, the banner's meeting,
+            // has at least half an hour left rather than reading "2m left".
             return (DateInterval(start: last, duration: 2 * slot),
-                    DateInterval(start: last.addingTimeInterval(-slot), duration: 2 * slot))
+                    DateInterval(start: last.addingTimeInterval(-slot), duration: 3 * slot))
         }
     }
 

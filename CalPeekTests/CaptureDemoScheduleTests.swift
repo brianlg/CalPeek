@@ -60,6 +60,15 @@ struct CaptureDemoScheduleTests {
         #expect(pinned.banner.start.timeIntervalSince(pinned.chooser.start) == 30 * 60)
     }
 
+    @Test(arguments: [(10, 0), (10, 29), (10, 30), (10, 59)])
+    func chooserBannerMeetingHasAtLeastHalfAnHourLeft(hour: Int, minute: Int) {
+        let now = time(hour, minute)
+        let pinned = CaptureDemo.pinnedMeetings(now: now, pin: .chooser, avoiding: [])
+        // The banner shows whichever running meeting started first.
+        let first = pinned.banner.start < pinned.chooser.start ? pinned.banner : pinned.chooser
+        #expect(first.end.timeIntervalSince(now) >= 30 * 60)
+    }
+
     @Test func parkedMeetingStepsAroundAnotherEventsStart() {
         let now = time(10, 47)
         let free = CaptureDemo.pinnedMeetings(now: now, pin: .running, avoiding: []).chooser

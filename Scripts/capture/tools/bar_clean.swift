@@ -10,21 +10,31 @@ import AppKit
 // the whole take as a single still.
 //
 // The paint is rebuilt menu bar, not a copied column: like compose_scene, it
-// fits each row of the bar as a linear function of the wallpaper under it,
+// fits each row of the bar as a function of the wallpaper under it,
 // from a stretch of bar with nothing in it, then evaluates that at every
 // patched pixel. A run of icons is a few hundred pixels wide, and a single
 // column stretched that far would show as a flat block against the
 // wallpaper's gradient.
 let a = CommandLine.arguments
 guard a.count == 5 else { fputs("usage: bar_clean frame wall items out\n", stderr); exit(2) }
+// Raw stored values, read and written with no colour management. ffmpeg
+// treats PNG samples as plain numbers, so a patch fitted in a converted space
+// (drawing into a DeviceRGB context did) lands visibly darker than the bar
+// around it once overlaid.
 func pixels(_ path: String) -> (data: [UInt8], w: Int, h: Int) {
-    let img = NSImage(contentsOfFile: path)!.cgImage(forProposedRect: nil, context: nil, hints: nil)!
-    let w = img.width, h = img.height
-    var buf = [UInt8](repeating: 0, count: w * h * 4)
-    let c = CGContext(data: &buf, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
-                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-    c.draw(img, in: CGRect(x: 0, y: 0, width: w, height: h))
-    return (buf, w, h)
+    let rep = NSBitmapImageRep(data: try! Data(contentsOf: URL(fileURLWithPath: path)))!
+    precondition(rep.bitsPerSample == 8 && !rep.isPlanar, "\(path): want 8-bit interleaved samples")
+    // Stride by bitsPerPixel, not samplesPerPixel: an RGB frame from ffmpeg
+    // can be stored padded to 4 bytes a pixel.
+    let w = rep.pixelsWide, h = rep.pixelsHigh, stride = rep.bitsPerPixel / 8, bpr = rep.bytesPerRow
+    let src = rep.bitmapData!
+    var out = [UInt8](repeating: 255, count: w * h * 4)
+    for y in 0..<h {
+        for x in 0..<w {
+            for ch in 0..<3 { out[(y * w + x) * 4 + ch] = src[y * bpr + x * stride + ch] }
+        }
+    }
+    return (out, w, h)
 }
 let frame = pixels(a[1]), wall = pixels(a[2])
 let barH = 74      // the menu bar at 2x on a notched display, as find_dot
@@ -61,21 +71,23 @@ if let glyph = items.first(where: { $0.id == capture }), glyph.x - 2 > sampleHiP
 }
 guard !erase.isEmpty else { print("nothing to erase"); exit(0) }
 
-// Rows are counted from the top in both buffers: CGContext's bitmap memory
-// starts at the image's top row.
+// Rows are counted from the top in both buffers, as stored in the PNGs.
 var out = [UInt8](repeating: 0, count: frame.w * barH * 4)
 for row in 0..<barH {
     var coefs = [(Double, Double)]()
     for ch in 0..<3 {
-        var sx = 0.0, sy = 0.0, sxx = 0.0, sxy = 0.0, n = 0.0
+        // A scale through the origin, not slope-plus-offset: the bar is the
+        // wallpaper darkened by a near-constant factor, and over a dark ground
+        // a channel can vary by only a few levels across the sample, which
+        // leaves a free slope at the mercy of dithering noise (green once
+        // came out at 136 against a true 20).
+        var sxx = 0.0, sxy = 0.0
         for col in stride(from: sampleLo, to: sampleHi, by: 2) {
             let x = Double(wall.data[(row * wall.w + col) * 4 + ch])
             let y = Double(frame.data[(row * frame.w + col) * 4 + ch])
-            sx += x; sy += y; sxx += x * x; sxy += x * y; n += 1
+            sxx += x * x; sxy += x * y
         }
-        let d = n * sxx - sx * sx
-        let m = d.magnitude < 1e-6 ? 0 : (n * sxy - sx * sy) / d
-        coefs.append((m, (sy - m * sx) / n))
+        coefs.append((sxx < 1e-6 ? 0 : sxy / sxx, 0))
     }
     for item in erase {
         let lo = max(0, (item.x - pad) * 2), hi = min(frame.w, (item.x + item.w + pad) * 2)
@@ -89,8 +101,9 @@ for row in 0..<barH {
         }
     }
 }
-let ctx = CGContext(data: &out, width: frame.w, height: barH, bitsPerComponent: 8, bytesPerRow: frame.w * 4,
-                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-try! NSBitmapImageRep(cgImage: ctx.makeImage()!).representation(using: .png, properties: [:])!
-    .write(to: URL(fileURLWithPath: a[4]))
+let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: frame.w, pixelsHigh: barH,
+                           bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                           colorSpaceName: .deviceRGB, bytesPerRow: frame.w * 4, bitsPerPixel: 32)!
+out.withUnsafeBufferPointer { rep.bitmapData!.update(from: $0.baseAddress!, count: out.count) }
+try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: a[4]))
 for item in erase { print("erased \(item.id) at \(item.x)pt") }

@@ -145,13 +145,15 @@ ROWS=$(pin running)
 echo "$ROWS"
 sleep 1.5
 
-# hide_others activates Finder, which dismisses the popover, so re-open it
-# here rather than assuming it survived take A.
+# Take B starts with the panel open on the month. It may have survived take A
+# (activating Finder doesn't always dismiss it, and Esc goes to Finder), and
+# a click on the glyph toggles, so click only when it's actually closed.
 hide_others
 note_menubar_items $OUT/B.items
-for i in 1 2 3; do [[ $(nwin) -eq 0 ]] && break; input esc; sleep 0.7; done
-GX=$(( $(gx) + $(gw)/2 ))
-input click $GX 12; sleep 1.2
+if [[ $(nwin) -eq 0 ]]; then
+  GX=$(( $(gx) + $(gw)/2 ))
+  input click $GX 12; sleep 1.2
+fi
 input move ${=PARK_LO}; sleep 1.0
 assert 1 "reopen for take B"
 POP=$(windows | tail -1); PX=${POP[(w)2]} PY=${POP[(w)3]} PW=${POP[(w)4]}
@@ -188,8 +190,19 @@ DID=$(windows | head -1 | cut -d' ' -f1)
 screencapture -x -o -l $DID $OUT/_day_alpha.png
 GLYPHS=$(find_glyph $OUT/_day_alpha.png)
 [[ $(echo "$GLYPHS" | wc -l | tr -d ' ') -ge 4 ]] || { echo "ABORT: expected >=4 row glyphs"; echo "$GLYPHS"; exit 1; }
-glyph_x () { echo $(printf '%.0f' $((DX + $(echo "$GLYPHS" | sed -n "${1}p" | cut -d' ' -f1)))); }
-row_y   () { echo $(printf '%.0f' $((DY + $(echo "$GLYPHS" | sed -n "${1}p" | cut -d' ' -f2)))); }
+# A `-l` capture spans the whole panel group, so its coordinates start at the
+# group's top-left (the day panel opens down and to the left of the month),
+# not at the day panel's own origin.
+GX0=$(windows | awk 'NR==1||$2<m{m=$2}END{print m}')
+GY0=$(windows | awk 'NR==1||$3<m{m=$3}END{print m}')
+# find_glyph finds rows by their calendar icon; a reminder draws a ring
+# instead, so its row is missing from the list. Rows are evenly spaced, so
+# row N sits N-1 spacings below the first, icon or not.
+G1X=$(echo "$GLYPHS" | head -1 | cut -d' ' -f1)
+G1Y=$(echo "$GLYPHS" | head -1 | cut -d' ' -f2)
+GDY=$(echo "$GLYPHS" | awk 'NR>1{d=$2-p; if(m==""||d<m)m=d}{p=$2}END{print m}')
+glyph_x () { echo $(printf '%.0f' $((GX0 + G1X))); }
+row_y   () { echo $(printf '%.0f' $((GY0 + G1Y + ($1 - 1) * GDY))); }
 MEETING_ROW=$(echo "$ROWS" | awk '/^row .* Team standup$/ {print $2}')
 REMINDER_ROW=$(echo "$ROWS" | awk '/^row .* Submit timesheet$/ {print $2}')
 [[ -n $MEETING_ROW && -n $REMINDER_ROW ]] || { echo "ABORT: could not derive rows"; echo "$ROWS"; exit 1; }

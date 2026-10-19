@@ -38,8 +38,10 @@ nwin () { windows | wc -l | tr -d ' '; }
 # the countdown text, so a strip captured once goes stale mid-run.
 strip_of () {
   local x=$(glyph_x) w=$(glyph_w)
-  grab_rect $((x - 6)),0,$((w + 8)),38 $1
-  echo $((x - 6))
+  # 1pt of margin, not more: the items to CalPeek's left are third-party,
+  # and a wider cut brings the edge of the neighbouring icon with it.
+  grab_rect $((x - 1)),0,$((w + 3)),38 $1
+  echo $((x - 1))
 }
 
 # A notification banner landing mid-capture puts real content from the
