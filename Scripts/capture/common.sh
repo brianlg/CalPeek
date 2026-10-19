@@ -55,6 +55,7 @@ launch_app () {
   done
   grep -q '^capture: ready' $APP_LOG || { echo "ABORT: capture app never reported ready"; cat $APP_LOG; exit 1; }
   sleep 1.5   # let the glyph and badge settle
+  assert_only_capture_app
   echo "capture app up, demo data seeded"
 }
 
@@ -122,7 +123,22 @@ ensure_ground () {
 # The menu bar glyph has to be on-screen for any click to land. Ice (menu bar
 # manager) parks hidden items at large negative x, and a capture build has a
 # bundle ID of its own, which Ice may treat as a new item.
+# Every window and menu bar lookup here goes by the process name "CalPeek",
+# which the installed app and Debug builds share. One of those running
+# alongside the capture build gets driven instead: a whole run once shot
+# CalPeek Debug's glyph, purple marker and all, with no panel open.
+assert_only_capture_app () {
+  local pids=(${(f)"$(pgrep -x CalPeek)"})
+  local pid
+  for pid in $pids; do
+    [[ $(ps -o command= -p $pid) == $APP/* ]] || {
+      echo "ABORT: another CalPeek is running ($(ps -o command= -p $pid | cut -d' ' -f1)); quit it and retry"; exit 1; }
+  done
+  (( ${#pids} == 1 )) || { echo "ABORT: want exactly the capture app running, found ${#pids} CalPeek processes"; exit 1; }
+}
+
 assert_glyph_visible () {
+  assert_only_capture_app
   local x=$(osascript -e 'tell application "System Events" to tell process "CalPeek" to get position of every menu bar item of menu bar 2' | cut -d, -f1 | tr -d ' ')
   [[ -n $x && $x -ge 0 ]] || { echo "ABORT: CalPeek's menu bar item is off-screen (x=$x); show it in Ice and retry"; exit 1; }
 }
