@@ -29,13 +29,13 @@ frame 01-hero-next-meeting 01-hero left 0.07 0.50 0.48 \
   "CalPeek lives in your menu bar, so today's date is always in sight and your whole month is one click away."
 frame 02-day-agenda 02-day left 0.07 0.50 0.36 \
   'Peek at any day.' \
-  'Click a day to see its events and reminders together, with times, colors, and meeting links. Check reminders off without leaving the popover.'
+  'Click a day to see its events and reminders together, with times, colors, and meeting links. Check reminders off without leaving the panel.'
 frame 03-quick-add 03-create left 0.07 0.50 0.36 \
   'Create in seconds.' \
   "New events and reminders, right where you're looking. Pick a day, hit +, type. No app switch, no friction."
 frame 05-join-chooser 04-join left 0.07 0.50 0.48 \
   'Never hunt for the\nmeeting link.' \
-  'CalPeek finds the video link in your next meeting and puts a Join button in the popover, with a live countdown in your menu bar. Double booked? Choose which one to join.'
+  'CalPeek finds the video link in your next meeting and puts a Join button in the panel, with a live countdown in your menu bar. Double booked? Choose which one to join.'
 # Mirrored, copy on the right: the Settings window lands left of centre.
 frame 04-appearance 05-personalize left 0.545 0.50 0.40 \
   'Make it yours.' \
