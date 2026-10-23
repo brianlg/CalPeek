@@ -65,7 +65,7 @@ enum ReminderFetcher {
     /// filters by completion date, not due date — so fetch-all is the only
     /// single query that shows completed reminders on their due date.
     static func allSnapshots(from store: SendableEventStore, calendar: Calendar) async -> [ReminderSnapshot] {
-        let predicate = store.store.predicateForReminders(in: nil)
+        let predicate = store.store.predicateForReminders(in: store.store.appCalendars(for: .reminder))
         return await snapshots(from: store, matching: predicate, calendar: calendar)
     }
 
@@ -74,7 +74,7 @@ enum ReminderFetcher {
         from store: SendableEventStore, start: Date, end: Date, calendar: Calendar
     ) async -> [ReminderSnapshot] {
         let predicate = store.store.predicateForIncompleteReminders(
-            withDueDateStarting: start, ending: end, calendars: nil)
+            withDueDateStarting: start, ending: end, calendars: store.store.appCalendars(for: .reminder))
         return await snapshots(from: store, matching: predicate, calendar: calendar)
     }
 
@@ -89,6 +89,28 @@ enum ReminderFetcher {
                 })
             }
         }
+    }
+}
+
+extension EKEventStore {
+    /// The calendars every query reads and every new item may go into: all
+    /// of them (nil, EventKit's "every calendar"), except in a capture
+    /// build's demo mode, which confines the app to its own demo calendar
+    /// and reminder list so the user's real events can never reach a
+    /// marketing screenshot. See `CaptureDemo`.
+    func appCalendars(for entityType: EKEntityType) -> [EKCalendar]? {
+        #if CAPTURE
+        if let demo = CaptureDemo.calendars(for: entityType, in: self) { return demo }
+        #endif
+        return nil
+    }
+
+    /// Where a new item goes when the user doesn't pick: the system default
+    /// (the Calendar and Reminders apps' own setting), or the demo calendar
+    /// under `appCalendars(for:)`'s confinement.
+    func appDefaultCalendar(for entityType: EKEntityType) -> EKCalendar? {
+        if let confined = appCalendars(for: entityType) { return confined.first }
+        return entityType == .event ? defaultCalendarForNewEvents : defaultCalendarForNewReminders()
     }
 }
 
@@ -109,7 +131,7 @@ extension EKEventStore {
     /// or when no default calendar is set.
     var defaultEventColor: Color? {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess,
-              let cgColor = defaultCalendarForNewEvents?.cgColor else { return nil }
+              let cgColor = appDefaultCalendar(for: .event)?.cgColor else { return nil }
         return Color(cgColor: cgColor)
     }
 
@@ -122,7 +144,7 @@ extension EKEventStore {
     var defaultReminderColor: Color? {
         guard RemindersAccess.hasFullAccess else { return nil }
         let cgColor = Self.defaultReminderListColors.value(for: ObjectIdentifier(self)) {
-            defaultCalendarForNewReminders()?.cgColor
+            appDefaultCalendar(for: .reminder)?.cgColor
         }
         return cgColor.map { Color(cgColor: $0) }
     }
@@ -154,7 +176,7 @@ extension EKEventStore {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         guard let end = calendar.date(byAdding: .day, value: 1, to: today) else { return [] }
-        return events(matching: predicateForEvents(withStart: today, end: end, calendars: nil))
+        return events(matching: predicateForEvents(withStart: today, end: end, calendars: appCalendars(for: .event)))
     }
 
     @MainActor
