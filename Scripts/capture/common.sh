@@ -117,7 +117,7 @@ restore_wallpaper () {
 
 # The capture ground, scaled to this display's backing size; see makeplum.sh.
 ensure_ground () {
-  [[ -f $WORK/plum.png && $WORK/plum.png -nt $CAPTURE_DIR/ground.png ]] || $CAPTURE_DIR/makeplum.sh
+  [[ -f $WORK/plum.png && $WORK/plum.png -nt $CAPTURE_DIR/ground.jpg ]] || $CAPTURE_DIR/makeplum.sh
 }
 
 # The menu bar glyph has to be on-screen for any click to land. Ice (menu bar

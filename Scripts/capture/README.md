@@ -104,7 +104,7 @@ at 9 PM the banner meeting is a 9:30 PM standup.
 ## What each step does
 
 **stills** (`shoot_appstore.sh`, then `caption_appstore.sh`): five 2880x1800
-frames on the plum ground (`ground.png`): hero with countdown, day agenda,
+frames on the plum ground (`ground.jpg`): hero with countdown, day agenda,
 quick add, Appearance settings, join chooser. It sets the desktop wallpaper
 because the menu bar is translucent over the wallpaper, and `compose_scene`
 rebuilds the bar from an empty sample of it plus CalPeek's own item. Your
