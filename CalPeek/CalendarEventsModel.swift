@@ -202,11 +202,11 @@ final class CalendarEventsModel {
     }
 
     var defaultEventCalendar: EKCalendar? {
-        store.defaultCalendarForNewEvents
+        store.appDefaultCalendar(for: .event)
     }
 
     var defaultReminderCalendar: EKCalendar? {
-        store.defaultCalendarForNewReminders()
+        store.appDefaultCalendar(for: .reminder)
     }
 
     /// Calendars a new event may be saved into: the default calendar first,
@@ -221,7 +221,8 @@ final class CalendarEventsModel {
     }
 
     private func writableCalendars(for entityType: EKEntityType, default defaultCalendar: EKCalendar?) -> [EKCalendar] {
-        let writable = store.calendars(for: entityType).filter(\.allowsContentModifications)
+        let writable = (store.appCalendars(for: entityType) ?? store.calendars(for: entityType))
+            .filter(\.allowsContentModifications)
         let rest = writable
             .filter { $0.calendarIdentifier != defaultCalendar?.calendarIdentifier }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
@@ -349,7 +350,7 @@ final class CalendarEventsModel {
         let start = calendar.startOfDay(for: date)
         guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return [] }
 
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: store.appCalendars(for: .event))
         return store.events(matching: predicate).map { event in
             DayItem(
                 // Recurring occurrences share an identifier, so qualify it
@@ -408,7 +409,7 @@ final class CalendarEventsModel {
     func event(withIdentifier identifier: String, startingAt start: Date, calendar: Calendar) -> EKEvent? {
         let dayStart = calendar.startOfDay(for: start)
         guard let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return nil }
-        let predicate = store.predicateForEvents(withStart: dayStart, end: dayEnd, calendars: nil)
+        let predicate = store.predicateForEvents(withStart: dayStart, end: dayEnd, calendars: store.appCalendars(for: .event))
         return store.events(matching: predicate).first {
             $0.eventIdentifier == identifier && $0.startDate == start
         }
@@ -463,7 +464,7 @@ final class CalendarEventsModel {
         // Long-running stores serve stale snapshots after external syncs
         // (e.g. an event added on another device); make sure ours is current.
         store.refreshSourcesIfNecessaryOncePerPass()
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
+        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: store.appCalendars(for: .event))
         daysWithEvents = Self.markedEventDays(
             store.events(matching: predicate).map { DateInterval(start: $0.startDate, end: $0.endDate) },
             window: DateInterval(start: start, end: end),
