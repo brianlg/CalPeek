@@ -93,6 +93,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // checks run even if the user never opens the menu or Settings.
         _ = UpdaterController.shared
         #endif
+        #if CAPTURE
+        CaptureDemo.start()
+        #endif
         configureCalendarPanel()
         configureStatusItem()
         observeDateChanges()
@@ -124,6 +127,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             UserDefaults.standard.removeObserver(self, forKeyPath: $0)
         }
         joinHotKey = nil
+        #if CAPTURE
+        CaptureDemo.tearDown()
+        #endif
     }
 
     // MARK: - Status item

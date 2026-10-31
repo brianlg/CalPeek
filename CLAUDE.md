@@ -105,6 +105,12 @@ Rules for changes:
   the glyph's purple marker bar, and the suppressed Launch at Login toggle all
   rely on this. Debug-only strings stay out of `Localizable.xcstrings` — they
   never ship.
+- **Marketing-capture code goes inside `#if CAPTURE`**, not `#if DEBUG`:
+  assets are shot from a Release build (Debug's marker bar and missing Launch
+  at Login row must not reach a screenshot). `CAPTURE` is on in Debug, for the
+  tests, and added on the command line by `Scripts/capture/capture.sh build`;
+  it is never in `project.yml`'s Release settings, so no archive contains it.
+  See `Scripts/capture/README.md`.
 - **Never weaken production logic to make testing work.** If something can't be
   tested without a code change, gate the accommodation to Debug and say why in
   a comment.
@@ -120,7 +126,7 @@ Rules for changes:
 - **Swift 6**, strict concurrency. UI/AppKit-touching types are `@MainActor`.
 - Match the existing house style: `final class`, `///` doc comments explaining *why* (not what), `// MARK:` section dividers, small focused files (one view/model per file).
 - Keep it minimal. Don't add abstractions, layers, or files beyond what the change needs.
-- Source layout: `CalPeekApp.swift` (entry, `LSUIElement`), `AppDelegate.swift` (status item, popover, menu, glyph rendering), `MenuBarIconView.swift` (glyph), `CalendarPopoverView.swift` (month view), `SettingsView.swift`, plus models (`*Model.swift`), `WeekdayColor.swift`, `MeetingLinkParser.swift`, `RemindersSupport.swift`, `Preferences.swift`, `GlobalHotKey.swift`.
+- Source layout: `CalPeekApp.swift` (entry, `LSUIElement`), `AppDelegate.swift` (status item, popover, menu, glyph rendering), `MenuBarIconView.swift` (glyph), `CalendarPopoverView.swift` (month view), `SettingsView.swift`, plus models (`*Model.swift`), `WeekdayColor.swift`, `MeetingLinkParser.swift`, `RemindersSupport.swift`, `Preferences.swift`, `GlobalHotKey.swift`, `CaptureDemo.swift` (marketing-capture demo data).
 - User-facing strings go through `Localizable.xcstrings`.
 
 ## Dependencies
