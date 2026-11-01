@@ -14,7 +14,7 @@
 at the date in your menu bar, click it to peek at your month, your day, and
 your next meeting. Free and open source.</p>
 
-<p><a href="https://github.com/brianlg/CalPeek/releases/latest/download/CalPeek-1.1.dmg"><strong>Download CalPeek 1.1 for macOS</strong></a></p>
+<p><a href="https://github.com/brianlg/CalPeek/releases/latest/download/CalPeek-1.2.dmg"><strong>Download CalPeek 1.2 for macOS</strong></a></p>
 
 </td>
 <td width="45%" valign="middle">
@@ -131,7 +131,7 @@ it, use all of it, keep it forever.
 
 ## Install
 
-[Download CalPeek 1.1](https://github.com/brianlg/CalPeek/releases/latest/download/CalPeek-1.1.dmg),
+[Download CalPeek 1.2](https://github.com/brianlg/CalPeek/releases/latest/download/CalPeek-1.2.dmg),
 open the `.dmg`, and drag CalPeek to your Applications folder. The build is
 signed and notarized, and it updates itself via
 [Sparkle](https://sparkle-project.org). CalPeek is also on the
