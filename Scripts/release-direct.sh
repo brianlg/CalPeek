@@ -269,7 +269,7 @@ rmdir "$MOUNT"
 # the version: once a newer release becomes "latest", a link to the previous
 # DMG 404s. That is worse than a stale page link, and it is exactly the kind of
 # edit that gets forgotten at release time — so the release does it.
-step "Pointing the README at $version…"
+step "Pointing the README at ${version}…"
 README="$ROOT/README.md"
 before="$(cat "$README")"
 # Both forms: the asset filename, and the human-readable link text.
