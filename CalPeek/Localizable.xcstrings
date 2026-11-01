@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "(No Title)" : {
+
+    },
     "%@ · %@" : {
       "localizations" : {
         "en" : {
@@ -27,9 +30,6 @@
     "%lldm" : {
 
     },
-    "(No Title)" : {
-
-    },
     "1 day before" : {
 
     },
@@ -37,6 +37,12 @@
 
     },
     "1 hour before" : {
+
+    },
+    "4 hours" : {
+
+    },
+    "5 minutes before" : {
 
     },
     "10 minutes" : {
@@ -51,19 +57,13 @@
     "30 minutes before" : {
 
     },
-    "4 hours" : {
-
-    },
-    "5 minutes before" : {
-
-    },
     "About" : {
 
     },
-    "Access is restricted on this Mac." : {
+    "Accent Color" : {
 
     },
-    "Accent Color" : {
+    "Access is restricted on this Mac." : {
 
     },
     "Add the event name to the menu bar." : {
@@ -73,6 +73,9 @@
 
     },
     "All Day" : {
+
+    },
+    "all-day" : {
 
     },
     "Allow" : {
@@ -105,25 +108,28 @@
     "Both are optional. CalPeek works as a clean month calendar either way." : {
 
     },
-    "CalPeek" : {
-
-    },
-    "CalPeek Lives in the Menu Bar" : {
-
-    },
-    "CalPeek is ready. You can change any of this later in Settings." : {
-
-    },
-    "CalPeek needs full calendar access to show events." : {
+    "briangibson.dev" : {
 
     },
     "Calendar" : {
 
     },
+    "Calendar access is off." : {
+
+    },
     "Calendar Events" : {
 
     },
-    "Calendar access is off." : {
+    "CalPeek" : {
+
+    },
+    "CalPeek is ready. You can change any of this later in Settings." : {
+
+    },
+    "CalPeek Lives in the Menu Bar" : {
+
+    },
+    "CalPeek needs full calendar access to show events." : {
 
     },
     "Cancel" : {
@@ -153,6 +159,9 @@
     "Colors the weekday name in the menu bar." : {
 
     },
+    "Completed" : {
+
+    },
     "Connect Your Calendar" : {
 
     },
@@ -178,6 +187,9 @@
 
     },
     "Day" : {
+
+    },
+    "day %@" : {
 
     },
     "Days" : {
@@ -252,7 +264,26 @@
     "Green" : {
 
     },
+    "has events today" : {
+
+    },
     "How far ahead CalPeek starts showing your next meeting." : {
+
+    },
+    "in %@" : {
+
+    },
+    "in %lldh %lldm" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "in %1$lldh %2$lldm"
+          }
+        }
+      }
+    },
+    "in %lldm" : {
 
     },
     "Include meeting title" : {
@@ -274,9 +305,6 @@
 
     },
     "Join next meeting with ⌥⌘J" : {
-
-    },
-    "Join %@" : {
 
     },
     "Launch at Login" : {
@@ -324,6 +352,9 @@
     "Next Meeting" : {
 
     },
+    "Next month" : {
+
+    },
     "None" : {
 
     },
@@ -333,19 +364,28 @@
     "Nothing here." : {
 
     },
+    "now" : {
+
+    },
+    "Off" : {
+
+    },
     "OK" : {
 
     },
-    "Open CalPeek at login" : {
+    "On" : {
 
     },
-    "Open Settings" : {
+    "Open CalPeek at login" : {
 
     },
     "Open in Calendar" : {
 
     },
     "Open in Reminders" : {
+
+    },
+    "Open Settings" : {
 
     },
     "Opens the video link for your next meeting from anywhere. CalPeek finds links from Zoom, Google Meet, Teams, Webex, and most other services." : {
@@ -355,6 +395,9 @@
 
     },
     "Permissions" : {
+
+    },
+    "Previous month" : {
 
     },
     "Purple" : {
@@ -417,28 +460,28 @@
     "Settings…" : {
 
     },
-    "Show CalPeek" : {
+    "Show busy days at a glance, and open any day for the details." : {
 
     },
     "Show Calendar" : {
 
     },
-    "Show Reminders" : {
-
-    },
-    "Show Welcome Guide" : {
-
-    },
-    "Show busy days at a glance, and open any day for the details." : {
+    "Show CalPeek" : {
 
     },
     "Show in menu bar" : {
+
+    },
+    "Show Reminders" : {
 
     },
     "Show upcoming meeting within" : {
 
     },
     "Show week numbers" : {
+
+    },
+    "Show Welcome Guide" : {
 
     },
     "Shows a countdown to your next meeting." : {
@@ -487,6 +530,9 @@
     "Week" : {
 
     },
+    "Week %lld" : {
+
+    },
     "Weekday Color" : {
 
     },
@@ -521,37 +567,6 @@
 
     },
     "Zoom" : {
-
-    },
-    "all-day" : {
-
-    },
-    "briangibson.dev" : {
-
-    },
-    "day %@" : {
-
-    },
-    "has events today" : {
-
-    },
-    "in %@" : {
-
-    },
-    "in %lldh %lldm" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "in %1$lldh %2$lldm"
-          }
-        }
-      }
-    },
-    "in %lldm" : {
-
-    },
-    "now" : {
 
     }
   },
